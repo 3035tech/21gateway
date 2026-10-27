@@ -22,6 +22,7 @@ import { CredentialTestDialog } from './CredentialTestDialog'
 import { useTranslation } from 'react-i18next'
 import { RecordDetailsDialog } from '../../components/admin/RecordDetailsDialog'
 import { errorMessage } from '../../lib/admin'
+import { Check, Copy } from 'lucide-react'
 export function CredentialsPage({
   companyId,
   companyName,
@@ -56,6 +57,22 @@ export function CredentialsPage({
     username: string
     password: string
   } | null>(null)
+  const [copiedSecret, setCopiedSecret] = useState<'username' | 'password' | 'both' | null>(null)
+  const [copyFailed, setCopyFailed] = useState(false)
+  async function copySecret(value: string, part: 'username' | 'password' | 'both') {
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopiedSecret(part)
+      setCopyFailed(false)
+    } catch {
+      setCopyFailed(true)
+    }
+  }
+  function closeSecret() {
+    setSecret(null)
+    setCopiedSecret(null)
+    setCopyFailed(false)
+  }
   const [testCredential, setTestCredential] = useState<Credential | null>(null)
   const [openedAt] = useState(() => Date.now())
   const linkedCredential = linkedRecord.data
@@ -388,31 +405,43 @@ export function CredentialsPage({
               ? t('credentials.secretTitle')
               : t('credentials.usernameTitle')
           }
-          onClose={() => setSecret(null)}
+          onClose={closeSecret}
         >
           <p className="mb-4 text-sm text-slate-600">
             {secret.password
               ? t('credentials.secretHint')
               : t('credentials.usernameHint')}
           </p>
-          <label className="field">
-            {t('credentials.username')}
-            <input readOnly className="form-control" value={secret.username} />
-          </label>
+          <div className="field">
+            <label htmlFor="credential-secret-username">{t('credentials.username')}</label>
+            <div className="flex gap-2">
+              <input id="credential-secret-username" readOnly className="form-control min-w-0 flex-1" value={secret.username} />
+              <button type="button" className="button-secondary shrink-0" onClick={() => copySecret(secret.username, 'username')} aria-label={t('credentials.copyUsername')}>
+                {copiedSecret === 'username' ? <Check size={17} aria-hidden="true" /> : <Copy size={17} aria-hidden="true" />}
+              </button>
+            </div>
+          </div>
           {secret.password ? (
-            <label className="field mt-4">
-              {t('auth.password')}
-              <input
-                readOnly
-                autoComplete="off"
-                className="form-control font-mono"
-                value={secret.password}
-              />
-            </label>
+            <div className="field mt-4">
+              <label htmlFor="credential-secret-password">{t('auth.password')}</label>
+              <div className="flex gap-2">
+                <input id="credential-secret-password" readOnly autoComplete="off" className="form-control min-w-0 flex-1 font-mono" value={secret.password} />
+                <button type="button" className="button-secondary shrink-0" onClick={() => copySecret(secret.password, 'password')} aria-label={t('credentials.copyPassword')}>
+                  {copiedSecret === 'password' ? <Check size={17} aria-hidden="true" /> : <Copy size={17} aria-hidden="true" />}
+                </button>
+              </div>
+            </div>
           ) : null}
+          {secret.password ? (
+            <button type="button" className="button-secondary mt-4 w-full" onClick={() => copySecret(`${t('credentials.username')}: ${secret.username}\n${t('auth.password')}: ${secret.password}`, 'both')}>
+              {copiedSecret === 'both' ? <Check size={17} aria-hidden="true" /> : <Copy size={17} aria-hidden="true" />}
+              {t(copiedSecret === 'both' ? 'credentials.copiedAccess' : 'credentials.copyAccess')}
+            </button>
+          ) : null}
+          {copyFailed ? <p role="alert" className="mt-3 text-sm text-rose-700">{t('credentials.copyFailed')}</p> : null}
           <button
             className="button-primary mt-6 w-full"
-            onClick={() => setSecret(null)}
+            onClick={closeSecret}
           >
             {t('credentials.savedCredential')}
           </button>
