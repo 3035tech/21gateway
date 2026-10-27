@@ -39,6 +39,9 @@ jobs:
         run: |
           image=ghcr.io/3035tech/21gateway-front
           tags="${image}:sha-${GITHUB_SHA}"
+          if [[ "$GITHUB_REF" == refs/heads/main ]]; then
+            tags="${tags},${image}:hml"
+          fi
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             tags="${tags},${image}:${GITHUB_REF_NAME#v}"
           fi
