@@ -148,7 +148,7 @@ export function DataTable<T>({
                             ? 'descending'
                             : 'none'
                       }
-                      className="whitespace-nowrap px-5 py-3 font-semibold"
+                      className={`whitespace-nowrap px-5 py-3 font-semibold ${header.column.id === 'actions' ? 'text-center' : ''}`}
                     >
                       {header.isPlaceholder ? null : header.column.getCanSort() ? (
                         <button
@@ -231,11 +231,20 @@ export function DataTable<T>({
                   {row.getVisibleCells().map((cell) => (
                     <td
                       key={cell.id}
-                      className="px-5 py-3.5 align-middle text-slate-700"
+                      className={`px-5 py-3.5 align-middle text-slate-700 ${cell.column.id === 'actions' ? 'text-center' : ''}`}
                     >
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext(),
+                      {cell.column.id === 'actions' ? (
+                        <div className="flex justify-center">
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext(),
+                          )}
+                        </div>
+                      ) : (
+                        flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
+                        )
                       )}
                     </td>
                   ))}
