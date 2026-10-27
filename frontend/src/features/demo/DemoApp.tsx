@@ -18,6 +18,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '../../components/data-table/DataTable'
 import { useListState } from '../../components/data-table/useListState'
 import { initialRows, sections } from './data'
+import { roleDescriptions } from '../../lib/admin'
 import type { DemoRow, Section } from './data'
 
 function Badge({ value }: { value: string }) {
@@ -366,12 +367,7 @@ function Listing({
     {
       accessorKey: 'company',
       header: section === 'usuarios' ? 'Perfil' : 'Empresa',
-      cell: ({ row }) =>
-        section === 'usuarios'
-          ? ['Administrador', 'Operador', 'Consulta'][
-              rows.indexOf(row.original) % 3
-            ]
-          : row.original.company,
+      cell: ({ row }) => row.original.company,
     },
     {
       accessorKey: 'status',
@@ -433,7 +429,8 @@ function Listing({
                 name: '',
                 detail: '',
                 scheduledAt: '',
-                company: 'Horizonte Saúde',
+                company:
+                  section === 'usuarios' ? 'Consulta' : 'Horizonte Saúde',
                 status: 'Ativo',
                 date: '',
               })
@@ -550,6 +547,34 @@ function Listing({
                     ))}
                   </select>
                 </label>
+              ) : null}
+              {section === 'usuarios' ? (
+                <div className="space-y-2">
+                  <label className="flex flex-col gap-2 text-sm font-semibold">
+                    Perfil
+                    <select
+                      className="form-control"
+                      value={editing.company}
+                      onChange={(event) =>
+                        setEditing({ ...editing, company: event.target.value })
+                      }
+                    >
+                      <option>Consulta</option>
+                      <option>Operador</option>
+                      <option>Administrador</option>
+                    </select>
+                  </label>
+                  <p className="rounded-lg border border-purple-100 bg-purple-50 px-4 py-3 text-sm leading-6 text-purple-950">
+                    {roleDescriptions[
+                      editing.company === 'Administrador'
+                        ? 'admin'
+                        : editing.company === 'Operador'
+                          ? 'operator'
+                          : 'viewer'
+                    ]}{' '}
+                    Todos os perfis são da equipe interna.
+                  </p>
+                </div>
               ) : null}
               <label className="flex flex-col gap-2 text-sm font-semibold">
                 Status

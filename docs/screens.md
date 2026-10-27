@@ -5,7 +5,7 @@
 
 Login, visão geral, empresas, usuários internos, credenciais externas, envios, callbacks e auditoria conectados à API administrativa. Campos e permissões em docs/backoffice.md. Usuários/auditoria acessíveis somente a administradores; operação de cadastros/credenciais/callbacks disponível a operadores e administradores; consulta não permite alterações.
 
-Empresas e usuários: formulários próprios, status ativo/bloqueado e confirmação de arquivamento. Usuários internos têm perfil e convite por e-mail para definir senha; o admin não digita senhas no cadastro/edição. Credenciais têm empresa, username, status e configuração de callback; criação/rotação exibe a senha uma vez. Arquivar preserva histórico.
+Empresas e usuários: formulários próprios, status ativo/bloqueado e confirmação de arquivamento. Usuários internos escolhem Consulta, Operador ou Administrador, com Consulta como sugestão inicial e descrição de permissões; o convite por e-mail permite definir a própria senha, que o admin não digita no cadastro/edição. A prévia também mostra o seletor de perfil. Credenciais têm empresa, username, status e configuração de callback; criação/rotação exibe a senha uma vez. Arquivar preserva histórico.
 
 O administrador pode abrir **Testar credencial** após salvar: instrução para checagem Basic Auth/IP da rede do cliente, envio controlado ao número de homologação configurado e consulta posterior de DLR. Aceite do fornecedor e entrega são exibidos separadamente. Detalhes e limites em [credential-testing.md](credential-testing.md).
 

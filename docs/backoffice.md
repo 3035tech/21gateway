@@ -7,11 +7,13 @@ Empresas, usuários internos, credenciais externas, envios, callbacks, auditoria
 
 | Perfil interno | Permissões |
 | --- | --- |
-| Consulta (`viewer`) | Ler empresas, credenciais, envios, callbacks e resumo |
-| Operador (`operator`) | Permissões de consulta; criar/editar/arquivar empresas e credenciais; trocar senhas da API e reprocessar callbacks falhos |
-| Administrador (`admin`) | Permissões de operador; gerir usuários e consultar auditoria |
+| Consulta (`viewer`) | Ver dashboard, empresas, credenciais, envios, agendamentos e callbacks; sem alterações |
+| Operador (`operator`) | Permissões de consulta; criar/editar/arquivar empresas e credenciais, trocar senhas da API e reprocessar callbacks falhos |
+| Administrador (`admin`) | Permissões de operador; gerir usuários, consultar auditoria e fazer envio de homologação para o número configurado |
 
 Usuários internos não pertencem automaticamente a uma empresa cliente. Todos os perfis são da equipe interna e consultam a operação inteira. Clientes externos recebem somente credenciais Basic Auth vinculadas à sua empresa. Um portal de clientes com acesso restrito por empresa não está implementado.
+
+O cadastro oferece esses três perfis fixos e sugere `viewer` para novas contas. A descrição da permissão aparece ao selecionar cada opção. O dashboard está disponível aos três perfis; usuários e auditoria continuam exclusivos do administrador. A autorização efetiva é feita no backend.
 
 ## Autenticação
 

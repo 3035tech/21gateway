@@ -15,7 +15,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 const navigation = [
-  ['/', 'Visão geral', LayoutDashboard, true],
+  ['/', 'Visão geral', LayoutDashboard, false],
   ['/empresas', 'Empresas', Building2, false],
   ['/usuarios', 'Usuários', Users, true],
   ['/credenciais', 'Credenciais da API', KeyRound, false],

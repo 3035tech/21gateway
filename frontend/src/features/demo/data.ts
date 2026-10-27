@@ -154,7 +154,10 @@ export const initialRows: Record<Section, DemoRow[]> = Object.fromEntries(
             key === 'agendamentos'
               ? `2026-10-${String(26 + Math.floor(i / 12)).padStart(2, '0')}T${String(8 + (i % 12)).padStart(2, '0')}:00:00`
               : '',
-          company,
+          company:
+            key === 'usuarios'
+              ? ['Administrador', 'Operador', 'Consulta'][i % 3]
+              : company,
           status,
           date:
             key === 'agendamentos'

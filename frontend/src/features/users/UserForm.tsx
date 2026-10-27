@@ -1,10 +1,10 @@
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { userFormSchema, saveUser } from './api'
 import type { SystemUser, UserBody } from './api'
 import { roles } from '../auth/api'
-import { roleLabels } from '../../lib/admin'
+import { roleDescriptions, roleLabels } from '../../lib/admin'
 import { Dialog } from '../../components/admin/Dialog'
 import { FormFooter, FieldError } from '../../components/admin/FormFooter'
 export function UserForm({
@@ -20,10 +20,11 @@ export function UserForm({
     defaultValues: {
       name: user?.name ?? '',
       email: user?.email ?? '',
-      role: user?.role ?? 'admin',
+      role: user?.role ?? 'viewer',
       active: user?.active ?? true,
     },
   })
+  const selectedRole = useWatch({ control: form.control, name: 'role' })
   const mutation = useMutation({
     mutationFn: (body: UserBody) => saveUser(user?.id, body),
     onSuccess: async () => {
@@ -69,6 +70,10 @@ export function UserForm({
             ))}
           </select>
         </label>
+        <p className="rounded-lg border border-purple-100 bg-purple-50 px-4 py-3 text-sm leading-6 text-purple-950">
+          {roleDescriptions[selectedRole ?? 'viewer']} Todos os perfis são da
+          equipe interna e veem dados de todas as empresas.
+        </p>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" {...form.register('active')} />
           Usuário ativo

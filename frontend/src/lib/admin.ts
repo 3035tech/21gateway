@@ -67,3 +67,11 @@ export const roleLabels = {
   operator: 'Operador',
   viewer: 'Consulta',
 }
+export const roleDescriptions = {
+  admin:
+    'Gerencia usuários e acessos, consulta auditoria e pode fazer um envio de homologação.',
+  operator:
+    'Gerencia empresas e credenciais, troca senhas da API e reprocessa callbacks falhos.',
+  viewer:
+    'Consulta indicadores, empresas, credenciais, envios, agendamentos e callbacks.',
+}

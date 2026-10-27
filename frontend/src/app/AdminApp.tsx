@@ -56,11 +56,7 @@ function AdminOnly({ children }: { children: React.ReactNode }) {
   )
 }
 function Home() {
-  return useUser()?.role === 'admin' ? (
-    <Overview />
-  ) : (
-    <Navigate to="/credenciais" replace />
-  )
+  return <Overview />
 }
 export default function AdminApp() {
   return (
