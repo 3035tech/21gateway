@@ -78,7 +78,10 @@
     "loading": "Carregando resultados…",
     "unavailableHint": "Resultados indisponíveis. Tente atualizar a consulta.",
     "unavailable": "Resultados indisponíveis.",
-    "empty": "Nenhum resultado encontrado. Ajuste os filtros para uma nova consulta."
+    "empty": "Nenhum resultado encontrado. Ajuste os filtros para uma nova consulta.",
+    "emptyInitial": "Ainda não há registros para mostrar.",
+    "emptyFiltered": "Nenhum registro corresponde à busca ou aos filtros.",
+    "clearFilters": "Limpar busca e filtros"
   },
   "status": {
     "active": "Ativo",
@@ -343,7 +346,7 @@
   "credentials": {
     "editTitle": "Editar credencial",
     "newTitle": "Nova credencial da API",
-    "formDescription": "Selecione a empresa, defina o usuário e a senha da Basic Auth e depois ajuste notificações e IPs, se necessário.",
+    "formDescription": "Selecione a empresa e gere as credenciais Basic Auth. Para defini-las manualmente, desmarque a geração de usuário e escolha a opção de senha manual. Depois, ajuste notificações e IPs se necessário.",
     "formSections": "Seções da credencial",
     "tabs": {
       "access": "Acesso",
@@ -430,7 +433,7 @@
     "username": "Usuário",
     "savedPassword": "Já guardei a senha",
     "generateUsername": "Gerar usuário Basic Auth aleatório",
-    "basicAuthHint": "Esta credencial pertence à empresa escolhida. Informe o usuário e a senha que o cliente usará na autenticação HTTP Basic da API.",
+    "basicAuthHint": "Esta credencial pertence à empresa escolhida. Gere um usuário único ou desmarque a opção para informá-lo manualmente. Os dados serão exibidos após salvar para você repassar ao cliente.",
     "basicUsername": "Usuário Basic Auth",
     "generatedUsernamePlaceholder": "Gerado ao salvar",
     "passwordStoredHint": "A senha Basic Auth já está definida e não pode ser exibida novamente. Para substituí-la, use Trocar senha da API na listagem e atualize a integração do cliente.",

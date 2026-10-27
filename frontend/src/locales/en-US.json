@@ -78,7 +78,10 @@
     "loading": "Loading results…",
     "unavailableHint": "Results unavailable. Try refreshing the query.",
     "unavailable": "Results unavailable.",
-    "empty": "No results found. Adjust the filters and try again."
+    "empty": "No results found. Adjust the filters and try again.",
+    "emptyInitial": "There are no records to show yet.",
+    "emptyFiltered": "No records match this search or these filters.",
+    "clearFilters": "Clear search and filters"
   },
   "status": {
     "active": "Active",
@@ -343,7 +346,7 @@
   "credentials": {
     "editTitle": "Edit credential",
     "newTitle": "New API credential",
-    "formDescription": "Select the company, set the Basic Auth username and password, then adjust notifications and IPs if needed.",
+    "formDescription": "Select the company and generate Basic Auth credentials. To set them manually, turn off username generation and choose the manual password option. Then adjust notifications and IPs if needed.",
     "formSections": "Credential sections",
     "tabs": {
       "access": "Access",
@@ -430,7 +433,7 @@
     "username": "Username",
     "savedPassword": "I have saved the password",
     "generateUsername": "Generate random Basic Auth username",
-    "basicAuthHint": "This credential belongs to the selected company. Enter the username and password the client will use for HTTP Basic authentication to the API.",
+    "basicAuthHint": "This credential belongs to the selected company. Generate a unique username or turn off the option to enter one manually. The access details will be shown after saving so you can share them with the client.",
     "basicUsername": "Basic Auth username",
     "generatedUsernamePlaceholder": "Generated on save",
     "passwordStoredHint": "The Basic Auth password is already set and cannot be displayed again. To replace it, use Change API password in the list and update the client's integration.",

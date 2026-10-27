@@ -54,7 +54,7 @@ export function CredentialForm({
   } | null>(null)
   const [passwordMode, setPasswordMode] = useState<
     'generated' | 'manual' | 'legacy'
-  >(credential ? 'generated' : 'manual')
+  >('generated')
   const [activeTab, setActiveTab] = useState<CredentialTab>('access')
   const [legacyOpen, setLegacyOpen] = useState(!!credential?.legacyAccountId)
   const [ipDraftValid, setIpDraftValid] = useState(true)
@@ -83,8 +83,8 @@ export function CredentialForm({
     resolver: zodResolver(credentialFormSchema),
     defaultValues: {
       companyId: selectedCompanyId ?? 0,
-      generateUsername: false,
-      passwordMode: credential ? 'generated' : 'manual',
+      generateUsername: !credential,
+      passwordMode: 'generated',
       username: credential?.username ?? '',
       active: credential?.active ?? true,
       callbackUrl: credential?.callbackUrl ?? '',
@@ -382,10 +382,21 @@ export function CredentialForm({
                   ) : null}
                 </div>
                 <div className="space-y-4">
+                  {!credential ? (
+                    <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
+                      <input
+                        className="size-4 accent-brand-purple"
+                        type="checkbox"
+                        {...form.register('generateUsername')}
+                      />
+                      {t('credentials.generateUsername')}
+                    </label>
+                  ) : null}
                   <label className="field">
                     {t('credentials.basicUsername')}
                     <input
                       className="form-control"
+                      aria-label={t('credentials.basicUsername')}
                       autoComplete="off"
                       data-lpignore="true"
                       data-1p-ignore="true"
@@ -406,16 +417,6 @@ export function CredentialForm({
                       </span>
                     ) : null}
                   </label>
-                  {!credential ? (
-                    <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
-                      <input
-                        className="size-4 accent-brand-purple"
-                        type="checkbox"
-                        {...form.register('generateUsername')}
-                      />
-                      {t('credentials.generateUsername')}
-                    </label>
-                  ) : null}
                 </div>
               </div>
               {credential ? (

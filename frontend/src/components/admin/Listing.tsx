@@ -102,6 +102,20 @@ export function Listing<T extends { id: number }>({
         getRowId={(row) => String(row.id)}
         isLoading={query.isPending}
         error={query.isError ? errorMessage(query.error) : undefined}
+        hasActiveFilters={!!filter || !!company}
+        onClearFilters={() => {
+          setFilter('')
+          setCompany('')
+          state.onSearchChange('')
+        }}
+        emptyAction={
+          onCreate ? (
+            <button type="button" className="button-primary" onClick={onCreate}>
+              <Plus size={17} aria-hidden="true" />
+              {createLabel}
+            </button>
+          ) : undefined
+        }
         filters={
           <>
             {filterName ? (

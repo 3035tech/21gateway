@@ -164,10 +164,24 @@ it('uses the selected company when creating an operator credential', async () =>
       screen.queryByRole('combobox', { name: 'Empresa' }),
     ).not.toBeInTheDocument()
     const user = userEvent.setup()
+    expect(
+      screen.getByRole('checkbox', {
+        name: 'Gerar usuário Basic Auth aleatório',
+      }),
+    ).toBeChecked()
+    expect(
+      screen.getByRole('textbox', { name: 'Usuário Basic Auth' }),
+    ).toHaveAttribute('readonly')
+    await user.click(
+      screen.getByRole('checkbox', {
+        name: 'Gerar usuário Basic Auth aleatório',
+      }),
+    )
     await user.type(
       screen.getByRole('textbox', { name: 'Usuário Basic Auth' }),
       'aurora-api',
     )
+    await user.click(screen.getByRole('radio', { name: /Definir manualmente/ }))
     await user.type(
       screen.getByLabelText(/Digite a senha Basic Auth/),
       'senha-longa-para-aurora',

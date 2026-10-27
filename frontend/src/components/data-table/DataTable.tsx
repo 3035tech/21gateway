@@ -21,6 +21,7 @@ import {
   Search,
   LoaderCircle,
   SearchX,
+  Inbox,
   CloudOff,
   ArrowLeftRight,
 } from 'lucide-react'
@@ -42,6 +43,9 @@ type DataTableProps<T> = {
   filters?: ReactNode
   isLoading?: boolean
   error?: string
+  hasActiveFilters?: boolean
+  onClearFilters?: () => void
+  emptyAction?: ReactNode
 }
 
 export function DataTable<T>({
@@ -61,11 +65,15 @@ export function DataTable<T>({
   wide = false,
   isLoading = false,
   error,
+  hasActiveFilters = false,
+  onClearFilters,
+  emptyAction,
 }: DataTableProps<T>) {
   const { t } = useTranslation()
   const tableCaption = caption ?? t('table.caption')
   const id = useId()
   const [draft, setDraft] = useState(search)
+  const isFiltered = !!search.trim() || hasActiveFilters
   // eslint-disable-next-line react-hooks/incompatible-library -- React Compiler is not enabled; this table is not memoized.
   const table = useReactTable({
     columns,
@@ -244,77 +252,106 @@ export function DataTable<T>({
                 aria-hidden="true"
                 className="mx-auto mb-3 text-slate-400"
               />
-            ) : (
+            ) : isFiltered ? (
               <SearchX
                 size={28}
                 aria-hidden="true"
                 className="mx-auto mb-3 text-slate-400"
               />
+            ) : (
+              <Inbox
+                size={28}
+                aria-hidden="true"
+                className="mx-auto mb-3 text-slate-400"
+              />
             )}
-            {isLoading
-              ? t('table.loading')
-              : error
-                ? t('table.unavailableHint')
-                : t('table.empty')}
+            <p className="font-semibold text-slate-700">
+              {isLoading
+                ? t('table.loading')
+                : error
+                  ? t('table.unavailableHint')
+                  : t(
+                      isFiltered ? 'table.emptyFiltered' : 'table.emptyInitial',
+                    )}
+            </p>
+            {!isLoading && !error ? (
+              isFiltered && onClearFilters ? (
+                <button
+                  type="button"
+                  className="button-secondary mt-4"
+                  onClick={() => {
+                    setDraft('')
+                    onClearFilters()
+                  }}
+                >
+                  {t('table.clearFilters')}
+                </button>
+              ) : !isFiltered && emptyAction ? (
+                <div className="mt-4">{emptyAction}</div>
+              ) : null
+            ) : null}
           </div>
         ) : null}
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-4 px-1 text-sm text-slate-600">
-        <label className="flex items-center gap-2">
-          {t('common.itemsPerPage')}
-          <AppSelect
-            value={pagination.pageSize}
-            label={t('common.itemsPerPage')}
-            onValueChange={(value) =>
-              onPaginationChange({
-                pageIndex: 0,
-                pageSize: Number(value),
-              })
-            }
-            disabled={isLoading}
-            options={PAGE_SIZE_OPTIONS.map((size) => ({
-              value: size,
-              label: String(size),
-            }))}
-          />
-        </label>
-        <div className="flex flex-wrap items-center gap-3">
-          <span aria-live="polite">
-            {total > 0 && !error && !isLoading ? (
-              <span className="mr-3 hidden tabular-nums xl:inline">
-                {t('common.resultsRange', {
-                  from: pagination.pageIndex * pagination.pageSize + 1,
-                  to: pagination.pageIndex * pagination.pageSize + data.length,
-                  total,
-                })}
-              </span>
-            ) : null}
-            {t('common.page', {
-              page: error ? 1 : pagination.pageIndex + 1,
-              pages: Math.max(1, table.getPageCount()),
-              count: error ? 0 : total,
-            })}
-          </span>
-          <button
-            type="button"
-            disabled={isLoading || !table.getCanPreviousPage()}
-            onClick={() => table.previousPage()}
-            aria-label={t('common.previous')}
-            className="button-secondary"
-          >
-            {t('common.previous')}
-          </button>
-          <button
-            type="button"
-            disabled={isLoading || !table.getCanNextPage()}
-            onClick={() => table.nextPage()}
-            aria-label={t('common.next')}
-            className="button-secondary"
-          >
-            {t('common.next')}
-          </button>
+      {total > 0 && !isLoading && !error ? (
+        <div className="flex flex-wrap items-center justify-between gap-4 px-1 text-sm text-slate-600">
+          <label className="flex items-center gap-2 whitespace-nowrap">
+            {t('common.itemsPerPage')}
+            <AppSelect
+              value={pagination.pageSize}
+              label={t('common.itemsPerPage')}
+              onValueChange={(value) =>
+                onPaginationChange({
+                  pageIndex: 0,
+                  pageSize: Number(value),
+                })
+              }
+              disabled={isLoading}
+              options={PAGE_SIZE_OPTIONS.map((size) => ({
+                value: size,
+                label: String(size),
+              }))}
+            />
+          </label>
+          <div className="flex flex-wrap items-center gap-3">
+            <span aria-live="polite">
+              {total > 0 && !error && !isLoading ? (
+                <span className="mr-3 hidden tabular-nums xl:inline">
+                  {t('common.resultsRange', {
+                    from: pagination.pageIndex * pagination.pageSize + 1,
+                    to:
+                      pagination.pageIndex * pagination.pageSize + data.length,
+                    total,
+                  })}
+                </span>
+              ) : null}
+              {t('common.page', {
+                page: error ? 1 : pagination.pageIndex + 1,
+                pages: Math.max(1, table.getPageCount()),
+                count: error ? 0 : total,
+              })}
+            </span>
+            <button
+              type="button"
+              disabled={isLoading || !table.getCanPreviousPage()}
+              onClick={() => table.previousPage()}
+              aria-label={t('common.previous')}
+              className="button-secondary"
+            >
+              {t('common.previous')}
+            </button>
+            <button
+              type="button"
+              disabled={isLoading || !table.getCanNextPage()}
+              onClick={() => table.nextPage()}
+              aria-label={t('common.next')}
+              className="button-secondary"
+            >
+              {t('common.next')}
+            </button>
+          </div>
         </div>
-      </div>
+      ) : null}
     </section>
   )
 }

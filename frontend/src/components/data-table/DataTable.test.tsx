@@ -20,6 +20,7 @@ function Harness({
         total={empty ? 0 : 75}
         getRowId={(row) => row.id}
         error={error}
+        onClearFilters={() => state.onSearchChange('')}
         {...state}
       />
       <output aria-label="Estado da consulta">
@@ -90,8 +91,26 @@ describe('DataTable server query controls', () => {
     render(<Harness empty />)
     const region = screen.getByRole('region', { name: /resultados/i })
     expect(
-      within(region).queryByText(/Nenhum resultado encontrado/),
+      within(region).queryByText(/Ainda não há registros/),
     ).not.toBeInTheDocument()
-    expect(screen.getByText(/Nenhum resultado encontrado/)).toBeVisible()
+    expect(screen.getByText(/Ainda não há registros/)).toBeVisible()
+    expect(
+      screen.queryByRole('button', { name: 'Próxima' }),
+    ).not.toBeInTheDocument()
+  })
+  it('explains an empty filtered result and clears the search', async () => {
+    const user = userEvent.setup()
+    render(<Harness empty />)
+    await user.type(
+      screen.getByRole('searchbox', { name: 'Buscar' }),
+      'cliente',
+    )
+    await user.click(screen.getByRole('button', { name: 'Buscar' }))
+    expect(screen.getByText(/Nenhum registro corresponde/)).toBeVisible()
+    await user.click(
+      screen.getByRole('button', { name: 'Limpar busca e filtros' }),
+    )
+    expect(queryState().search).toBe('')
+    expect(screen.getByRole('searchbox', { name: 'Buscar' })).toHaveValue('')
   })
 })
