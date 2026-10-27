@@ -19,7 +19,7 @@ func NewUserRecoveryController(service *services.UserRecoveryService) *UserRecov
 func (c *UserRecoveryController) Register(api huma.API) {
 	rateLimit := func(ctx huma.Context, next func(huma.Context)) {
 		request, _ := humachi.Unwrap(ctx)
-		if err := c.service.AllowIP(ctx.Context(), security.AuthenticationPeer(request.RemoteAddr)); err != nil {
+		if err := c.service.AllowIP(ctx.Context(), security.ClientIP(request)); err != nil {
 			_ = huma.WriteErr(api, ctx, HTTPError(err).GetStatus(), "")
 			return
 		}

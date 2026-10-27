@@ -8,7 +8,7 @@ import (
 
 func operationEnvironment(t *testing.T) {
 	t.Helper()
-	for name, value := range map[string]string{"SCHEDULED_SQS_ENABLED": "false", "SCHEDULED_SQS_QUEUE_URL": "", "AWS_REGION": "", "SCHEDULER_ENABLED": "false", "SCHEDULED_CONTENT_KEY": "", "SCHEDULED_ACTIVE_KEY_ID": "", "SCHEDULED_ENCRYPTION_KEYS": "", "API_AUTH_IP_LIMIT_PER_MINUTE": "600", "DATABASE_URL": "postgres://unused/unused", "COOKIE_SECURE": "false", "COOKIE_CROSS_SITE": "false", "CORS_ALLOWED_ORIGINS": "http://localhost:5173", "WHITELABEL_BASE_URL": "https://provider.example", "WHITELABEL_API_TOKEN": "", "CALLBACK_INGRESS_ENABLED": "false", "MO_INGRESS_ENABLED": "false", "CALLBACK_INGRESS_TOKEN": "", "MO_CONTENT_KEY": "", "PROVIDER_TOKEN_KEY": "", "PROVIDER_ACTIVE_KEY_ID": "", "PROVIDER_ENCRYPTION_KEYS": "", "MO_ACTIVE_KEY_ID": "", "MO_ENCRYPTION_KEYS": "", "MO_FINGERPRINT_KEY": "", "MO_RETENTION_DAYS": "90", "OPERATIONS_ENABLED": "false", "OPERATIONS_TOKEN": ""} {
+	for name, value := range map[string]string{"SCHEDULED_SQS_ENABLED": "false", "SCHEDULED_SQS_QUEUE_URL": "", "AWS_REGION": "", "SCHEDULER_ENABLED": "false", "SCHEDULED_CONTENT_KEY": "", "SCHEDULED_ACTIVE_KEY_ID": "", "SCHEDULED_ENCRYPTION_KEYS": "", "API_AUTH_IP_LIMIT_PER_MINUTE": "600", "TRUSTED_PROXY_CIDRS": "", "DATABASE_URL": "postgres://unused/unused", "COOKIE_SECURE": "false", "COOKIE_CROSS_SITE": "false", "CORS_ALLOWED_ORIGINS": "http://localhost:5173", "WHITELABEL_BASE_URL": "https://provider.example", "WHITELABEL_API_TOKEN": "", "CALLBACK_INGRESS_ENABLED": "false", "MO_INGRESS_ENABLED": "false", "CALLBACK_INGRESS_TOKEN": "", "MO_CONTENT_KEY": "", "PROVIDER_TOKEN_KEY": "", "PROVIDER_ACTIVE_KEY_ID": "", "PROVIDER_ENCRYPTION_KEYS": "", "MO_ACTIVE_KEY_ID": "", "MO_ENCRYPTION_KEYS": "", "MO_FINGERPRINT_KEY": "", "MO_RETENTION_DAYS": "90", "OPERATIONS_ENABLED": "false", "OPERATIONS_TOKEN": ""} {
 		t.Setenv(name, value)
 	}
 	t.Setenv("HEALTH_DEPENDENCIES_TOKEN_SHA256", "")
@@ -79,6 +79,21 @@ func TestAuthenticationBudgetConfiguration(t *testing.T) {
 	cfg, err := Load()
 	if err != nil || cfg.APIAuthenticationIPLimit != 1200 {
 		t.Fatal("authentication budget override failed", err)
+	}
+}
+
+func TestTrustedProxyConfiguration(t *testing.T) {
+	operationEnvironment(t)
+	for _, value := range []string{"bad", "0.0.0.0/0", "::/0"} {
+		t.Setenv("TRUSTED_PROXY_CIDRS", value)
+		if _, err := Load(); err == nil {
+			t.Fatal("unsafe proxy trust accepted", value)
+		}
+	}
+	t.Setenv("TRUSTED_PROXY_CIDRS", "10.42.0.0/24")
+	cfg, err := Load()
+	if err != nil || len(cfg.TrustedProxyCIDRs) != 1 {
+		t.Fatal("valid proxy trust rejected", err)
 	}
 }
 

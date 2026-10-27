@@ -33,7 +33,7 @@ func (c *SessionController) Register(api huma.API) {
 	api.OpenAPI().Components.SecuritySchemes[adminSessionScheme] = &huma.SecurityScheme{Type: "apiKey", In: "cookie", Name: "21mobile_session"}
 	huma.Register(api, huma.Operation{OperationID: "adminLogin", Method: http.MethodPost, Path: "/admin/auth/login", Summary: "Entrar no backoffice", Tags: []string{"Backoffice"}, Errors: []int{401, 403, 422, 429, 503}, Middlewares: huma.Middlewares{func(ctx huma.Context, next func(huma.Context)) {
 		request, _ := humachi.Unwrap(ctx)
-		key := security.AuthenticationKey("admin-ip", security.AuthenticationPeer(request.RemoteAddr))
+		key := security.AuthenticationKey("admin-ip", security.ClientIP(request))
 		if err := c.service.AllowLogin(ctx.Context(), key); err != nil {
 			_ = huma.WriteErr(api, ctx, HTTPError(err).GetStatus(), "")
 			return

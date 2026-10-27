@@ -98,7 +98,7 @@ func TestPublicOpenAPIOnlyShowsClientIntegration(t *testing.T) {
 	if err := json.Unmarshal(document.Paths["/v1/send"], &send); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(send.Post.Description, "não evita duplicações") || len(send.Post.RequestBody.Content["application/json"].Examples) == 0 || len(send.Post.Responses["200"].Content["application/json"].Examples) < 2 {
+	if !strings.Contains(send.Post.Description, "não evita duplicações") || !strings.Contains(send.Post.Description, "Confira **cada item**") || len(send.Post.RequestBody.Content["application/json"].Examples) == 0 || len(send.Post.Responses["200"].Content["application/json"].Examples) < 3 {
 		t.Fatal("send operation must explain behavior and show request/result examples")
 	}
 	for _, constraint := range []string{`"minLength":11`, `"maxLength":11`, `"maximum":253402300799`} {

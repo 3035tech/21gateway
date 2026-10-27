@@ -32,6 +32,7 @@ type Config struct {
 	SMSHistoryActiveKeyID         string `env:"SMS_HISTORY_ACTIVE_KEY_ID"`
 	SMSHistoryEncryptionKeys      string `env:"SMS_HISTORY_ENCRYPTION_KEYS"`
 	APIAuthenticationIPLimit      int    `env:"API_AUTH_IP_LIMIT_PER_MINUTE" envDefault:"600"`
+	TrustedProxyCIDRs             []string `env:"TRUSTED_PROXY_CIDRS" envSeparator:","`
 	OperationsEnabled             bool   `env:"OPERATIONS_ENABLED" envDefault:"false"`
 	OperationsToken               string `env:"OPERATIONS_TOKEN"`
 	HealthDependenciesTokenSHA256 string `env:"HEALTH_DEPENDENCIES_TOKEN_SHA256"`
@@ -77,6 +78,9 @@ func Load() (Config, error) {
 	}
 	if cfg.APIAuthenticationIPLimit < 1 || cfg.APIAuthenticationIPLimit > security.MaximumAuthenticationIPLimit {
 		return cfg, apperrors.Wrap(apperrors.CodeConfigurationInvalid, nil)
+	}
+	if _, err := security.NewClientIPResolver(cfg.TrustedProxyCIDRs); err != nil {
+		return cfg, apperrors.Wrap(apperrors.CodeConfigurationInvalid, err)
 	}
 	if cfg.TestSMSDestination != "" && !testSMSDestination.MatchString(cfg.TestSMSDestination) {
 		return cfg, apperrors.Wrap(apperrors.CodeConfigurationInvalid, nil)

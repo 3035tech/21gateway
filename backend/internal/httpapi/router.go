@@ -13,10 +13,12 @@ import (
 
 	"github.com/21mobile/sms-gateway/internal/config"
 	"github.com/21mobile/sms-gateway/internal/controllers"
+	"github.com/21mobile/sms-gateway/internal/security"
 	"github.com/21mobile/sms-gateway/internal/services"
 )
 
 type Dependencies struct {
+	ClientIPResolver              security.ClientIPResolver
 	SMTPProbe                     func(context.Context) error
 	SQSProbe                      func(context.Context) error
 	Operations                    *services.OperationsService
@@ -47,6 +49,7 @@ type Dependencies struct {
 func New(origins []string, docsEnabled bool, ping func(context.Context) error, dependencies Dependencies) http.Handler {
 	controllers.ConfigureErrors()
 	router := chi.NewRouter()
+	router.Use(dependencies.ClientIPResolver.Middleware)
 	router.Use(middleware.RequestID, middleware.Recoverer)
 	router.Use(localizeAdminErrors)
 	router.Use(func(next http.Handler) http.Handler {

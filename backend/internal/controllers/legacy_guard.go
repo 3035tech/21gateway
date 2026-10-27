@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"github.com/21mobile/sms-gateway/internal/security"
 	"github.com/21mobile/sms-gateway/internal/services"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humachi"
@@ -19,9 +20,10 @@ func (g *LegacyGuard) RegisterSecurity(api huma.API) {
 func (g *LegacyGuard) Authenticate(api huma.API) func(huma.Context, func(huma.Context)) {
 	return func(ctx huma.Context, next func(huma.Context)) {
 		request, _ := humachi.Unwrap(ctx)
-		credential, err := g.auth.AuthenticateRequest(ctx.Context(), ctx.Header("Authorization"), request.RemoteAddr)
+		clientIP := security.ClientIP(request)
+		credential, err := g.auth.AuthenticateRequest(ctx.Context(), ctx.Header("Authorization"), clientIP)
 		if err == nil {
-			err = g.auth.AuthorizeIP(credential, request.RemoteAddr)
+			err = g.auth.AuthorizeIP(credential, clientIP)
 		}
 		if err != nil {
 			public := HTTPError(err)
