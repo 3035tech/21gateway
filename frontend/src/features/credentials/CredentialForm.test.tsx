@@ -122,7 +122,7 @@ it('directs provider token management to the company and closes the dialog', asy
   renderEditor(close)
   expect(screen.queryByLabelText('Novo token')).not.toBeInTheDocument()
   const link = screen.getByRole('link', {
-    name: 'Abrir empresa para gerenciar o token',
+    name: 'Gerenciar token na empresa',
   })
   expect(link).toHaveAttribute('href', '/empresas/1')
   await userEvent.setup().click(link)

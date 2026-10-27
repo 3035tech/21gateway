@@ -7,7 +7,13 @@ import type { Credential, CredentialBody } from './api'
 import { getCompany, listCompanies } from '../companies/api'
 import { Dialog } from '../../components/admin/Dialog'
 import { FormFooter, FieldError } from '../../components/admin/FormFooter'
-import { Building2, KeyRound, Link2, ShieldCheck } from 'lucide-react'
+import {
+  ArrowUpRight,
+  Building2,
+  KeyRound,
+  Link2,
+  ShieldCheck,
+} from 'lucide-react'
 import type { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { useAdminMutation } from '../../components/admin/useAdminMutation'
@@ -246,22 +252,22 @@ export function CredentialForm({
               <p className="mb-4 text-sm leading-6 text-slate-600">
                 {t('credentials.basicAuthHint')}
               </p>
+              {!selectedCompanyId ? (
+                <label className="field mb-5">
+                  {t('credentials.searchCompany')}
+                  <input
+                    className="form-control"
+                    placeholder={t('credentials.companySearchPlaceholder')}
+                    value={search}
+                    onChange={(event) => {
+                      setSearch(event.target.value)
+                      setCompanyPage(1)
+                    }}
+                  />
+                </label>
+              ) : null}
               <div className="grid gap-5 sm:grid-cols-2">
                 <div className="space-y-4">
-                  {!selectedCompanyId ? (
-                    <label className="field">
-                      {t('credentials.searchCompany')}
-                      <input
-                        className="form-control"
-                        placeholder={t('credentials.companySearchPlaceholder')}
-                        value={search}
-                        onChange={(event) => {
-                          setSearch(event.target.value)
-                          setCompanyPage(1)
-                        }}
-                      />
-                    </label>
-                  ) : null}
                   {selectedCompanyId ? (
                     <>
                       <input
@@ -434,38 +440,47 @@ export function CredentialForm({
                   </p>
                 </div>
               ) : (
-                <div className="mt-5 space-y-4 border-t border-slate-100 pt-4">
-                  <fieldset className="space-y-2">
-                    <legend className="text-sm font-semibold">
+                <div className="mt-6 space-y-4 border-t border-slate-200 pt-6">
+                  <fieldset>
+                    <legend className="mb-3 text-base font-bold text-slate-900">
                       {t('credentials.passwordSetup')}
                     </legend>
-                    {(['generated', 'manual', 'legacy'] as const).map(
-                      (mode) => (
-                        <label
-                          key={mode}
-                          className="flex min-h-10 items-center gap-3 text-sm"
-                        >
-                          <input
-                            type="radio"
-                            className="size-4 accent-brand-purple"
-                            name="credential-password-mode"
-                            value={mode}
-                            checked={passwordMode === mode}
-                            onChange={() => {
-                              setPasswordMode(mode)
-                              form.setValue('passwordMode', mode)
-                              form.setValue(
-                                'preserveLegacyPassword',
-                                mode === 'legacy',
-                              )
-                              form.setValue('legacyPassword', '')
-                              form.setValue('manualPassword', '')
-                            }}
-                          />
-                          {t(`credentials.passwordMode.${mode}`)}
-                        </label>
-                      ),
-                    )}
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      {(['generated', 'manual', 'legacy'] as const).map(
+                        (mode) => (
+                          <label
+                            key={mode}
+                            className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 text-sm transition-colors ${passwordMode === mode ? 'border-brand-purple bg-purple-50/70' : 'border-slate-200 bg-white hover:border-slate-300'}`}
+                          >
+                            <input
+                              type="radio"
+                              className="mt-0.5 size-4 shrink-0 accent-brand-purple"
+                              name="credential-password-mode"
+                              value={mode}
+                              checked={passwordMode === mode}
+                              onChange={() => {
+                                setPasswordMode(mode)
+                                form.setValue('passwordMode', mode)
+                                form.setValue(
+                                  'preserveLegacyPassword',
+                                  mode === 'legacy',
+                                )
+                                form.setValue('legacyPassword', '')
+                                form.setValue('manualPassword', '')
+                              }}
+                            />
+                            <span className="space-y-1">
+                              <span className="block font-bold leading-5 text-slate-900">
+                                {t(`credentials.passwordMode.${mode}`)}
+                              </span>
+                              <span className="block text-xs leading-5 text-slate-600">
+                                {t(`credentials.passwordModeHint.${mode}`)}
+                              </span>
+                            </span>
+                          </label>
+                        ),
+                      )}
+                    </div>
                   </fieldset>
                   {passwordMode === 'legacy' ? (
                     <label className="field max-w-sm">
@@ -499,61 +514,73 @@ export function CredentialForm({
                         {t('credentials.manualPasswordHint')}
                       </span>
                     </label>
+                  ) : null}
+                </div>
+              )}
+              <div className="mt-6 grid gap-4 border-t border-slate-200 pt-6 sm:grid-cols-2 sm:items-start">
+                <div>
+                  <label className="flex min-h-11 items-center gap-3 text-sm font-semibold">
+                    <input
+                      className="size-4 accent-brand-purple"
+                      type="checkbox"
+                      {...form.register('active')}
+                    />
+                    {t('credentials.active')}
+                  </label>
+                  {!active ? (
+                    <p
+                      role="status"
+                      className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900"
+                    >
+                      {t('credentials.inactiveHint')}
+                    </p>
                   ) : (
                     <p className="text-xs leading-5 text-slate-500">
-                      {t('credentials.newPasswordHint')}
+                      {t('credentials.activeHint')}
                     </p>
                   )}
                 </div>
-              )}
-              <label className="mt-4 flex min-h-11 items-center gap-3 text-sm font-medium">
-                <input
-                  className="size-4 accent-brand-purple"
-                  type="checkbox"
-                  {...form.register('active')}
-                />
-                {t('credentials.active')}
-              </label>
-              {!active ? (
-                <p
-                  role="status"
-                  className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900"
-                >
-                  {t('credentials.inactiveHint')}
-                </p>
-              ) : null}
-              <label className="field mt-4 max-w-sm">
-                {t('credentials.expiresAt')}
-                <input
-                  type="datetime-local"
-                  className="form-control"
-                  {...form.register('expiresAtText')}
-                />
-                <FieldError
-                  message={form.formState.errors.expiresAtText?.message}
-                />
-                <span className="text-xs font-normal leading-5 text-slate-500">
-                  {t('credentials.expiryHint')}
-                </span>
-              </label>
+                <label className="field">
+                  {t('credentials.expiresAt')}
+                  <input
+                    type="datetime-local"
+                    className="form-control"
+                    {...form.register('expiresAtText')}
+                  />
+                  <FieldError
+                    message={form.formState.errors.expiresAtText?.message}
+                  />
+                  <span className="text-xs font-normal leading-5 text-slate-500">
+                    {t('credentials.expiryHint')}
+                  </span>
+                </label>
+              </div>
             </CredentialSection>
-            <CredentialSection
-              title={t('credentials.providerSection')}
-              icon={KeyRound}
-            >
-              <p className="text-sm leading-6 text-slate-600">
-                {t('credentials.providerAtCompany')}
-              </p>
+            <div className="rounded-2xl border border-purple-100 bg-purple-50/70 p-4 sm:p-5">
+              <div className="flex items-start gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white text-brand-purple shadow-sm">
+                  <KeyRound size={19} aria-hidden="true" />
+                </span>
+                <div className="min-w-0">
+                  <h3 className="font-bold text-slate-900">
+                    {t('credentials.providerSection')}
+                  </h3>
+                  <p className="mt-1 text-sm leading-6 text-slate-600">
+                    {t('credentials.providerAtCompany')}
+                  </p>
+                </div>
+              </div>
               {(selectedCompanyId ?? formCompanyId) > 0 ? (
                 <Link
                   to={`/empresas/${selectedCompanyId ?? formCompanyId}`}
                   onClick={onClose}
-                  className="button-ghost mt-3 inline-flex"
+                  className="mt-4 inline-flex min-h-10 items-center gap-1 rounded-lg px-2 text-sm font-bold text-brand-purple underline-offset-4 hover:bg-white hover:underline"
                 >
                   {t('credentials.openCompanyProvider')}
+                  <ArrowUpRight size={16} aria-hidden="true" />
                 </Link>
               ) : null}
-            </CredentialSection>
+            </div>
           </div>
           <div
             id="credential-panel-notifications"

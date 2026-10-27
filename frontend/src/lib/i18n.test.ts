@@ -23,3 +23,16 @@ it('switches labels and public errors by language', async () => {
   await i18n.changeLanguage('pt-BR')
   expect(i18n.t('nav.credentials')).toBe('Credenciais da API')
 })
+
+it('uses natural Portuguese labels for zero and one item', async () => {
+  await i18n.changeLanguage('pt-BR')
+  expect(i18n.t('common.page', { page: 1, pages: 1, count: 0 })).toBe(
+    'Página 1 de 1 · 0 itens',
+  )
+  expect(i18n.t('common.page', { page: 1, pages: 1, count: 1 })).toBe(
+    'Página 1 de 1 · 1 item',
+  )
+  expect(i18n.t('users.selectedCompanies', { count: 0 })).toBe(
+    'Nenhuma empresa selecionada',
+  )
+})
