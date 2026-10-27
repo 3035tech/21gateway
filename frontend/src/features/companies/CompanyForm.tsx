@@ -81,7 +81,11 @@ export function CompanyForm({
               {...form.register('providerToken')}
             />
             <span className="text-xs font-normal text-slate-500">
-              {t('companies.providerIssuedHint')}
+              {t(
+                company
+                  ? 'companies.providerIssuedHint'
+                  : 'companies.providerNewHint',
+              )}
             </span>
             <FieldError
               message={form.formState.errors.providerToken?.message}

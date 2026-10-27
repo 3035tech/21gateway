@@ -25,7 +25,8 @@
     "previous": "Previous",
     "next": "Next",
     "itemsPerPage": "Items per page",
-    "page": "Page {{page}} of {{pages}} · {{count}} items",
+    "page_one": "Page {{page}} of {{pages}} · {{count}} item",
+    "page_other": "Page {{page}} of {{pages}} · {{count}} items",
     "resultsRange": "{{from}}–{{to}} of {{total}}",
     "empty": "No results found.",
     "yes": "Yes",
@@ -215,6 +216,7 @@
     "providerToken": "Token issued by Zoug",
     "providerReplace": "Replace Zoug token",
     "providerIssuedHint": "Paste the token received from the provider. Leave blank to keep the current one; it will not be shown after saving.",
+    "providerNewHint": "Paste the token received from the provider. It will not be shown after saving.",
     "providerRemove": "Remove the Zoug token and block new sends for this company",
     "providerManage": "Manage token"
   },
@@ -341,7 +343,7 @@
     "tabs": {
       "access": "Access",
       "notifications": "Notifications",
-      "ips": "Allowed IPs"
+      "ips": "IPs"
     },
     "tabHasError": "This section contains an error",
     "clientAccess": "Client access · Basic Auth",

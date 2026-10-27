@@ -547,6 +547,7 @@ export function CredentialForm({
               {(selectedCompanyId ?? formCompanyId) > 0 ? (
                 <Link
                   to={`/empresas/${selectedCompanyId ?? formCompanyId}`}
+                  onClick={onClose}
                   className="button-ghost mt-3 inline-flex"
                 >
                   {t('credentials.openCompanyProvider')}

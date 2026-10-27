@@ -60,7 +60,7 @@ it('preserves callbacks, hidden IP values and the existing token when editing', 
     expect(
       screen.getByRole('textbox', { name: 'URL de status (DLR)' }),
     ).toHaveValue(credential.callbackUrl)
-    await user.click(screen.getByRole('tab', { name: 'IPs autorizados' }))
+    await user.click(screen.getByRole('tab', { name: 'IPs' }))
     await user.click(
       screen.getByRole('checkbox', { name: 'Permitir apenas IPs autorizados' }),
     )
@@ -117,12 +117,16 @@ it('preserves callbacks, hidden IP values and the existing token when editing', 
     get.mockRestore()
   }
 })
-it('directs provider token management to the company', () => {
-  renderEditor(vi.fn())
+it('directs provider token management to the company and closes the dialog', async () => {
+  const close = vi.fn()
+  renderEditor(close)
   expect(screen.queryByLabelText('Novo token')).not.toBeInTheDocument()
-  expect(
-    screen.getByRole('link', { name: 'Abrir empresa para gerenciar o token' }),
-  ).toHaveAttribute('href', '/empresas/1')
+  const link = screen.getByRole('link', {
+    name: 'Abrir empresa para gerenciar o token',
+  })
+  expect(link).toHaveAttribute('href', '/empresas/1')
+  await userEvent.setup().click(link)
+  expect(close).toHaveBeenCalledOnce()
 })
 
 it('uses the selected company when creating an operator credential', async () => {
