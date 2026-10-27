@@ -35,6 +35,8 @@ A tela `/agendamentos` lista registros reais com empresa, usuário técnico da A
 
 Portal de clientes, campanha/envio pelo painel, saldo e consulta MO no painel não implementados. Perfil, convite de usuários, recuperação por e-mail e MFA TOTP estão descritos em [admin-security.md](admin-security.md). O código TOTP tem seis campos numéricos, avanço automático e envio após o sexto dígito; códigos de recuperação usam campo separado. O agendamento interno existe com ativação opt-in; a nova tela oferece visibilidade sem operação de cancelamento/edição. DLR real do fornecedor depende de contrato. Sem PostgreSQL/API disponíveis, o painel real apresenta falha de conexão; não substituir por sucesso fictício.
 
+Convites e recuperação de senha usam e-mails HTML com identidade 21 Mobile, ações próprias, prazo de 15 minutos e link alternativo visível. Cada envio inclui uma parte em texto simples no mesmo MIME; o token continua no fragmento do link e não é registrado em logs.
+
 ## Acabamento visual posterior
 
 Painel real e prévia agora compartilham PanelShell: navegação compacta no celular, menu que fecha ao trocar de tela, indicação da seção atual e acesso ao perfil pelo nome/avatar no rodapé lateral, sem item duplicado no menu. Há foco para pular ao conteúdo. Raleway e cores da marca preservadas; tabelas têm espaçamento consistente, datas sem quebra, ações com alvo de toque e estados de carregamento/vazio/falha identificáveis. Status de entrega são apresentados em português.
