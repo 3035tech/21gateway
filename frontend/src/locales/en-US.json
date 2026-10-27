@@ -356,6 +356,8 @@
     "blockedSuffix": " (blocked)",
     "companyLoadFailed": "Could not load companies.",
     "legacyId": "Legacy ID",
+    "legacySettings": "Legacy integration (optional)",
+    "legacySettingsHint": "Enter the old ID only when this credential is linked to an existing account.",
     "optional": "Optional",
     "preservePassword": "Keep an existing client's password",
     "currentApiPassword": "Current API 21 password",

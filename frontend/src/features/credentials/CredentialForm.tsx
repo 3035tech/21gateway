@@ -56,6 +56,7 @@ export function CredentialForm({
     'generated' | 'manual' | 'legacy'
   >(credential ? 'generated' : 'manual')
   const [activeTab, setActiveTab] = useState<CredentialTab>('access')
+  const [legacyOpen, setLegacyOpen] = useState(!!credential?.legacyAccountId)
   const [ipDraftValid, setIpDraftValid] = useState(true)
   const companies = useQuery({
     queryKey: ['admin', 'company-options', search, companyPage],
@@ -145,7 +146,7 @@ export function CredentialForm({
       busy={mutation.isPending}
       wide
     >
-      <p className="mb-6 max-w-xl text-sm leading-6 text-slate-600">
+      <p className="mb-6 hidden max-w-xl text-sm leading-6 text-slate-600 sm:block">
         {t('credentials.formDescription')}
       </p>
       <form
@@ -249,7 +250,7 @@ export function CredentialForm({
               title={t('credentials.clientAccess')}
               icon={Building2}
             >
-              <p className="mb-4 text-sm leading-6 text-slate-600">
+              <p className="mb-4 text-sm leading-6 text-slate-600 sm:mb-5">
                 {t('credentials.basicAuthHint')}
               </p>
               {!selectedCompanyId ? (
@@ -267,7 +268,7 @@ export function CredentialForm({
                 </label>
               ) : null}
               <div className="grid gap-5 sm:grid-cols-2">
-                <div className="space-y-4">
+                <div>
                   {selectedCompanyId ? (
                     <>
                       <input
@@ -379,21 +380,6 @@ export function CredentialForm({
                       </button>
                     </p>
                   ) : null}
-                  <label className="field">
-                    {t('credentials.legacyId')}{' '}
-                    <span className="-mt-1 text-xs font-normal text-slate-500">
-                      {t('credentials.optional')}
-                    </span>
-                    <input
-                      className="form-control"
-                      readOnly={!!credential?.legacyAccountId}
-                      placeholder="2340 ou 2340_779"
-                      {...form.register('legacyAccountId')}
-                    />
-                    <FieldError
-                      message={form.formState.errors.legacyAccountId?.message}
-                    />
-                  </label>
                 </div>
                 <div className="space-y-4">
                   <label className="field">
@@ -401,6 +387,8 @@ export function CredentialForm({
                     <input
                       className="form-control"
                       autoComplete="off"
+                      data-lpignore="true"
+                      data-1p-ignore="true"
                       readOnly={!!credential || !!generateUsername}
                       placeholder={
                         generateUsername
@@ -445,9 +433,6 @@ export function CredentialForm({
                     <legend className="mb-3 text-base font-bold text-slate-900">
                       {t('credentials.passwordSetup')}
                     </legend>
-                    <p className="mb-4 text-xs leading-5 text-slate-600">
-                      {t('credentials.passwordStorageHint')}
-                    </p>
                     <div className="grid gap-3 sm:grid-cols-3">
                       {(['generated', 'manual', 'legacy'] as const).map(
                         (mode) => (
@@ -518,6 +503,9 @@ export function CredentialForm({
                       </span>
                     </label>
                   ) : null}
+                  <p className="text-xs leading-5 text-slate-600">
+                    {t('credentials.passwordStorageHint')}
+                  </p>
                 </div>
               )}
               <div className="mt-6 grid gap-4 border-t border-slate-200 pt-6 sm:grid-cols-2 sm:items-start">
@@ -558,6 +546,30 @@ export function CredentialForm({
                   </span>
                 </label>
               </div>
+              <details
+                className="mt-6 rounded-xl border border-slate-200 px-4 py-3"
+                open={legacyOpen || !!errors.legacyAccountId}
+                onToggle={(event) => setLegacyOpen(event.currentTarget.open)}
+              >
+                <summary className="cursor-pointer text-sm font-semibold text-slate-800">
+                  {t('credentials.legacySettings')}
+                </summary>
+                <p className="mt-3 text-xs leading-5 text-slate-600">
+                  {t('credentials.legacySettingsHint')}
+                </p>
+                <label className="field mt-3 max-w-sm">
+                  {t('credentials.legacyId')}
+                  <input
+                    className="form-control"
+                    readOnly={!!credential?.legacyAccountId}
+                    placeholder="2340 ou 2340_779"
+                    {...form.register('legacyAccountId')}
+                  />
+                  <FieldError
+                    message={form.formState.errors.legacyAccountId?.message}
+                  />
+                </label>
+              </details>
             </CredentialSection>
             <div className="rounded-2xl border border-purple-100 bg-purple-50/70 p-4 sm:p-5">
               <div className="flex items-start gap-3">

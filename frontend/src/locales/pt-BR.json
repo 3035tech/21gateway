@@ -356,6 +356,8 @@
     "blockedSuffix": " (bloqueada)",
     "companyLoadFailed": "Não foi possível carregar as empresas.",
     "legacyId": "ID legado",
+    "legacySettings": "Integração legada (opcional)",
+    "legacySettingsHint": "Informe o ID antigo somente se esta credencial for vinculada a uma conta já existente.",
     "optional": "Opcional",
     "preservePassword": "Manter a senha de um cliente existente",
     "currentApiPassword": "Senha atual da API 21",
