@@ -39,7 +39,7 @@ type CredentialBody struct {
 	LegacyAccountID    *string    `json:"legacyAccountId,omitempty" maxLength:"64" pattern:"^[0-9]+(_[0-9]+)?$"`
 
 	CompanyID        uint64 `json:"companyId" minimum:"1"`
-	Username         string `json:"username" minLength:"1" maxLength:"120"`
+	Username         string `json:"username" maxLength:"120"`
 	Active           bool   `json:"active"`
 	CallbackURL      string `json:"callbackUrl" maxLength:"2048"`
 	CallbacksEnabled bool   `json:"callbacksEnabled"`
