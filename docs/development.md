@@ -2,7 +2,7 @@
 
 ## Executar
 
-Na raiz do projeto: `docker compose up --build`. Requer daemon Docker ativo. Frontend localhost:5173; API localhost:8080; Swagger /docs; OpenAPI /openapi.json. Banco localhost:5432, database 21mobile. Credenciais do Compose são somente exemplos locais. Variável POSTGRES_PASSWORD pode substituir a senha; evitar caracteres especiais sem encoding na URL da API.
+Na raiz do projeto: `docker compose up --build`. Requer daemon Docker ativo. Frontend localhost:5173; API localhost:8080; Swagger /docs; OpenAPI /openapi.json (somente endpoints de integração `/v1`). Banco localhost:5432, database 21mobile. Credenciais do Compose são somente exemplos locais. Variável POSTGRES_PASSWORD pode substituir a senha; evitar caracteres especiais sem encoding na URL da API.
 
 O Compose executa a migração dedicada antes do backend. O processo `/api` executa HTTP, callbacks, retenção MO e, quando habilitados, MO e scheduler/SQS no mesmo contêiner. Criar primeiro administrador e credenciais conforme README. Sem token, o endpoint responde indisponibilidade e não tenta envio.
 

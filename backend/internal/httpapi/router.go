@@ -64,6 +64,7 @@ func New(origins []string, docsEnabled bool, ping func(context.Context) error, d
 	}
 	cfg := huma.DefaultConfig("21 Mobile Gateway", "0.1.0")
 	cfg.DocsRenderer = huma.DocsRendererSwaggerUI
+	cfg.SchemasPath = ""
 	if !docsEnabled {
 		cfg.DocsPath = ""
 		cfg.OpenAPIPath = ""
@@ -127,9 +128,44 @@ func New(origins []string, docsEnabled bool, ping func(context.Context) error, d
 	if dependencies.LegacyMO != nil && dependencies.Auth != nil {
 		controllers.NewLegacyMOController(dependencies.LegacyMO, dependencies.Auth).Register(api)
 	}
+	if docsEnabled {
+		limitOpenAPIToClientIntegration(api.OpenAPI())
+	}
 	router.NotFound(func(w http.ResponseWriter, r *http.Request) { controllers.WriteHTTPError(w, http.StatusNotFound) })
 	router.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
 		controllers.WriteHTTPError(w, http.StatusMethodNotAllowed)
 	})
 	return router
+}
+
+func limitOpenAPIToClientIntegration(spec *huma.OpenAPI) {
+	clientPaths := map[string]bool{
+		controllers.LegacySendPath:   true,
+		controllers.LegacyStatusPath: true,
+		controllers.LegacyMOPath:     true,
+		"/v1/auth/check":             true,
+	}
+	for path := range spec.Paths {
+		if !clientPaths[path] {
+			delete(spec.Paths, path)
+		}
+	}
+	usedSchemes := map[string]bool{}
+	for _, path := range spec.Paths {
+		for _, operation := range []*huma.Operation{path.Get, path.Post, path.Put, path.Patch, path.Delete, path.Head, path.Options, path.Trace} {
+			if operation == nil {
+				continue
+			}
+			for _, requirement := range operation.Security {
+				for scheme := range requirement {
+					usedSchemes[scheme] = true
+				}
+			}
+		}
+	}
+	for scheme := range spec.Components.SecuritySchemes {
+		if !usedSchemes[scheme] {
+			delete(spec.Components.SecuritySchemes, scheme)
+		}
+	}
 }

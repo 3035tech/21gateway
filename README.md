@@ -10,7 +10,7 @@ Requisitos: Docker com Compose. Na raiz:
 docker compose up --build
 ```
 
-Frontend: http://localhost:5173. API: http://localhost:8080. Swagger UI: http://localhost:8080/docs. Especificação: http://localhost:8080/openapi.json. `/healthz` verifica o processo, `/readyz` verifica PostgreSQL e `/health/dependencies` informa PostgreSQL, SMTP e SQS. O banco persiste no volume `postgres_data`.
+Frontend: http://localhost:5173. API: http://localhost:8080. Swagger UI: http://localhost:8080/docs. Especificação pública da integração: http://localhost:8080/openapi.json, limitada a `/v1/send`, `/v1/status`, `/v1/consultmo` e `/v1/auth/check`. `/healthz` verifica o processo, `/readyz` verifica PostgreSQL e `/health/dependencies` informa PostgreSQL, SMTP e SQS. O banco persiste no volume `postgres_data`.
 
 Compose destina-se ao desenvolvimento local. As credenciais de exemplo não são credenciais de produção. Os containers de API e frontend de produção executam sem root.
 

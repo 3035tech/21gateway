@@ -54,7 +54,7 @@ Ao criar credencial, um operador recebe a empresa selecionada (ou seu único ví
 
 ## Rotas
 
-Prefixo `/admin`: `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`; listagem/criação em `/companies`, `/users`, `/credentials`, edição por PUT e arquivamento por DELETE em `/{id}`; `POST /credentials/{id}/rotate`; `GET /messages`, `/callbacks`, `/audit`, `/summary`; `POST /callbacks/{id}/retry`. Schemas e permissões estão refletidos na especificação OpenAPI. Consulta individual para edição utiliza o registro da listagem nesta etapa.
+Prefixo `/admin`: `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`; listagem/criação em `/companies`, `/users`, `/credentials`, edição por PUT e arquivamento por DELETE em `/{id}`; `POST /credentials/{id}/rotate`; `GET /messages`, `/callbacks`, `/audit`, `/summary`; `POST /callbacks/{id}/retry`. Essas rotas permanecem no runtime com autenticação e autorização próprias, mas não aparecem na especificação OpenAPI pública, que documenta apenas a integração `/v1`. Consulta individual para edição utiliza o registro da listagem nesta etapa.
 
 Homologação opt-in de credencial: `GET /v1/auth/check` no guard legado e `POST /admin/credentials/{id}/test-send` somente para administrador e número de homologação configurado no backend. O último reutiliza o envio unitário e seus limites; não confirma entrega. Consulte [credential-testing.md](credential-testing.md).
 
