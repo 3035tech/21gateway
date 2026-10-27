@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/21mobile/sms-gateway/internal/services"
@@ -33,6 +34,9 @@ func TestPublicOpenAPIOnlyShowsClientIntegration(t *testing.T) {
 		t.Fatal("OpenAPI unavailable", w.Code)
 	}
 	var document struct {
+		Info struct {
+			Description string `json:"description"`
+		} `json:"info"`
 		Paths      map[string]json.RawMessage `json:"paths"`
 		Components struct {
 			SecuritySchemes map[string]json.RawMessage `json:"securitySchemes"`
@@ -53,6 +57,48 @@ func TestPublicOpenAPIOnlyShowsClientIntegration(t *testing.T) {
 	if len(document.Components.SecuritySchemes) != 1 || document.Components.SecuritySchemes["legacyBasicAuth"] == nil {
 		t.Fatalf("unexpected public security schemes: %v", document.Components.SecuritySchemes)
 	}
+	if !strings.Contains(document.Info.Description, "21 Mobile gera e entrega") {
+		t.Fatal("credential issuance guidance missing from public introduction")
+	}
+	var send struct {
+		Post struct {
+			Description string `json:"description"`
+			RequestBody struct {
+				Content map[string]struct {
+					Examples map[string]json.RawMessage `json:"examples"`
+				} `json:"content"`
+			} `json:"requestBody"`
+			Responses map[string]struct {
+				Content map[string]struct {
+					Examples map[string]json.RawMessage `json:"examples"`
+				} `json:"content"`
+			} `json:"responses"`
+		} `json:"post"`
+	}
+	if err := json.Unmarshal(document.Paths["/v1/send"], &send); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(send.Post.Description, "não evita duplicações") || len(send.Post.RequestBody.Content["application/json"].Examples) == 0 || len(send.Post.Responses["200"].Content["application/json"].Examples) < 2 {
+		t.Fatal("send operation must explain behavior and show request/result examples")
+	}
+	for _, path := range []string{"/v1/status", "/v1/consultmo"} {
+		var operation struct {
+			Get struct {
+				Description string `json:"description"`
+				Responses   map[string]struct {
+					Content map[string]struct {
+						Examples map[string]json.RawMessage `json:"examples"`
+					} `json:"content"`
+				} `json:"responses"`
+			} `json:"get"`
+		}
+		if err := json.Unmarshal(document.Paths[path], &operation); err != nil {
+			t.Fatal(err)
+		}
+		if len(operation.Get.Description) < 200 || len(operation.Get.Responses["200"].Content["application/json"].Examples) < 2 {
+			t.Fatalf("query operation lacks integration guidance or examples: %s", path)
+		}
+	}
 	for _, path := range []string{"/admin/audit", "/internal/dlr", "/healthz"} {
 		if _, ok := document.Paths[path]; ok {
 			t.Fatalf("private path in public OpenAPI: %s", path)
@@ -67,5 +113,10 @@ func TestPublicOpenAPIOnlyShowsClientIntegration(t *testing.T) {
 	handler.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/schemas/SessionOutput", nil))
 	if w.Code != http.StatusNotFound {
 		t.Fatalf("schema route exposed: %d", w.Code)
+	}
+	w = httptest.NewRecorder()
+	handler.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/docs", nil))
+	if w.Code != http.StatusOK || !strings.Contains(strings.ToLower(w.Body.String()), "scalar") {
+		t.Fatalf("Scalar documentation unavailable: %d", w.Code)
 	}
 }

@@ -11,16 +11,16 @@ const (
 )
 
 type LegacyStatusItem struct {
-	CorrelationID string                `json:"correlationId"`
-	Destination   string                `json:"destination"`
-	SentDate      string                `json:"sentDate"`
-	UnixSentDate  string                `json:"unixSentDate"`
-	Status        models.DeliveryStatus `json:"status"`
+	CorrelationID string                `json:"correlationId" doc:"Referência informada no envio. Somente tentativas com correlationId entram nesta consulta."`
+	Destination   string                `json:"destination" doc:"Destino registrado pelo gateway, com prefixo 55 nos números válidos."`
+	SentDate      string                `json:"sentDate" doc:"Data do envio no fuso America/Sao_Paulo, formato AAAA-MM-DD HH:MM:SS-03."`
+	UnixSentDate  string                `json:"unixSentDate" doc:"Instante do envio em Unix timestamp, como string decimal."`
+	Status        models.DeliveryStatus `json:"status" doc:"Estado de entrega recebido por DLR. SENT não equivale a DELIVERED."`
 }
 type LegacyStatusBody struct {
-	Status     LegacyResultStatus `json:"status"`
-	Code       LegacyResultCode   `json:"code"`
-	Message    LegacyMessageCode  `json:"message"`
-	SentStatus []LegacyStatusItem `json:"sent_status"`
+	Status     LegacyResultStatus `json:"status" doc:"OK para consulta concluída, inclusive quando a lista está vazia."`
+	Code       LegacyResultCode   `json:"code" doc:"5 quando há estados; 6 quando não há novos registros."`
+	Message    LegacyMessageCode  `json:"message" doc:"REQUIRED_OK quando há estados; NO_RECORDS para lista vazia (texto provisório)."`
+	SentStatus []LegacyStatusItem `json:"sent_status" doc:"Até 100 estados de entrega ainda não consultados; a leitura consome os registros retornados."`
 }
 type LegacyStatusOutput struct{ Body LegacyStatusBody }

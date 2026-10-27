@@ -63,7 +63,8 @@ func New(origins []string, docsEnabled bool, ping func(context.Context) error, d
 		router.Use(AdminMiddleware(dependencies.Sessions, origins))
 	}
 	cfg := huma.DefaultConfig("21 Mobile Gateway", "0.1.0")
-	cfg.DocsRenderer = huma.DocsRendererSwaggerUI
+	cfg.DocsRenderer = huma.DocsRendererScalar
+	cfg.DocsRendererConfig = map[string]any{"theme": "purple", "hideModels": false}
 	cfg.SchemasPath = ""
 	if !docsEnabled {
 		cfg.DocsPath = ""
@@ -130,6 +131,7 @@ func New(origins []string, docsEnabled bool, ping func(context.Context) error, d
 	}
 	if docsEnabled {
 		limitOpenAPIToClientIntegration(api.OpenAPI())
+		describeClientIntegration(api.OpenAPI())
 	}
 	router.NotFound(func(w http.ResponseWriter, r *http.Request) { controllers.WriteHTTPError(w, http.StatusNotFound) })
 	router.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {

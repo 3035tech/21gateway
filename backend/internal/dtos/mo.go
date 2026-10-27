@@ -25,20 +25,20 @@ type MOInput struct {
 }
 
 type LegacyMOQueryInput struct {
-	Date int64 `query:"date" required:"true" minimum:"0" maximum:"253402300799" doc:"Unix timestamp em segundos do dia a consultar"`
+	Date int64 `query:"date" required:"true" minimum:"0" maximum:"253402300799" doc:"Unix timestamp em segundos de qualquer instante do dia desejado em America/Sao_Paulo; a consulta cobre o dia inteiro."`
 }
 type LegacyMOItem struct {
-	FromAddress      string `json:"fromAdress"`
-	ReceivedDate     string `json:"receivedDate"`
-	UnixReceivedDate string `json:"unixReceivedDate"`
-	Message          string `json:"msg"`
-	IDMO             string `json:"idMo"`
-	IDMT             string `json:"idMt"`
+	FromAddress      string `json:"fromAdress" doc:"Telefone que enviou a resposta. A grafia fromAdress preserva o contrato legado."`
+	ReceivedDate     string `json:"receivedDate" doc:"Data de recebimento no fuso America/Sao_Paulo, formato AAAA-MM-DD HH:MM:SS-03."`
+	UnixReceivedDate string `json:"unixReceivedDate" doc:"Instante de recebimento em Unix timestamp, como string decimal."`
+	Message          string `json:"msg" doc:"Texto da resposta recebida, sem normalização."`
+	IDMO             string `json:"idMo" doc:"Identificador interno da resposta, como string decimal."`
+	IDMT             string `json:"idMt" doc:"Identificador interno do envio original associado, como string decimal."`
 }
 type LegacyMOBody struct {
-	Status  LegacyResultStatus `json:"status"`
-	Code    LegacyResultCode   `json:"code"`
-	Message LegacyMessageCode  `json:"message"`
-	ListMO  []LegacyMOItem     `json:"list_mo"`
+	Status  LegacyResultStatus `json:"status" doc:"OK para consulta concluída, inclusive quando a lista está vazia."`
+	Code    LegacyResultCode   `json:"code" doc:"5 quando há respostas; 6 quando não há registros no dia."`
+	Message LegacyMessageCode  `json:"message" doc:"REQUIRED_OK quando há respostas; NO_RECORDS para lista vazia (texto provisório)."`
+	ListMO  []LegacyMOItem     `json:"list_mo" doc:"Respostas recebidas no dia; a consulta não consome os registros."`
 }
 type LegacyMOOutput struct{ Body LegacyMOBody }

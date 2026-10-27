@@ -18,7 +18,7 @@ Implementação e limitações estão em docs/status.md e docs/backoffice.md. Co
 - Repositório Git local inicializado. Não há repositório remoto ou deployment nesta etapa.
 - Go; arquitetura MVC com controllers, services, models e DTOs.
 - PostgreSQL e ORM GORM. Reutilização de bibliotecas e padrões úteis, com foco em segurança e alta vazão.
-- Huma/Chi para HTTP, validação e documentação OpenAPI; Swagger UI.
+- Huma/Chi para HTTP, validação e documentação OpenAPI; Scalar API Reference para exemplos de integração por linguagem.
 - React/TypeScript/Vite/Tailwind. Material UI foi substituído por Tailwind a pedido do usuário.
 - TanStack Query e Table, Axios, Zod e React Hook Form/resolvers.
 - Listagens com filtros, paginação, número de itens por página e ordenação clicando no cabeçalho; processamento no servidor.
