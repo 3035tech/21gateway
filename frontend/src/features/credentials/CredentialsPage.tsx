@@ -10,8 +10,11 @@ import { useUser } from '../auth/context'
 import { listCredentials, archiveCredential, rotateCredential } from './api'
 import type { Credential } from './api'
 import { CredentialForm } from './CredentialForm'
+import { CredentialTestDialog } from './CredentialTestDialog'
 export function CredentialsPage() {
-  const writable = useUser()?.role !== 'viewer'
+  const role = useUser()?.role
+  const writable = role !== 'viewer'
+  const canTest = role === 'admin'
   const [editor, setEditor] = useState<Credential | null | undefined>()
   const [action, setAction] = useState<{
     credential: Credential
@@ -21,6 +24,7 @@ export function CredentialsPage() {
     username: string
     password: string
   } | null>(null)
+  const [testCredential, setTestCredential] = useState<Credential | null>(null)
   const mutation = useAdminMutation<{
     credential: Credential
     rotate: boolean
@@ -100,6 +104,14 @@ export function CredentialsPage() {
       enableSorting: false,
       cell: ({ row }) => (
         <div className="flex flex-nowrap gap-1">
+          {canTest ? (
+            <button
+              className="table-action"
+              onClick={() => setTestCredential(row.original)}
+            >
+              Testar credencial
+            </button>
+          ) : null}
           <button
             className="table-action"
             onClick={() => setEditor(row.original)}
@@ -191,6 +203,12 @@ export function CredentialsPage() {
             Já guardei a senha
           </button>
         </Dialog>
+      ) : null}
+      {testCredential ? (
+        <CredentialTestDialog
+          credential={testCredential}
+          onClose={() => setTestCredential(null)}
+        />
       ) : null}
     </>
   )

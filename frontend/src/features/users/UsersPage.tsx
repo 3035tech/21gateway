@@ -1,13 +1,14 @@
 import { DateCell } from '../../components/admin/DateCell'
 import { useState } from 'react'
+import { useMutation } from '@tanstack/react-query'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Listing } from '../../components/admin/Listing'
 import { StatusBadge } from '../../components/admin/StatusBadge'
 import { Confirmation } from '../../components/admin/Confirmation'
 import { useAdminMutation } from '../../components/admin/useAdminMutation'
 import { useUser } from '../auth/context'
-import { roleLabels } from '../../lib/admin'
-import { listUsers, archiveUser } from './api'
+import { errorMessage, roleLabels } from '../../lib/admin'
+import { listUsers, archiveUser, resendInvitation } from './api'
 import type { SystemUser } from './api'
 import { UserForm } from './UserForm'
 export function UsersPage() {
@@ -16,6 +17,11 @@ export function UsersPage() {
   const [editor, setEditor] = useState<SystemUser | null | undefined>()
   const [archive, setArchive] = useState<SystemUser | null>(null)
   const mutation = useAdminMutation(archiveUser, () => setArchive(null))
+  const [inviteSent, setInviteSent] = useState(false)
+  const resend = useMutation({
+    mutationFn: resendInvitation,
+    onSuccess: () => setInviteSent(true),
+  })
   const columns: ColumnDef<SystemUser>[] = [
     { accessorKey: 'id', header: 'ID' },
     { accessorKey: 'name', header: 'Nome' },
@@ -52,6 +58,16 @@ export function UsersPage() {
             Editar
           </button>
           <button
+            className="table-action"
+            disabled={resend.isPending}
+            onClick={() => {
+              setInviteSent(false)
+              resend.mutate(row.original.id)
+            }}
+          >
+            Reenviar convite
+          </button>
+          <button
             className="table-action-danger"
             onClick={() => setArchive(row.original)}
           >
@@ -62,9 +78,25 @@ export function UsersPage() {
     })
   return (
     <>
+      {inviteSent ? (
+        <p
+          role="status"
+          className="mb-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800"
+        >
+          Convite enviado. O novo link expira em 15 minutos.
+        </p>
+      ) : null}
+      {resend.isError ? (
+        <p
+          role="alert"
+          className="mb-4 rounded-lg bg-rose-50 p-3 text-sm text-rose-700"
+        >
+          {errorMessage(resend.error)}
+        </p>
+      ) : null}
       <Listing
         title="Usuários"
-        description="Gerencie os acessos internos ao backoffice."
+        description="Gerencie os acessos internos ao backoffice. Novos usuários definem a própria senha pelo convite enviado por e-mail."
         searchPlaceholder="Nome ou e-mail do usuário"
         queryKey="users"
         columns={columns}

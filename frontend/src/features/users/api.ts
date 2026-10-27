@@ -14,25 +14,16 @@ export const userFormSchema = z.object({
   email: z.email('Informe um e-mail válido.').max(254),
   role: z.enum(roles),
   active: z.boolean(),
-  password: z
-    .string()
-    .refine(
-      (value) =>
-        !value ||
-        (Array.from(value.trim()).length >=
-          systemPasswordLimits.minimumCharacters &&
-          new TextEncoder().encode(value).length <=
-            systemPasswordLimits.maximumBytes),
-      `Use pelo menos ${systemPasswordLimits.minimumCharacters} caracteres sem contar espaços nas pontas e no máximo ${systemPasswordLimits.maximumBytes} bytes.`,
-    ),
 })
 export type UserBody = z.infer<typeof userFormSchema>
 export const listUsers = (params: ListParams, signal?: AbortSignal) =>
   list('users', userSchema, params, signal)
 export async function saveUser(id: number | undefined, body: UserBody) {
-  const payload = { ...body, password: body.password || undefined }
-  if (id) await api.put(`/admin/users/${id}`, payload)
-  else await api.post('/admin/users', payload)
+  if (id) await api.put(`/admin/users/${id}`, body)
+  else await api.post('/admin/users/invite', body)
+}
+export async function resendInvitation(id: number) {
+  await api.post(`/admin/users/${id}/invite`)
 }
 export async function archiveUser(id: number) {
   await api.delete(`/admin/users/${id}`)

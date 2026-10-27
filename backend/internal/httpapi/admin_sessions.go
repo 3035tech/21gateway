@@ -12,14 +12,14 @@ import (
 
 const SessionCookieName = "21mobile_session"
 const sessionLifetime = 8 * time.Hour
-const sessionIdleTimeout = 30 * time.Minute
 
 func NewSessions(pool *sql.DB, secure, crossSite bool) *scs.SessionManager {
 	sessions := scs.New()
 	// Cleanup is owned by the operational worker; avoid library logging raw SQL errors.
 	sessions.Store = postgresstore.NewWithCleanupInterval(pool, 0)
 	sessions.Lifetime = sessionLifetime
-	sessions.IdleTimeout = sessionIdleTimeout
+	// Per-session idle limits are enforced by SessionGuard so remembered sessions can differ.
+	sessions.IdleTimeout = 0
 	sessions.Cookie.Name = SessionCookieName
 	sessions.Cookie.Path = "/admin"
 	sessions.Cookie.HttpOnly = true

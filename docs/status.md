@@ -1,5 +1,11 @@
 # Estado da implementação
 
+## Atualização de 27/10/2026 — contas administrativas
+
+Cadastro de usuários internos pela tela agora envia convite por e-mail para definição da senha; suporta vários administradores e perfis admin/operator/viewer. Perfil permite troca da própria senha, MFA TOTP com QR code e códigos de recuperação. Login oferece “Lembrar de mim”; recuperação por e-mail exige MFA se ativo. Migrações 015/016 e configuração SMTP/chave MFA em [admin-security.md](admin-security.md). Sessões `/admin` são independentes da autenticação Basic Auth dos endpoints `/v1` de SMS. Portal de clientes ainda não implementado.
+
+Testes PostgreSQL locais usam schema isolado e mailer falso; nenhum e-mail ou SMS real foi enviado. Entrega SMTP/SES, DNS remetente e operação de chave MFA ainda precisam de homologação antes da ativação em produção. As seções cronológicas anteriores abaixo descrevem o estado da época e não substituem esta atualização.
+
 ## Implementado em código
 
 Inventário técnico abaixo; o escopo respondido em docs/scope-answers.md prevalece como requisito. Recursos extras existentes não significam que foram solicitados pela 21.

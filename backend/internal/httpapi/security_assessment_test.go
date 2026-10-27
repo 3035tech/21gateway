@@ -119,6 +119,9 @@ func (f *deniedLogins) Login(context.Context, string, string) (models.SystemUser
 	f.calls++
 	return models.SystemUser{}, apperrors.Wrap(apperrors.CodeUnauthorized, nil)
 }
+func (f *deniedLogins) LoginWithFactor(ctx context.Context, email, password, _ string) (models.SystemUser, error) {
+	return f.Login(ctx, email, password)
+}
 
 func TestSecurityBackofficeBruteForceDoesNotTrustForwardedIP(t *testing.T) {
 	controllers.ConfigureErrors()

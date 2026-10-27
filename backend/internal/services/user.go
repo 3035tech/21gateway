@@ -19,6 +19,7 @@ type UserService struct {
 	permissions *security.Permissions
 	dummyHash   string
 	checks      chan struct{}
+	mfa         *UserMFAService
 }
 
 func NewUserService(repository *repositories.Users) (*UserService, error) {
@@ -32,10 +33,14 @@ func NewUserService(repository *repositories.Users) (*UserService, error) {
 	}
 	return &UserService{repository: repository, permissions: permissions, dummyHash: dummy, checks: make(chan struct{}, security.MaxConcurrentPasswordChecks)}, nil
 }
+func (s *UserService) SetMFA(service *UserMFAService) { s.mfa = service }
 func (s *UserService) Allowed(role models.Role, resource security.Resource, action security.Action) bool {
 	return s.permissions.Allow(role, resource, action)
 }
 func (s *UserService) Login(ctx context.Context, email, password string) (models.SystemUser, error) {
+	return s.LoginWithFactor(ctx, email, password, "")
+}
+func (s *UserService) LoginWithFactor(ctx context.Context, email, password, factor string) (models.SystemUser, error) {
 	if len(password) > security.MaximumPasswordLength {
 		return models.SystemUser{}, apperrors.Wrap(apperrors.CodeUnauthorized, nil)
 	}
@@ -73,6 +78,17 @@ func (s *UserService) Login(ctx context.Context, email, password string) (models
 		}
 		return models.SystemUser{}, apperrors.Wrap(apperrors.CodeUnauthorized, nil)
 	}
+	if s.mfa != nil {
+		if err := s.mfa.VerifyLogin(ctx, user.ID, factor); err != nil {
+			var appErr *apperrors.Error
+			if errors.As(err, &appErr) && appErr.Code == apperrors.CodeMFAInvalid {
+				if failure := protection.Failure(ctx, accountKey, security.AuthenticationFailureLimit); failure != nil {
+					return models.SystemUser{}, dbError(failure)
+				}
+			}
+			return models.SystemUser{}, err
+		}
+	}
 	now := time.Now().UTC()
 	user.LastLoginAt = &now
 	if err := s.repository.Transaction(ctx, func(repo *repositories.Users) error {
@@ -102,6 +118,53 @@ func (s *UserService) SessionUser(ctx context.Context, id uint64, version int64)
 	}
 	user.PasswordHash = ""
 	return user, nil
+}
+func (s *UserService) ChangeOwnPassword(ctx context.Context, actor models.SystemUser, currentPassword, newPassword string) error {
+	if len(currentPassword) == 0 || len(currentPassword) > security.MaximumPasswordLength || !security.ValidNewSystemPassword(newPassword) || currentPassword == newPassword {
+		return apperrors.Wrap(apperrors.CodeInvalidRequest, nil)
+	}
+	accountKey := security.AuthenticationKey("admin-account", strings.ToLower(actor.Email))
+	protection := repositories.NewAuthenticationAttempts(s.repository.DB())
+	blocked, err := protection.Blocked(ctx, accountKey, security.AuthenticationFailureLimit)
+	if err != nil {
+		return dbError(err)
+	}
+	if blocked {
+		return apperrors.Wrap(apperrors.CodeRateLimited, nil)
+	}
+	select {
+	case s.checks <- struct{}{}:
+		defer func() { <-s.checks }()
+	default:
+		return apperrors.Wrap(apperrors.CodeServiceUnavailable, nil)
+	}
+	user, err := s.repository.User(ctx, actor.ID)
+	if err != nil {
+		return dbError(err)
+	}
+	if user.SessionVersion != actor.SessionVersion || !user.Active {
+		return apperrors.Wrap(apperrors.CodeUnauthorized, nil)
+	}
+	match, err := security.VerifyPassword(currentPassword, user.PasswordHash)
+	if err != nil {
+		return apperrors.Wrap(apperrors.CodeServiceUnavailable, err)
+	}
+	if !match {
+		if err := protection.Failure(ctx, accountKey, security.AuthenticationFailureLimit); err != nil {
+			return dbError(err)
+		}
+		return apperrors.Wrap(apperrors.CodeInvalidCurrentPassword, nil)
+	}
+	hash, err := security.HashPassword(newPassword)
+	if err != nil {
+		return apperrors.Wrap(apperrors.CodeInternal, err)
+	}
+	return dbError(s.repository.Transaction(ctx, func(repo *repositories.Users) error {
+		if err := repo.ReplaceOwnPassword(ctx, actor.ID, actor.SessionVersion, user.PasswordHash, hash); err != nil {
+			return err
+		}
+		return repo.Audit(ctx, &actor.ID, auditRotated, string(security.ResourceUsers), &actor.ID)
+	}))
 }
 func (s *UserService) Users(ctx context.Context, q dtos.ListQuery) (dtos.Page[dtos.UserView], error) {
 	values, err := s.repository.Users(ctx, q)

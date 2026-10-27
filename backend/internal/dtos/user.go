@@ -27,6 +27,11 @@ type UpdateUserInput struct {
 }
 type UserOutput struct{ Body UserView }
 type UsersOutput struct{ Body Page[UserView] }
+type ChangeOwnPasswordBody struct {
+	CurrentPassword string `json:"currentPassword" minLength:"1" maxLength:"128" writeOnly:"true"`
+	NewPassword     string `json:"newPassword" minLength:"15" maxLength:"128" writeOnly:"true"`
+}
+type ChangeOwnPasswordInput struct{ Body ChangeOwnPasswordBody }
 
 func UserDTO(value models.SystemUser) UserView {
 	return UserView{ID: value.ID, Name: value.Name, Email: value.Email, Role: value.Role, Active: value.Active, CreatedAt: value.CreatedAt}

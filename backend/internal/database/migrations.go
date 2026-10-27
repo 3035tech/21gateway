@@ -17,8 +17,8 @@ const (
 
 // Migrate is an explicit operator action, never part of API startup.
 func Migrate(db *gorm.DB) error {
-	ids := []string{initialSMSMigration, "202610140002", "202610140003", "202610140004", "202610140005", "202610140006", "202610140007", "202610140008", "202610140009", "202610150010", "202610150011", "202610270012", "202610270013", "202610270014"}
-	names := []string{"sms", "backoffice", "callbacks", "account_settings", "batch_metadata", "legacy_status", "mo", "mo_queries", "operations", "scheduled_sms", "dispatch_outbox", "request_reservations", "list_order_indexes", "schedule_listing"}
+	ids := []string{initialSMSMigration, "202610140002", "202610140003", "202610140004", "202610140005", "202610140006", "202610140007", "202610140008", "202610140009", "202610150010", "202610150011", "202610270012", "202610270013", "202610270014", "202610270015", "202610270016"}
+	names := []string{"sms", "backoffice", "callbacks", "account_settings", "batch_metadata", "legacy_status", "mo", "mo_queries", "operations", "scheduled_sms", "dispatch_outbox", "request_reservations", "list_order_indexes", "schedule_listing", "user_mfa", "password_recovery"}
 	migrations := make([]*gormigrate.Migration, 0, len(ids))
 	for i, id := range ids {
 		script, err := migrationFiles.ReadFile("migrations/" + id + "_" + names[i] + ".sql")

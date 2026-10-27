@@ -25,6 +25,8 @@ type Dependencies struct {
 	MOIngressEnabled       bool
 	LegacyStatuses         *services.LegacyStatusService
 	Users                  *services.UserService
+	UserMFA                *services.UserMFAService
+	UserRecovery           *services.UserRecoveryService
 	Companies              *services.CompanyService
 	Credentials            *services.CredentialService
 	Messages               *services.MessageService
@@ -65,6 +67,9 @@ func New(origins []string, docsEnabled bool, ping func(context.Context) error, d
 		cfg.SchemasPath = ""
 	}
 	api := humachi.New(router, cfg)
+	if dependencies.UserRecovery != nil {
+		controllers.NewUserRecoveryController(dependencies.UserRecovery).Register(api)
+	}
 	if dependencies.Users != nil && dependencies.Sessions != nil {
 		guard := controllers.NewSessionGuard(dependencies.Users, dependencies.Sessions)
 		controllers.NewSessionController(dependencies.Users, guard).Register(api)
@@ -78,6 +83,12 @@ func New(origins []string, docsEnabled bool, ping func(context.Context) error, d
 			controllers.NewCredentialController(dependencies.Credentials, guard).Register(api)
 		}
 		controllers.NewUserController(dependencies.Users, guard).Register(api)
+		if dependencies.UserMFA != nil {
+			controllers.NewUserMFAController(dependencies.UserMFA, guard).Register(api)
+		}
+		if dependencies.UserRecovery != nil {
+			controllers.NewUserInvitationController(dependencies.UserRecovery, guard).Register(api)
+		}
 		if dependencies.Messages != nil {
 			controllers.NewMessageController(dependencies.Messages, guard).Register(api)
 		}
@@ -103,6 +114,9 @@ func New(origins []string, docsEnabled bool, ping func(context.Context) error, d
 	controllers.NewHealthController(services.NewHealthService(ping)).Register(api)
 	if dependencies.SMS != nil && dependencies.Auth != nil {
 		controllers.NewSMSController(dependencies.SMS, dependencies.Auth).Register(api)
+	}
+	if dependencies.Auth != nil {
+		controllers.NewCredentialCheckController(dependencies.Auth).Register(api)
 	}
 	if dependencies.LegacyStatuses != nil && dependencies.Auth != nil {
 		controllers.NewLegacyStatusController(dependencies.LegacyStatuses, dependencies.Auth).Register(api)

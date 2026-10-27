@@ -67,7 +67,7 @@ function utc(value: string) {
 }
 
 export function SchedulesPage() {
-  const table = useListState()
+  const table = useListState([{ id: 'scheduledAt', desc: true }])
   const [companyId, setCompanyId] = useState('')
   const [credentialId, setCredentialId] = useState('')
   const [state, setState] = useState('')

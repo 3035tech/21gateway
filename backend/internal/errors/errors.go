@@ -6,27 +6,34 @@ import "fmt"
 type Code string
 
 const (
-	CodeNone                 Code = ""
-	CodeInvalidRequest       Code = "INVALID_REQUEST"
-	CodeUnauthorized         Code = "UNAUTHORIZED"
-	CodeForbidden            Code = "FORBIDDEN"
-	CodeNotFound             Code = "NOT_FOUND"
-	CodeRateLimited          Code = "RATE_LIMITED"
-	CodeServiceUnavailable   Code = "SERVICE_UNAVAILABLE"
-	CodeInternal             Code = "INTERNAL_ERROR"
-	CodeConfigurationInvalid Code = "CONFIGURATION_INVALID"
-	CodeDatabaseUnavailable  Code = "DATABASE_UNAVAILABLE"
-	CodeInvalidDestination   Code = "INVALID_DESTINATION"
-	CodeInvalidMessage       Code = "INVALID_MESSAGE"
-	CodeBatchUnsupported     Code = "BATCH_UNSUPPORTED"
-	CodeScheduleUnsupported  Code = "SCHEDULE_UNSUPPORTED"
-	CodeProviderUnauthorized Code = "PROVIDER_UNAUTHORIZED"
-	CodeInsufficientBalance  Code = "INSUFFICIENT_BALANCE"
-	CodeProviderRejected     Code = "PROVIDER_REJECTED"
-	CodeUnknownOutcome       Code = "UNKNOWN_OUTCOME"
-	CodeConflict             Code = "CONFLICT"
-	CodeLastAdmin            Code = "LAST_ADMIN_REQUIRED"
-	CodeCSRFInvalid          Code = "CSRF_INVALID"
+	CodeNone                      Code = ""
+	CodeInvalidRequest            Code = "INVALID_REQUEST"
+	CodeUnauthorized              Code = "UNAUTHORIZED"
+	CodeForbidden                 Code = "FORBIDDEN"
+	CodeNotFound                  Code = "NOT_FOUND"
+	CodeRateLimited               Code = "RATE_LIMITED"
+	CodeServiceUnavailable        Code = "SERVICE_UNAVAILABLE"
+	CodeInternal                  Code = "INTERNAL_ERROR"
+	CodeConfigurationInvalid      Code = "CONFIGURATION_INVALID"
+	CodeDatabaseUnavailable       Code = "DATABASE_UNAVAILABLE"
+	CodeInvalidDestination        Code = "INVALID_DESTINATION"
+	CodeInvalidMessage            Code = "INVALID_MESSAGE"
+	CodeBatchUnsupported          Code = "BATCH_UNSUPPORTED"
+	CodeScheduleUnsupported       Code = "SCHEDULE_UNSUPPORTED"
+	CodeProviderUnauthorized      Code = "PROVIDER_UNAUTHORIZED"
+	CodeInsufficientBalance       Code = "INSUFFICIENT_BALANCE"
+	CodeProviderRejected          Code = "PROVIDER_REJECTED"
+	CodeUnknownOutcome            Code = "UNKNOWN_OUTCOME"
+	CodeConflict                  Code = "CONFLICT"
+	CodeLastAdmin                 Code = "LAST_ADMIN_REQUIRED"
+	CodeCSRFInvalid               Code = "CSRF_INVALID"
+	CodeTestDestinationNotAllowed Code = "TEST_DESTINATION_NOT_ALLOWED"
+	CodeTestNotConfigured         Code = "TEST_NOT_CONFIGURED"
+	CodeInvalidCurrentPassword    Code = "INVALID_CURRENT_PASSWORD"
+	CodeMFARequired               Code = "MFA_REQUIRED"
+	CodeMFAInvalid                Code = "MFA_INVALID"
+	CodeInvalidResetToken         Code = "INVALID_RESET_TOKEN"
+	CodeInvitationDeliveryFailed  Code = "INVITATION_DELIVERY_FAILED"
 )
 
 func (c Code) Message() string {
@@ -65,6 +72,20 @@ func (c Code) Message() string {
 		return "Mantenha pelo menos um administrador ativo."
 	case CodeCSRFInvalid:
 		return "A sessão de segurança expirou. Atualize a página e tente novamente."
+	case CodeTestDestinationNotAllowed:
+		return "Use o número de homologação autorizado para o teste."
+	case CodeTestNotConfigured:
+		return "O número de homologação ainda não foi configurado."
+	case CodeInvalidCurrentPassword:
+		return "Senha atual incorreta."
+	case CodeMFARequired:
+		return "Informe o código do aplicativo autenticador ou um código de recuperação."
+	case CodeMFAInvalid:
+		return "Código de segurança inválido."
+	case CodeInvalidResetToken:
+		return "Link de recuperação inválido ou expirado."
+	case CodeInvitationDeliveryFailed:
+		return "Não foi possível enviar o convite. Atualize a lista e tente reenviar."
 	case CodeConfigurationInvalid:
 		return "Configuração da aplicação inválida."
 	default:

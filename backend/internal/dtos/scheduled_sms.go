@@ -16,7 +16,7 @@ type ScheduledListQuery struct {
 	DueFrom      string               `query:"dueFrom" format:"date-time"`
 	DueTo        string               `query:"dueTo" format:"date-time"`
 	Sort         string               `query:"sort" enum:"id,attemptId,companyName,username,destination,correlationId,scheduledAt,state,submissionState,dispatchedAt,createdAt"`
-	Direction    SortDirection        `query:"direction" default:"asc" enum:"asc,desc"`
+	Direction    SortDirection        `query:"direction" default:"desc" enum:"asc,desc"`
 }
 
 type ScheduledView struct {

@@ -25,6 +25,9 @@ type fixtureUser struct {
 func (f *fixtureUser) Login(context.Context, string, string) (models.SystemUser, error) {
 	return f.user, nil
 }
+func (f *fixtureUser) LoginWithFactor(ctx context.Context, email, password, _ string) (models.SystemUser, error) {
+	return f.Login(ctx, email, password)
+}
 func (f *fixtureUser) AllowLogin(context.Context, string) error { return nil }
 func (f *fixtureUser) SessionUser(_ context.Context, id uint64, version int64) (models.SystemUser, error) {
 	if id != f.user.ID || version != f.user.SessionVersion || !f.user.Active {
@@ -45,6 +48,8 @@ func TestAdministrativeSessionAndPermissions(t *testing.T) {
 	sessions := scs.New()
 	sessions.Cookie.Name = SessionCookieName
 	sessions.Cookie.Path = "/admin"
+	sessions.Cookie.Persist = false
+	sessions.IdleTimeout = 0
 	router := chi.NewRouter()
 	router.Use(AdminMiddleware(sessions, []string{"http://localhost:5173"}))
 	router.Get("/admin/test/seed", func(w http.ResponseWriter, r *http.Request) {
@@ -75,12 +80,23 @@ func TestAdministrativeSessionAndPermissions(t *testing.T) {
 		t.Fatal("login", login.Code, login.Body.String())
 	}
 	cookie := login.Result().Cookies()[0]
+	if cookie.MaxAge > 0 {
+		t.Fatal("ordinary session persisted")
+	}
 	if cookie.Value == seed.Value {
 		t.Fatal("session token was not renewed")
 	}
 	if code := call("GET", "/admin/auth/me", "", cookie).Code; code != 200 {
 		t.Fatal("authenticated access", code)
 	}
+	remembered := call("POST", "/admin/auth/login", `{"email":"viewer@example.test","password":"anything","remember":true}`, cookie)
+	if remembered.Code != 200 {
+		t.Fatal("remembered login", remembered.Code, remembered.Body.String())
+	}
+	if remembered.Result().Cookies()[0].MaxAge <= 0 {
+		t.Fatal("remembered session has no persistent cookie")
+	}
+	cookie = remembered.Result().Cookies()[0]
 	if code := call("POST", "/admin/companies", `{"name":"Denied","reference":"","active":true}`, cookie).Code; code != 403 {
 		t.Fatal("viewer may write", code)
 	}

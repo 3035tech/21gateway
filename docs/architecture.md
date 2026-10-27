@@ -29,7 +29,7 @@ Argon2id; verificação concorrente limitada, hash fictício para contas inexist
 
 CSRF com CrossOriginProtection da biblioteca padrão Go, origens exatas compartilhadas com CORS, somente no prefixo /admin. API externa e ingress de callback têm autenticação independente. HTTPS terminado pela infraestrutura. SameSite=None é configurável para hosting em sites distintos e exige Secure.
 
-Usuários internos administram a operação global; não é portal multiempresa para clientes. Credenciais externas são vinculadas à empresa. Empresas bloqueadas impedem envio por suas credenciais. Último admin protegido por lock transacional. Auditoria contém apenas identificadores/ação/data, sem corpos ou segredos.
+Usuários internos administram a operação global; podem existir vários administradores. Convite, recuperação, MFA e sessão lembrada estão separados no domínio de usuários e documentados em [admin-security.md](admin-security.md). Não é portal multiempresa para clientes. Credenciais externas são vinculadas à empresa. Empresas bloqueadas impedem envio por suas credenciais. Último admin protegido por lock transacional. Auditoria contém apenas identificadores/ação/data, sem corpos ou segredos.
 
 ## Callbacks e workers
 

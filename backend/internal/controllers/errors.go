@@ -62,8 +62,20 @@ func HTTPError(err error) huma.StatusError {
 		switch appError.Code {
 		case apperrors.CodeServiceUnavailable, apperrors.CodeDatabaseUnavailable:
 			return huma.NewError(http.StatusServiceUnavailable, "")
+		case apperrors.CodeInvitationDeliveryFailed:
+			return &dtos.ErrorOutput{ErrorModel: huma.ErrorModel{Status: http.StatusServiceUnavailable, Title: http.StatusText(http.StatusServiceUnavailable), Detail: appError.Code.Message()}, Code: appError.Code}
 		case apperrors.CodeConflict, apperrors.CodeLastAdmin:
 			return &dtos.ErrorOutput{ErrorModel: huma.ErrorModel{Status: http.StatusConflict, Title: http.StatusText(http.StatusConflict), Detail: appError.Code.Message()}, Code: appError.Code}
+		case apperrors.CodeTestNotConfigured:
+			return &dtos.ErrorOutput{ErrorModel: huma.ErrorModel{Status: http.StatusServiceUnavailable, Title: http.StatusText(http.StatusServiceUnavailable), Detail: appError.Code.Message()}, Code: appError.Code}
+		case apperrors.CodeTestDestinationNotAllowed:
+			return &dtos.ErrorOutput{ErrorModel: huma.ErrorModel{Status: http.StatusUnprocessableEntity, Title: http.StatusText(http.StatusUnprocessableEntity), Detail: appError.Code.Message()}, Code: appError.Code}
+		case apperrors.CodeInvalidCurrentPassword:
+			return &dtos.ErrorOutput{ErrorModel: huma.ErrorModel{Status: http.StatusUnprocessableEntity, Title: http.StatusText(http.StatusUnprocessableEntity), Detail: appError.Code.Message()}, Code: appError.Code}
+		case apperrors.CodeMFARequired, apperrors.CodeMFAInvalid:
+			return &dtos.ErrorOutput{ErrorModel: huma.ErrorModel{Status: http.StatusUnauthorized, Title: http.StatusText(http.StatusUnauthorized), Detail: appError.Code.Message()}, Code: appError.Code}
+		case apperrors.CodeInvalidResetToken:
+			return &dtos.ErrorOutput{ErrorModel: huma.ErrorModel{Status: http.StatusUnprocessableEntity, Title: http.StatusText(http.StatusUnprocessableEntity), Detail: appError.Code.Message()}, Code: appError.Code}
 		case apperrors.CodeCSRFInvalid:
 			return &dtos.ErrorOutput{ErrorModel: huma.ErrorModel{Status: http.StatusForbidden, Title: http.StatusText(http.StatusForbidden), Detail: appError.Code.Message()}, Code: appError.Code}
 		case apperrors.CodeInvalidRequest:

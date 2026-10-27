@@ -10,10 +10,11 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humachi"
 	"net/http"
+	"time"
 )
 
 type SessionLogin interface {
-	Login(context.Context, string, string) (models.SystemUser, error)
+	LoginWithFactor(context.Context, string, string, string) (models.SystemUser, error)
 	AllowLogin(context.Context, string) error
 }
 type SessionController struct {
@@ -39,7 +40,7 @@ func (c *SessionController) Register(api huma.API) {
 		}
 		next(ctx)
 	}}}, func(ctx context.Context, input *dtos.LoginInput) (*dtos.UserOutput, error) {
-		user, err := c.service.Login(ctx, input.Body.Email, input.Body.Password)
+		user, err := c.service.LoginWithFactor(ctx, input.Body.Email, input.Body.Password, input.Body.Factor)
 		if err != nil {
 			return nil, HTTPError(err)
 		}
@@ -48,6 +49,12 @@ func (c *SessionController) Register(api huma.API) {
 		}
 		c.sessions.Put(ctx, sessionUserID, int64(user.ID))
 		c.sessions.Put(ctx, sessionVersion, user.SessionVersion)
+		c.sessions.Put(ctx, sessionRemember, input.Body.Remember)
+		c.sessions.Put(ctx, sessionLastActivity, time.Now().Unix())
+		if input.Body.Remember {
+			c.sessions.SetDeadline(ctx, time.Now().Add(security.RememberedSessionLifetime))
+			c.sessions.RememberMe(ctx, true)
+		}
 		return &dtos.UserOutput{Body: dtos.UserDTO(user)}, nil
 	})
 	huma.Register(api, c.operation(api, "adminMe", http.MethodGet, "/auth/me", "Sessão atual", "", security.ActionRead), func(ctx context.Context, _ *struct{}) (*dtos.UserOutput, error) {

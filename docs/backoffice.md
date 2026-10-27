@@ -15,7 +15,9 @@ Usuários internos não pertencem automaticamente a uma empresa cliente. Todos o
 
 ## Autenticação
 
-Login por e-mail/senha Argon2id, SCS com sessões no PostgreSQL. Cookie `21mobile_session`, HttpOnly, escopo `/admin`, duração máxima de oito horas, inatividade de trinta minutos, renovação no login e destruição no logout. Senha, perfil ou status alterados invalidam as sessões por versão; cada request protegido verifica a conta atual. O último administrador ativo não pode ser bloqueado, arquivado ou rebaixado; alterações de usuários são serializadas por lock transacional PostgreSQL.
+Perfil, convite por e-mail, recuperação, TOTP com QR code e sessões lembradas estão detalhados em [admin-security.md](admin-security.md). A tela de usuários permite vários administradores; os perfis atuais são internos e não concedem acesso de clientes ao painel.
+
+Login por e-mail/senha Argon2id, SCS com sessões no PostgreSQL. Cookie `21mobile_session`, HttpOnly, escopo `/admin`; por padrão, duração máxima de oito horas e inatividade de trinta minutos. “Lembrar de mim” estende o prazo absoluto a 14 dias e a inatividade a sete dias. Renovação no login e destruição no logout. Senha, perfil, status ou MFA alterados invalidam as sessões por versão; cada request protegido verifica a conta atual. O último administrador ativo não pode ser bloqueado, arquivado ou rebaixado; alterações de usuários são serializadas por lock transacional PostgreSQL.
 
 Proteção CSRF com `net/http.CrossOriginProtection` do Go, aplicada ao prefixo administrativo; origens confiáveis exatas com esquema/host/porta. A mesma configuração alimenta CORS, sem wildcard. Referências: [Go](https://pkg.go.dev/net/http#CrossOriginProtection), [SCS](https://github.com/alexedwards/scs). Não há token de sessão em localStorage. Chamadas HTTP do navegador usam cookies e Origin/Fetch Metadata; não é necessário inventar um token CSRF no frontend.
 
@@ -25,7 +27,7 @@ Em HTTP local, configurar `COOKIE_SECURE=false`. Produção exige `COOKIE_SECURE
 
 ## Cadastros e histórico
 
-Empresas: nome, referência opcional e ativo. Usuários: nome, e-mail único, perfil, ativo e senha; senha em branco ao editar mantém a existente. Credenciais: empresa, username imutável, ativo e configuração de callback. Após vincular uma credencial a uma empresa, o vínculo não pode ser trocado; criar outra credencial para outro cliente. Credenciais antigas sem empresa permanecem válidas até serem vinculadas, preservando a transição.
+Empresas: nome, referência opcional e ativo. Usuários internos: nome, e-mail único, perfil e ativo; a tela envia convite para definição da senha pelo próprio usuário. A API de cadastro anterior conserva o campo de senha por compatibilidade. Credenciais: empresa, username imutável, ativo e configuração de callback. Após vincular uma credencial a uma empresa, o vínculo não pode ser trocado; criar outra credencial para outro cliente. Credenciais antigas sem empresa permanecem válidas até serem vinculadas, preservando a transição.
 
 Senhas externas são aleatórias, armazenadas somente como hash e exibidas uma vez ao criar/trocar. O formulário de edição não consulta ou recupera senhas antigas. Bloqueio de empresa impede autenticação de suas credenciais, sem apagar histórico. Arquivamento lógico mantém FKs e auditoria. Tentativas novas registram a empresa de origem; credenciais e empresas arquivadas não escondem seus envios históricos.
 
@@ -34,6 +36,8 @@ Listagens fazem busca literal, filtro de status/empresa, paginação de 1 a 100 
 ## Rotas
 
 Prefixo `/admin`: `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`; listagem/criação em `/companies`, `/users`, `/credentials`, edição por PUT e arquivamento por DELETE em `/{id}`; `POST /credentials/{id}/rotate`; `GET /messages`, `/callbacks`, `/audit`, `/summary`; `POST /callbacks/{id}/retry`. Schemas e permissões estão refletidos na especificação OpenAPI. Consulta individual para edição utiliza o registro da listagem nesta etapa.
+
+Homologação opt-in de credencial: `GET /v1/auth/check` no guard legado e `POST /admin/credentials/{id}/test-send` somente para administrador e número de homologação configurado no backend. O último reutiliza o envio unitário e seus limites; não confirma entrega. Consulte [credential-testing.md](credential-testing.md).
 
 Envios mostram submissão e entrega separadas. Sem DLR, a entrega aparece como sem confirmação. Não há botão de reenvio SMS. Auditoria armazena ator, ação, recurso, ID e data; não armazena corpos de requisição, senha ou conteúdo de SMS. Resumo considera todos os registros mantidos, não somente o dia atual.
 

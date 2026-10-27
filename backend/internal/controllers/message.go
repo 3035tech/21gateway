@@ -25,5 +25,12 @@ func (c *MessageController) Register(api huma.API) {
 		}
 		return &dtos.MessagesOutput{Body: values}, nil
 	})
+	huma.Register(api, c.operation(api, "sendCredentialTestSMS", http.MethodPost, "/credentials/{id}/test-send", "Enviar um SMS de homologação", security.ResourceMessages, security.ActionWrite), func(ctx context.Context, input *dtos.TestSendInput) (*dtos.TestSendOutput, error) {
+		value, err := c.service.SendTest(ctx, actor(ctx), input.ID, input.Body.Destination)
+		if err != nil {
+			return nil, HTTPError(err)
+		}
+		return &dtos.TestSendOutput{Body: value}, nil
+	})
 
 }

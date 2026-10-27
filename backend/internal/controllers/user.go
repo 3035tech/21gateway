@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"github.com/21mobile/sms-gateway/internal/dtos"
+	"github.com/21mobile/sms-gateway/internal/models"
 	"github.com/21mobile/sms-gateway/internal/security"
 	"github.com/21mobile/sms-gateway/internal/services"
 	"github.com/danielgtaylor/huma/v2"
@@ -18,6 +19,15 @@ func NewUserController(service *services.UserService, guard *SessionGuard) *User
 	return &UserController{SessionGuard: guard, service: service}
 }
 func (c *UserController) Register(api huma.API) {
+	changePassword := c.operation(api, "changeOwnPassword", http.MethodPost, "/auth/password", "Trocar a própria senha", "", security.ActionRead)
+	changePassword.DefaultStatus = http.StatusNoContent
+	huma.Register(api, changePassword, func(ctx context.Context, input *dtos.ChangeOwnPasswordInput) (*struct{}, error) {
+		user := ctx.Value(userContextKey{}).(models.SystemUser)
+		if err := c.service.ChangeOwnPassword(ctx, user, input.Body.CurrentPassword, input.Body.NewPassword); err != nil {
+			return nil, HTTPError(err)
+		}
+		return nil, nil
+	})
 	huma.Register(api, c.operation(api, "listUsers", http.MethodGet, "/users", "Listar usuários", security.ResourceUsers, security.ActionRead), func(ctx context.Context, input *dtos.ListQuery) (*dtos.UsersOutput, error) {
 		values, err := c.service.Users(ctx, *input)
 		if err != nil {

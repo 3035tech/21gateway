@@ -58,6 +58,9 @@ m = g(r.sub, p.sub) && r.obj == p.obj && r.act == p.act`)
 	if _, err := enforcer.AddPolicy(string(models.RoleAdmin), string(ResourceAudit), string(ActionRead)); err != nil {
 		return nil, err
 	}
+	if _, err := enforcer.AddPolicy(string(models.RoleAdmin), string(ResourceMessages), string(ActionWrite)); err != nil {
+		return nil, err
+	}
 	if _, err := enforcer.AddGroupingPolicy(string(models.RoleAdmin), string(models.RoleOperator)); err != nil {
 		return nil, err
 	}

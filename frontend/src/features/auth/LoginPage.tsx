@@ -1,31 +1,45 @@
 import { useId, useState } from 'react'
 import { Eye, EyeOff, LoaderCircle } from 'lucide-react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Navigate } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
+import { isAxiosError } from 'axios'
 import { login } from './api'
+import { MfaCodeInput } from './MfaCodeInput'
 import { useUser } from './context'
 import { errorMessage } from '../../lib/admin'
 const schema = z.object({
   email: z.email('Informe um e-mail válido.'),
   password: z.string().min(1, 'Informe a senha.').max(128),
+  factor: z.string().max(32).optional(),
+  remember: z.boolean().optional(),
 })
 export function LoginPage() {
   const id = useId()
   const [visible, setVisible] = useState(false)
+  const [factorRequired, setFactorRequired] = useState(false)
+  const [factorMode, setFactorMode] = useState<'app' | 'recovery'>('app')
   const user = useUser()
   const client = useQueryClient()
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
   })
+  const factor = useWatch({ control: form.control, name: 'factor' }) ?? ''
   const mutation = useMutation({
     mutationFn: login,
     onSuccess: async (value) => {
       client.removeQueries({ queryKey: ['admin'] })
       client.setQueryData(['session'], value)
       form.reset()
+    },
+    onError: (error) => {
+      if (
+        isAxiosError(error) &&
+        ['MFA_REQUIRED', 'MFA_INVALID'].includes(error.response?.data?.code)
+      )
+        setFactorRequired(true)
     },
   })
   if (user) return <Navigate to="/" replace />
@@ -135,6 +149,47 @@ export function LoginPage() {
                 </p>
               ) : null}
             </div>
+            {factorRequired ? (
+              <div className="space-y-3">
+                <p className="text-sm font-semibold">Código de segurança</p>
+                {factorMode === 'app' ? (
+                  <MfaCodeInput
+                    value={factor}
+                    onChange={(value) => form.setValue('factor', value)}
+                    onComplete={(factor) => {
+                      void form.handleSubmit((body) =>
+                        mutation.mutate({ ...body, factor }),
+                      )()
+                    }}
+                    disabled={mutation.isPending}
+                  />
+                ) : (
+                  <input
+                    id={`${id}-factor`}
+                    className="form-control w-full font-mono"
+                    type="text"
+                    autoComplete="off"
+                    maxLength={32}
+                    placeholder="Código de recuperação"
+                    {...form.register('factor')}
+                  />
+                )}
+                <button
+                  type="button"
+                  className="text-sm font-semibold text-brand-purple hover:underline"
+                  onClick={() => {
+                    form.setValue('factor', '')
+                    setFactorMode((mode) =>
+                      mode === 'app' ? 'recovery' : 'app',
+                    )
+                  }}
+                >
+                  {factorMode === 'app'
+                    ? 'Usar código de recuperação'
+                    : 'Usar aplicativo autenticador'}
+                </button>
+              </div>
+            ) : null}
             {mutation.isError ? (
               <p role="alert" className="text-sm text-rose-700">
                 {mutation.error &&
@@ -144,8 +199,28 @@ export function LoginPage() {
                   : errorMessage(mutation.error)}
               </p>
             ) : null}
+            <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-brand-purple"
+                {...form.register('remember')}
+              />
+              Lembrar de mim por até 14 dias
+            </label>
+            <Link
+              to="/esqueci-senha"
+              className="block text-right text-sm font-semibold text-brand-purple underline-offset-4 hover:underline"
+            >
+              Esqueceu sua senha?
+            </Link>
             <button
-              disabled={mutation.isPending}
+              disabled={
+                mutation.isPending ||
+                (factorRequired &&
+                  (factorMode === 'app'
+                    ? !/^\d{6}$/.test(factor)
+                    : !/^[0-9a-fA-F]{32}$/.test(factor)))
+              }
               className="button-primary w-full"
             >
               {mutation.isPending ? (

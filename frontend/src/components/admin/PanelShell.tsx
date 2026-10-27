@@ -13,6 +13,7 @@ import {
   LogOut,
   Menu,
   ChevronRight,
+  CircleUserRound,
 } from 'lucide-react'
 const navigation = [
   ['/', 'Visão geral', LayoutDashboard, true],
@@ -23,6 +24,7 @@ const navigation = [
   ['/agendamentos', 'Agendamentos', CalendarClock, false],
   ['/callbacks', 'Callbacks', Webhook, false],
   ['/auditoria', 'Auditoria', History, true],
+  ['/perfil', 'Meu perfil', CircleUserRound, false],
 ] as const
 function Navigation({
   admin,
@@ -46,6 +48,7 @@ function Navigation({
                 '/usuarios',
                 '/credenciais',
                 '/agendamentos',
+                '/perfil',
               ].includes(path)),
         )
         .map(([path, label, Icon]) => (

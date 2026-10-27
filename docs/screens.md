@@ -5,7 +5,9 @@
 
 Login, visão geral, empresas, usuários internos, credenciais externas, envios, callbacks e auditoria conectados à API administrativa. Campos e permissões em docs/backoffice.md. Usuários/auditoria acessíveis somente a administradores; operação de cadastros/credenciais/callbacks disponível a operadores e administradores; consulta não permite alterações.
 
-Empresas e usuários: formulários próprios, status ativo/bloqueado e confirmação de arquivamento. Usuários têm perfil e senha opcional na edição. Credenciais têm empresa, username, status e configuração de callback; criação/rotação exibe a senha uma vez. Arquivar preserva histórico.
+Empresas e usuários: formulários próprios, status ativo/bloqueado e confirmação de arquivamento. Usuários internos têm perfil e convite por e-mail para definir senha; o admin não digita senhas no cadastro/edição. Credenciais têm empresa, username, status e configuração de callback; criação/rotação exibe a senha uma vez. Arquivar preserva histórico.
+
+O administrador pode abrir **Testar credencial** após salvar: instrução para checagem Basic Auth/IP da rede do cliente, envio controlado ao número de homologação configurado e consulta posterior de DLR. Aceite do fornecedor e entrega são exibidos separadamente. Detalhes e limites em [credential-testing.md](credential-testing.md).
 
 Listagens compartilham DataTable, filtros, paginação/tamanho e ordenação no servidor. Envios separam submissão/entrega e resultados incertos. Callbacks mostram fila/falhas e reprocessamento manual, sem reenvio SMS. Auditoria não inclui senhas ou conteúdo SMS. Resumo usa dados reais e não inventa saldo ou contagens.
 
@@ -17,11 +19,11 @@ Listagens compartilham DataTable, filtros, paginação/tamanho e ordenação no 
 
 O administrador interno abre agora em uma visão geral com contagens de agendamentos vencidos na fila, próximos em 24 horas, em processamento e total na fila; resultados históricos de envio; jobs DLR/MO pendentes ou falhos; empresas e credenciais ativas. Os números vêm de `/admin/summary` e são atualizados manualmente. Aceite do fornecedor não é entrega final, e resultado incerto não recomenda reenvio.
 
-A tela `/agendamentos` lista registros reais com empresa, usuário técnico da API, destinatário, referência, solicitação, horário previsto, despacho e estados. Tem busca, filtros de empresa/credencial/estado/período, paginação, tamanho de página e ordenação nas colunas suportadas. Os horários são exibidos no fuso do navegador. O SMS não é exposto. O sistema identifica a credencial que solicitou o envio, mas não a pessoa física que a utilizou. Consulta administrativa somente leitura; não altera a fila.
+A tela `/agendamentos` lista registros reais com empresa, usuário técnico da API, destinatário, referência, solicitação, horário previsto, despacho e estados. Abre com os horários agendados mais recentes primeiro; a ordem pode ser alterada pelo cabeçalho. Tem busca, filtros de empresa/credencial/estado/período, paginação, tamanho de página e ordenação nas colunas suportadas. Os horários são exibidos no fuso do navegador. O SMS não é exposto. O sistema identifica a credencial que solicitou o envio, mas não a pessoa física que a utilizou. Consulta administrativa somente leitura; não altera a fila.
 
 ## Pendências
 
-Recuperação de senha/MFA, portal de clientes, campanha/envio pelo painel, saldo e consulta MO no painel não implementados. O agendamento interno existe com ativação opt-in; a nova tela oferece visibilidade sem operação de cancelamento/edição. DLR real do fornecedor depende de contrato. Sem PostgreSQL/API disponíveis, o painel real apresenta falha de conexão; não substituir por sucesso fictício.
+Portal de clientes, campanha/envio pelo painel, saldo e consulta MO no painel não implementados. Perfil, convite de usuários, recuperação por e-mail e MFA TOTP estão descritos em [admin-security.md](admin-security.md). O código TOTP tem seis campos numéricos, avanço automático e envio após o sexto dígito; códigos de recuperação usam campo separado. O agendamento interno existe com ativação opt-in; a nova tela oferece visibilidade sem operação de cancelamento/edição. DLR real do fornecedor depende de contrato. Sem PostgreSQL/API disponíveis, o painel real apresenta falha de conexão; não substituir por sucesso fictício.
 
 ## Acabamento visual posterior
 

@@ -38,12 +38,15 @@ A plataforma white label concentra gestão operacional e saldo. O painel novo é
 | Configurações (44) | Whitelist de IP, URLs callback e tokens; limites podem interessar | Estes campos entram no painel; limites adicionais permanecem discussão |
 | Telas (45) | Apenas gestão de credenciais; usar Zoug para mensagens/status/saldo/falhas | Resumo/envios/callbacks/auditoria atuais são extras; não tratá-los como requisitos do novo painel |
 | Auditoria/MFA (46) | Auditoria não solicitada; considera 2FA interessante | MFA é interesse expresso, método/enrollment/recuperação a fechar; auditoria interna mínima pode permanecer sem obrigar tela |
+
 | Volume/TPS (47–49) | Média na faixa de 50k, pico citado 300k, teto Zoug 200 TPS; cerca de 8 clientes simultâneos; 1 requisição/s por cliente | Projetar limite de mensagens separado do limite de requisições; confirmar se 200 TPS é agregado/token/rota e período do pico |
 | Latência/indisponibilidade (50–52) | Resposta rápida; callback pode demorar; envio posterior e validade não decididos; acredita que hoje retorna erro | Manter falha imediata/sem retry de SMS como base até decisão; não introduzir fila para enviar SMS tardiamente |
 | Alertas (53) | Pode disparar e-mail para relacionamento@21mobile.com.br | Registrar destino desejado; configurar mecanismo/gatilhos antes de ativar, sem enviar e-mail nesta análise |
 | Infra/segurança (54–55) | 3035 e Mozhtech; sem requisitos adicionais informados | Divisão de responsabilidades e configuração da infraestrutura ainda precisam ser definidas. Mantém segurança existente e retenção MO de 90 dias aprovada pelo usuário |
 | Migração (56–60) | Conclusão em outubro; teste interno, primeiro cliente de produção e demais em conjunto; infinitech/grupoamaro são candidatos | Confirmar dia e piloto escolhido. Pendências antigas e rollback continuam a discutir; não há autorização para descartar mensagens |
 | Aceite (61–62) | Envio de SMS; receber DLR/MO do white label e entregar ambos ao cliente da 21; entrega única | Homologar os três fluxos completos e compatibilidade V1. Responsável aprovador ainda não identificado |
+
+Atualização de 27/10/2026: o usuário confirmou que pode haver vários usuários administradores. O cadastro interno pela tela envia convite para o novo usuário definir a própria senha; 2FA por aplicativo autenticador com QR code, recuperação e sessões lembradas estão implementados conforme [admin-security.md](admin-security.md). Os perfis atuais continuam globais à equipe interna; acesso de clientes ao painel é possibilidade futura e ainda exige autorização por empresa.
 
 ## Diferenças identificadas na análise inicial (histórico; consultar status.md para estado atual)
 

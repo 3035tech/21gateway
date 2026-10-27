@@ -29,6 +29,11 @@ func (r *Credentials) Credential(ctx context.Context, id uint64) (models.APICred
 	err := r.credentialQuery(ctx).Clauses(clause.Locking{Strength: "UPDATE", Table: clause.Table{Name: "api_credentials"}}).Where("api_credentials.id = ?", id).First(&credential).Error
 	return credential, err
 }
+func (r *Credentials) ForTestSend(ctx context.Context, id uint64) (models.APICredential, error) {
+	var credential models.APICredential
+	err := r.credentialQuery(ctx).Where("api_credentials.id = ?", id).First(&credential).Error
+	return credential, err
+}
 func (r *Credentials) credentialQuery(ctx context.Context) *gorm.DB {
 	return r.db.WithContext(ctx).Model(&models.APICredential{}).Select("api_credentials.*, companies.name AS company_name, companies.active AS company_active").Joins("LEFT JOIN companies ON companies.id = api_credentials.company_id").Where("api_credentials.archived_at IS NULL")
 }

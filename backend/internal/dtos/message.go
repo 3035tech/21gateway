@@ -18,3 +18,19 @@ type MessageView struct {
 	CreatedAt      time.Time              `json:"createdAt"`
 }
 type MessagesOutput struct{ Body Page[MessageView] }
+
+type TestSendInput struct {
+	ID   uint64 `path:"id" minimum:"1"`
+	Body struct {
+		Destination string `json:"destination" pattern:"^[0-9]{11}$"`
+	}
+}
+
+type TestSendResult struct {
+	SubmissionState models.SubmissionState `json:"submissionState"`
+	IDSMS           string                 `json:"idSms,omitempty"`
+	CorrelationID   string                 `json:"correlationId"`
+	FailureCode     string                 `json:"failureCode,omitempty"`
+}
+
+type TestSendOutput struct{ Body TestSendResult }

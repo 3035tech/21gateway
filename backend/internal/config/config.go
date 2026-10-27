@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"github.com/21mobile/sms-gateway/internal/security"
 	"net/http"
+	"net/mail"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/caarlos0/env/v11"
@@ -15,6 +17,8 @@ import (
 
 var scheduledQueuePath = regexp.MustCompile(`^/[0-9]{12}/[A-Za-z0-9_-]{1,80}$`)
 var scheduledQueueRegion = regexp.MustCompile(`^[a-z]{2}(-[a-z]+)+-[0-9]+$`)
+var testSMSDestination = regexp.MustCompile(`^[0-9]{11}$`)
+var smtpHost = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9.-]*$`)
 
 type Config struct {
 	ScheduledSQSEnabled      bool   `env:"SCHEDULED_SQS_ENABLED" envDefault:"false"`
@@ -46,7 +50,19 @@ type Config struct {
 	AllowedOrigins         []string `env:"CORS_ALLOWED_ORIGINS" envDefault:"http://localhost:5173" envSeparator:","`
 	WhiteLabelBaseURL      string   `env:"WHITELABEL_BASE_URL" envDefault:"https://endpoint.devyx.com.br"`
 	WhiteLabelToken        string   `env:"WHITELABEL_API_TOKEN"`
+	TestSMSDestination     string   `env:"TEST_SMS_DESTINATION"`
+	MFAEncryptionKey       string   `env:"MFA_ENCRYPTION_KEY"`
+	RecoverySMTPHost       string   `env:"RECOVERY_SMTP_HOST"`
+	RecoverySMTPPort       string   `env:"RECOVERY_SMTP_PORT"`
+	RecoverySMTPUser       string   `env:"RECOVERY_SMTP_USER"`
+	RecoverySMTPPassword   string   `env:"RECOVERY_SMTP_PASSWORD"`
+	RecoverySMTPFrom       string   `env:"RECOVERY_SMTP_FROM"`
+	PublicAppURL           string   `env:"PUBLIC_APP_URL"`
 	DocsEnabled            bool     `env:"DOCS_ENABLED" envDefault:"false"`
+}
+
+func (c Config) MFAVault() (*security.TokenVault, error) {
+	return security.NewTokenVault(c.MFAEncryptionKey)
 }
 
 func Load() (Config, error) {
@@ -56,6 +72,17 @@ func Load() (Config, error) {
 	}
 	if cfg.APIAuthenticationIPLimit < 1 || cfg.APIAuthenticationIPLimit > security.MaximumAuthenticationIPLimit {
 		return cfg, apperrors.Wrap(apperrors.CodeConfigurationInvalid, nil)
+	}
+	if cfg.TestSMSDestination != "" && !testSMSDestination.MatchString(cfg.TestSMSDestination) {
+		return cfg, apperrors.Wrap(apperrors.CodeConfigurationInvalid, nil)
+	}
+	if cfg.RecoverySMTPHost != "" || cfg.RecoverySMTPPort != "" || cfg.RecoverySMTPUser != "" || cfg.RecoverySMTPPassword != "" || cfg.RecoverySMTPFrom != "" || cfg.PublicAppURL != "" {
+		app, err := url.Parse(cfg.PublicAppURL)
+		port,portErr:=strconv.Atoi(cfg.RecoverySMTPPort)
+		from,fromErr:=mail.ParseAddress(cfg.RecoverySMTPFrom)
+		if err != nil || app.Scheme != "https" || app.Host == "" || app.User != nil || app.RawQuery != "" || app.Fragment != "" || !smtpHost.MatchString(cfg.RecoverySMTPHost) || portErr!=nil || port<1 || port>65535 || cfg.RecoverySMTPUser == "" || cfg.RecoverySMTPPassword == "" || fromErr!=nil || from.Address!=cfg.RecoverySMTPFrom || strings.ContainsAny(cfg.RecoverySMTPUser+cfg.RecoverySMTPPassword, "\r\n") {
+			return cfg, apperrors.Wrap(apperrors.CodeConfigurationInvalid, nil)
+		}
 	}
 	if cfg.ScheduledSQSEnabled {
 		queue, err := url.Parse(cfg.ScheduledSQSQueueURL)

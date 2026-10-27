@@ -12,6 +12,7 @@ import {
   Webhook,
   Building2,
   KeyRound,
+  CircleUserRound,
 } from 'lucide-react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '../../components/data-table/DataTable'
@@ -233,6 +234,85 @@ function Overview() {
     </>
   )
 }
+function DemoProfile() {
+  return (
+    <div className="max-w-4xl space-y-6">
+      <div className="flex items-center gap-3 text-brand-purple">
+        <CircleUserRound size={30} aria-hidden="true" />
+        <span className="text-xs font-bold uppercase tracking-[0.18em]">
+          Conta e segurança
+        </span>
+      </div>
+      <div>
+        <h1 className="text-3xl font-bold">Meu perfil</h1>
+        <p className="mt-2 text-sm text-slate-500">
+          Dados fictícios para prévia da interface.
+        </p>
+      </div>
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-bold">Dados da conta</h2>
+        <dl className="mt-5 grid gap-5 text-sm sm:grid-cols-2">
+          <div>
+            <dt className="text-slate-500">Nome</dt>
+            <dd className="font-semibold">Marina Costa</dd>
+          </div>
+          <div>
+            <dt className="text-slate-500">E-mail</dt>
+            <dd className="font-semibold">marina@21mobile.com.br</dd>
+          </div>
+          <div>
+            <dt className="text-slate-500">Perfil</dt>
+            <dd className="font-semibold">Administradora</dd>
+          </div>
+        </dl>
+      </section>
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="flex items-center gap-2 text-lg font-bold">
+          <KeyRound size={20} aria-hidden="true" /> Alterar senha
+        </h2>
+        <p className="mt-2 text-sm text-slate-500">
+          No painel real, esta ação encerra as sessões anteriores.
+        </p>
+        <div className="mt-5 max-w-md space-y-4">
+          <label className="field">
+            Senha atual
+            <input
+              className="form-control"
+              type="password"
+              disabled
+              placeholder="Prévia fictícia"
+            />
+          </label>
+          <label className="field">
+            Nova senha
+            <input
+              className="form-control"
+              type="password"
+              disabled
+              placeholder="Prévia fictícia"
+            />
+          </label>
+          <button className="button-primary" disabled>
+            Salvar nova senha
+          </button>
+        </div>
+      </section>
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="flex items-center gap-2 text-lg font-bold">
+          <ShieldCheck size={20} aria-hidden="true" /> Verificação em duas
+          etapas
+        </h2>
+        <p className="mt-2 text-sm text-slate-500">
+          No painel real, o aplicativo autenticador é configurado por QR code e
+          confirmado com um código.
+        </p>
+        <span className="mt-4 inline-flex rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800">
+          Desativada nesta prévia
+        </span>
+      </section>
+    </div>
+  )
+}
 function Listing({
   section,
   rows,
@@ -243,7 +323,9 @@ function Listing({
   onSave: (row: DemoRow) => void
 }) {
   const config = sections[section]
-  const state = useListState()
+  const state = useListState(
+    section === 'agendamentos' ? [{ id: 'scheduledAt', desc: true }] : [],
+  )
   const [status, setStatus] = useState('')
   const [editing, setEditing] = useState<DemoRow | null>(null)
   const [notice, setNotice] = useState('')
@@ -274,7 +356,13 @@ function Listing({
         <span className="font-semibold">{row.original.name}</span>
       ),
     },
-    { accessorKey: 'detail', header: config.second },
+    section === 'agendamentos'
+      ? {
+          accessorKey: 'scheduledAt',
+          header: config.second,
+          cell: ({ row }) => row.original.detail,
+        }
+      : { accessorKey: 'detail', header: config.second },
     {
       accessorKey: 'company',
       header: section === 'usuarios' ? 'Perfil' : 'Empresa',
@@ -344,6 +432,7 @@ function Listing({
                 id: '',
                 name: '',
                 detail: '',
+                scheduledAt: '',
                 company: 'Horizonte Saúde',
                 status: 'Ativo',
                 date: '',
@@ -580,6 +669,7 @@ export default function DemoApp() {
       {' '}
       <Routes>
         <Route path="/" element={<Overview />} />
+        <Route path="/perfil" element={<DemoProfile />} />
         {(Object.keys(sections) as Section[]).map((section) => (
           <Route
             key={section}

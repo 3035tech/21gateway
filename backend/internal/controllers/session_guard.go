@@ -7,10 +7,13 @@ import (
 	"github.com/21mobile/sms-gateway/internal/security"
 	"github.com/alexedwards/scs/v2"
 	"github.com/danielgtaylor/huma/v2"
+	"time"
 )
 
 const sessionUserID = "user_id"
 const sessionVersion = "session_version"
+const sessionRemember = "remember"
+const sessionLastActivity = "last_activity"
 const adminSessionScheme = "adminSession"
 
 type userContextKey struct{}
@@ -28,10 +31,21 @@ func NewSessionGuard(users SessionAccess, sessions *scs.SessionManager) *Session
 }
 func (c *SessionGuard) authorize(api huma.API, resource security.Resource, action security.Action) func(huma.Context, func(huma.Context)) {
 	return func(ctx huma.Context, next func(huma.Context)) {
+		last := c.sessions.GetInt64(ctx.Context(), sessionLastActivity)
+		idle := security.RegularSessionIdleTimeout
+		if c.sessions.GetBool(ctx.Context(), sessionRemember) {
+			idle = security.RememberedSessionIdleTimeout
+		}
+		if last != 0 && time.Since(time.Unix(last, 0)) > idle {
+			_ = c.sessions.Destroy(ctx.Context())
+			_ = huma.WriteErr(api, ctx, 401, "")
+			return
+		}
 		user, err := c.users.SessionUser(ctx.Context(), uint64(c.sessions.GetInt64(ctx.Context(), sessionUserID)), c.sessions.GetInt64(ctx.Context(), sessionVersion))
 		if err == nil && resource != "" && !c.users.Allowed(user.Role, resource, action) {
 			err = apperrors.Wrap(apperrors.CodeForbidden, nil)
 		}
+		c.sessions.Put(ctx.Context(), sessionLastActivity, time.Now().Unix())
 		if err != nil {
 			public := HTTPError(err)
 			_ = huma.WriteErr(api, ctx, public.GetStatus(), "")

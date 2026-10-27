@@ -3,6 +3,8 @@ import { Route, Routes, Navigate } from 'react-router-dom'
 import { AuthProvider } from '../features/auth/AuthProvider'
 import { useUser } from '../features/auth/context'
 import { LoginPage } from '../features/auth/LoginPage'
+import { ForgotPasswordPage } from '../features/auth/ForgotPasswordPage'
+import { ResetPasswordPage } from '../features/auth/ResetPasswordPage'
 import { AdminLayout } from './AdminLayout'
 import { NotFoundPage } from './NotFoundPage'
 const Overview = lazy(() =>
@@ -41,6 +43,11 @@ const Callbacks = lazy(() =>
 const Audit = lazy(() =>
   import('../features/audit/AuditPage').then((m) => ({ default: m.AuditPage })),
 )
+const Profile = lazy(() =>
+  import('../features/users/ProfilePage').then((m) => ({
+    default: m.ProfilePage,
+  })),
+)
 function AdminOnly({ children }: { children: React.ReactNode }) {
   return useUser()?.role === 'admin' ? (
     children
@@ -60,6 +67,8 @@ export default function AdminApp() {
     <AuthProvider>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/esqueci-senha" element={<ForgotPasswordPage />} />
+        <Route path="/resetar-senha" element={<ResetPasswordPage />} />
         <Route
           path="*"
           element={
@@ -83,6 +92,7 @@ export default function AdminApp() {
                   <Route path="/credenciais" element={<Credentials />} />
                   <Route path="/envios" element={<Messages />} />
                   <Route path="/agendamentos" element={<Schedules />} />
+                  <Route path="/perfil" element={<Profile />} />
                   <Route path="/callbacks" element={<Callbacks />} />
                   <Route
                     path="/auditoria"

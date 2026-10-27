@@ -2,6 +2,7 @@ export type DemoRow = {
   id: string
   name: string
   detail: string
+  scheduledAt: string
   company: string
   status: string
   date: string
@@ -149,6 +150,10 @@ export const initialRows: Record<Section, DemoRow[]> = Object.fromEntries(
           id: `${key}-${i + 1}`,
           name,
           detail,
+          scheduledAt:
+            key === 'agendamentos'
+              ? `2026-10-${String(26 + Math.floor(i / 12)).padStart(2, '0')}T${String(8 + (i % 12)).padStart(2, '0')}:00:00`
+              : '',
           company,
           status,
           date:

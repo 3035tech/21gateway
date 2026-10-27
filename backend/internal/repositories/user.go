@@ -33,6 +33,18 @@ func (r *Users) User(ctx context.Context, id uint64) (models.SystemUser, error) 
 	err := r.db.WithContext(ctx).Where("id = ? AND archived_at IS NULL", id).First(&user).Error
 	return user, err
 }
+func (r *Users) ReplaceOwnPassword(ctx context.Context, id uint64, version int64, oldHash, newHash string) error {
+	result := r.db.WithContext(ctx).Model(&models.SystemUser{}).
+		Where("id = ? AND session_version = ? AND password_hash = ? AND active AND archived_at IS NULL", id, version, oldHash).
+		Updates(map[string]any{"password_hash": newHash, "session_version": version + 1})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected != 1 {
+		return apperrors.Wrap(apperrors.CodeConflict, nil)
+	}
+	return nil
+}
 func (r *Users) AdminCount(ctx context.Context, except uint64) (int64, error) {
 	var count int64
 	err := r.db.WithContext(ctx).Model(&models.SystemUser{}).Where("role = ? AND active AND archived_at IS NULL AND id <> ?", models.RoleAdmin, except).Count(&count).Error

@@ -42,6 +42,15 @@ const publicErrors: Record<string, string> = {
   LAST_ADMIN_REQUIRED: 'Mantenha pelo menos um administrador ativo.',
   INVALID_REQUEST: 'Confira os campos informados.',
   RATE_LIMITED: 'Muitas tentativas. Aguarde um minuto e tente novamente.',
+  INVALID_CURRENT_PASSWORD: 'Senha atual incorreta.',
+  MFA_REQUIRED:
+    'Informe o código do aplicativo autenticador ou um código de recuperação.',
+  MFA_INVALID: 'Código de segurança inválido ou já utilizado.',
+  INVALID_RESET_TOKEN:
+    'Link de recuperação inválido ou expirado. Solicite outro.',
+  SERVICE_UNAVAILABLE: 'Este recurso está temporariamente indisponível.',
+  INVITATION_DELIVERY_FAILED:
+    'O convite não pôde ser enviado. Atualize a lista e tente reenviar.',
 }
 export function errorMessage(error: unknown) {
   if (isAxiosError(error)) {
