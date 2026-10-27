@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 
 const digitsCount = 6
 
@@ -13,6 +14,7 @@ export function MfaCodeInput({
   onComplete: (value: string) => void
   disabled?: boolean
 }) {
+  const { t } = useTranslation()
   const inputs = useRef<Array<HTMLInputElement | null>>([])
   useEffect(() => {
     inputs.current[0]?.focus()
@@ -36,7 +38,7 @@ export function MfaCodeInput({
   return (
     <div
       role="group"
-      aria-label="Código de segurança de seis dígitos"
+      aria-label={t('auth.sixDigitCode')}
       className="flex gap-2"
     >
       {digits.map((digit, index) => (
@@ -45,7 +47,10 @@ export function MfaCodeInput({
           ref={(element) => {
             inputs.current[index] = element
           }}
-          aria-label={`Dígito ${index + 1} de ${digitsCount}`}
+          aria-label={t('auth.digitPosition', {
+            position: index + 1,
+            total: digitsCount,
+          })}
           className="form-control h-12 w-11 min-w-0 text-center text-xl font-bold tabular-nums sm:w-12"
           type="text"
           inputMode="numeric"

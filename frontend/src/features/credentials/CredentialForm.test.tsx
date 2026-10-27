@@ -14,6 +14,7 @@ const credential: Credential = {
   callbackUrl: 'https://client.example/dlr',
   callbacksEnabled: true,
   createdAt: '2026-10-14T12:00:00Z',
+  expiresAt: null,
   providerTokenConfigured: true,
   whitelistEnabled: true,
   allowedIPs: ['203.0.113.10', '198.51.100.0/24'],

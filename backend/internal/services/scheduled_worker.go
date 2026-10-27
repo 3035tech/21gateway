@@ -90,7 +90,7 @@ func (w *ScheduledSMSWorker) processGroup(ctx context.Context, jobs []models.Sch
 	if err != nil {
 		return release()
 	}
-	if !credential.Active || (credential.CompanyID != nil && (credential.CompanyActive == nil || !*credential.CompanyActive)) {
+	if !credential.ValidAt(time.Now()) || (credential.CompanyID != nil && (credential.CompanyActive == nil || !*credential.CompanyActive)) {
 		return reject(apperrors.CodeForbidden)
 	}
 	credential.PasswordHash = ""

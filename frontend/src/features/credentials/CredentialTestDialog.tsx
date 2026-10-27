@@ -6,6 +6,7 @@ import { errorMessage } from '../../lib/admin'
 import { api } from '../../lib/api'
 import { listMessages, sendTestSMS } from '../messages/api'
 import type { Credential } from './api'
+import { useTranslation } from 'react-i18next'
 
 export function CredentialTestDialog({
   credential,
@@ -14,6 +15,7 @@ export function CredentialTestDialog({
   credential: Credential
   onClose: () => void
 }) {
+  const { t } = useTranslation()
   const [destination, setDestination] = useState('')
   const [confirmed, setConfirmed] = useState(false)
   const [delivery, setDelivery] = useState<string | null>(null)
@@ -46,7 +48,7 @@ export function CredentialTestDialog({
   const busy = send.isPending || checkDelivery.isPending
   return (
     <Dialog
-      title={`Testar credencial · ${credential.username}`}
+      title={t('credentialTest.title', { username: credential.username })}
       onClose={onClose}
       busy={busy}
       wide
@@ -54,36 +56,31 @@ export function CredentialTestDialog({
       <div className="space-y-6">
         <section className="rounded-xl border border-slate-200 p-5">
           <h3 className="flex items-center gap-2 font-bold">
-            <ShieldCheck size={18} className="text-brand-purple" /> 1. Acesso do
-            cliente
+            <ShieldCheck size={18} className="text-brand-purple" />{' '}
+            {t('credentialTest.clientAccess')}
           </h3>
           <p className="mt-3 text-sm leading-6 text-slate-600">
-            Peça ao cliente para chamar esta rota a partir da própria rede,
-            usando o usuário <strong>{credential.username}</strong> e a senha da
-            API. Resposta 204 confirma senha e IP; 401 indica falha de
-            autenticação e 403 indica IP não autorizado.
+            {t('credentialTest.clientInstructions', {
+              username: credential.username,
+            })}
           </p>
           <code className="mt-3 block overflow-x-auto rounded-lg bg-slate-100 p-3 text-xs text-slate-800">
             GET {checkURL}
           </code>
           <p className="mt-2 text-xs text-slate-500">
-            Esta checagem não envia SMS nem consulta status. A whitelist usa o
-            IP visto pelo gateway; confirme a configuração de proxy/NAT no
-            ambiente.
+            {t('credentialTest.clientHint')}
           </p>
         </section>
         <section className="rounded-xl border border-slate-200 p-5">
           <h3 className="flex items-center gap-2 font-bold">
-            <Send size={18} className="text-brand-purple" /> 2. Aceite pelo
-            white label
+            <Send size={18} className="text-brand-purple" />{' '}
+            {t('credentialTest.providerAcceptance')}
           </h3>
           <p className="mt-3 text-sm leading-6 text-slate-600">
-            Envia uma mensagem fixa pelo caminho normal desta credencial. O
-            número deve ser o destino de homologação autorizado na configuração
-            do servidor.
+            {t('credentialTest.providerHint')}
           </p>
           <label className="mt-4 block text-sm font-semibold">
-            Número de teste (DDD + número)
+            {t('credentialTest.testNumber')}
             <input
               className="form-control mt-2 w-full max-w-xs"
               inputMode="numeric"
@@ -103,13 +100,11 @@ export function CredentialTestDialog({
               onChange={(event) => setConfirmed(event.target.checked)}
               disabled={busy || !!send.data}
             />
-            Confirmo que este número foi autorizado e que o teste pode gerar
-            cobrança de um SMS.
+            {t('credentialTest.confirmCharge')}
           </label>
           {send.isError ? (
             <p role="alert" className="mt-3 text-sm text-rose-700">
-              {errorMessage(send.error)} Se a chamada ficou sem resposta,
-              consulte Envios antes de tentar novamente.
+              {errorMessage(send.error)} {t('credentialTest.uncertainHint')}
             </p>
           ) : null}
           {send.data ? (
@@ -119,19 +114,23 @@ export function CredentialTestDialog({
             >
               <p className="font-bold">
                 {send.data.submissionState === 'accepted'
-                  ? 'Fornecedor aceitou o SMS'
+                  ? t('credentialTest.accepted')
                   : send.data.submissionState === 'unknown'
-                    ? 'Resultado incerto: não reenvie automaticamente'
-                    : 'Fornecedor não aceitou o SMS'}
+                    ? t('credentialTest.unknown')
+                    : t('credentialTest.rejected')}
               </p>
               {send.data.idSms ? (
-                <p className="mt-1">ID do envio: {send.data.idSms}</p>
+                <p className="mt-1">
+                  {t('credentialTest.messageId', { id: send.data.idSms })}
+                </p>
               ) : null}
               <p className="mt-1 break-all">
-                Referência: {send.data.correlationId}
+                {t('credentialTest.reference', { id: send.data.correlationId })}
               </p>
               {send.data.failureCode ? (
-                <p className="mt-1">Código: {send.data.failureCode}</p>
+                <p className="mt-1">
+                  {t('credentialTest.code', { code: send.data.failureCode })}
+                </p>
               ) : null}
             </div>
           ) : !send.isError ? (
@@ -146,18 +145,17 @@ export function CredentialTestDialog({
               }
               onClick={() => send.mutate()}
             >
-              Enviar um SMS de teste
+              {t('credentialTest.sendTest')}
             </button>
           ) : null}
         </section>
         <section className="rounded-xl border border-slate-200 p-5">
           <h3 className="flex items-center gap-2 font-bold">
-            <Webhook size={18} className="text-brand-purple" /> 3. Entrega ao
-            destinatário
+            <Webhook size={18} className="text-brand-purple" />{' '}
+            {t('credentialTest.delivery')}
           </h3>
           <p className="mt-3 text-sm leading-6 text-slate-600">
-            O aceite acima não confirma a entrega. Quando o DLR estiver
-            homologado e chegar ao gateway, consulte o estado registrado.
+            {t('credentialTest.deliveryHint')}
           </p>
           {send.data?.idSms ? (
             <button
@@ -166,7 +164,7 @@ export function CredentialTestDialog({
               disabled={busy}
               onClick={() => checkDelivery.mutate()}
             >
-              <ClipboardCheck size={16} /> Verificar DLR
+              <ClipboardCheck size={16} /> {t('credentialTest.checkDlr')}
             </button>
           ) : null}
           {checkDelivery.isError ? (
@@ -177,8 +175,8 @@ export function CredentialTestDialog({
           {checkDelivery.isSuccess ? (
             <p role="status" className="mt-3 text-sm">
               {delivery
-                ? `Status recebido: ${delivery}`
-                : 'Sem confirmação de entrega registrada.'}
+                ? t('credentialTest.statusReceived', { status: delivery })
+                : t('credentialTest.noDelivery')}
             </p>
           ) : null}
         </section>

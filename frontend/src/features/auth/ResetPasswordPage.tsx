@@ -7,8 +7,11 @@ import { resetPassword } from './api'
 import { MfaCodeInput } from './MfaCodeInput'
 import { errorMessage } from '../../lib/admin'
 import { systemPasswordLimits } from '../users/api'
+import { useTranslation } from 'react-i18next'
+import { LanguageSwitcher } from '../../components/admin/LanguageSwitcher'
 
 export function ResetPasswordPage() {
+  const { t } = useTranslation()
   const [token] = useState(
     () => new URLSearchParams(window.location.hash.slice(1)).get('token') ?? '',
   )
@@ -39,24 +42,26 @@ export function ResetPasswordPage() {
   return (
     <main className="flex min-h-dvh items-center justify-center bg-slate-50 px-5 py-10">
       <section className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+        <div className="flex justify-end">
+          <LanguageSwitcher />
+        </div>
         <div className="flex items-center gap-3 text-brand-purple">
           <ShieldCheck size={28} aria-hidden="true" />
           <span className="text-xs font-bold uppercase tracking-[0.18em]">
-            Segurança da conta
+            {t('auth.accountSecurity')}
           </span>
         </div>
-        <h1 className="mt-5 text-3xl font-bold">Definir nova senha</h1>
+        <h1 className="mt-5 text-3xl font-bold">{t('auth.setNewPassword')}</h1>
         {!valid ? (
           <p role="alert" className="mt-4 text-sm text-rose-700">
-            Link de recuperação inválido. Solicite outro.
+            {t('errors.INVALID_RESET_TOKEN')}
           </p>
         ) : reset.isSuccess ? (
           <p
             role="status"
             className="mt-5 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800"
           >
-            Senha alterada. Todas as sessões anteriores foram encerradas. Entre
-            novamente.
+            {t('auth.passwordChanged')}
           </p>
         ) : (
           <form
@@ -72,7 +77,7 @@ export function ResetPasswordPage() {
             }}
           >
             <label className="field">
-              Nova senha
+              {t('auth.newPassword')}
               <input
                 className="form-control"
                 type="password"
@@ -85,7 +90,7 @@ export function ResetPasswordPage() {
               />
             </label>
             <label className="field">
-              Confirmar senha
+              {t('auth.confirmPassword')}
               <input
                 className="form-control"
                 type="password"
@@ -97,16 +102,19 @@ export function ResetPasswordPage() {
             </label>
             {password !== confirmation ? (
               <p role="alert" className="text-xs text-rose-700">
-                As senhas não coincidem.
+                {t('validation.passwordMismatch')}
               </p>
             ) : null}
             <p className="text-xs text-slate-500">
-              Use pelo menos {systemPasswordLimits.minimumCharacters} caracteres
-              sem contar espaços nas pontas.
+              {t('auth.passwordHint', {
+                count: systemPasswordLimits.minimumCharacters,
+              })}
             </p>
             {factorRequired ? (
               <div className="space-y-3">
-                <p className="text-sm font-semibold">Código de segurança</p>
+                <p className="text-sm font-semibold">
+                  {t('auth.securityCode')}
+                </p>
                 {factorMode === 'app' ? (
                   <MfaCodeInput
                     value={factor}
@@ -126,7 +134,7 @@ export function ResetPasswordPage() {
                     className="form-control w-full font-mono"
                     autoComplete="off"
                     maxLength={32}
-                    placeholder="Código de recuperação"
+                    placeholder={t('auth.recoveryCode')}
                     value={factor}
                     onChange={(event) => setFactor(event.target.value)}
                   />
@@ -142,8 +150,8 @@ export function ResetPasswordPage() {
                   }}
                 >
                   {factorMode === 'app'
-                    ? 'Usar código de recuperação'
-                    : 'Usar aplicativo autenticador'}
+                    ? t('auth.useRecoveryCode')
+                    : t('auth.useAuthenticator')}
                 </button>
               </div>
             ) : null}
@@ -163,7 +171,7 @@ export function ResetPasswordPage() {
                     : !/^[0-9a-fA-F]{32}$/.test(factor)))
               }
             >
-              {reset.isPending ? 'Salvando…' : 'Salvar nova senha'}
+              {reset.isPending ? t('common.saving') : t('auth.saveNewPassword')}
             </button>
           </form>
         )}
@@ -172,8 +180,8 @@ export function ResetPasswordPage() {
           className="mt-6 block text-sm font-semibold text-brand-purple hover:underline"
         >
           {valid && !reset.isSuccess
-            ? 'Solicitar outro link'
-            : 'Voltar ao login'}
+            ? t('auth.requestAnotherLink')
+            : t('auth.backToLogin')}
         </Link>
       </section>
     </main>

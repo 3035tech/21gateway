@@ -1,34 +1,38 @@
-const labels: Record<string, string> = {
-  active: 'Ativo',
-  blocked: 'Bloqueado',
-  pending: 'Pendente',
-  queued: 'Na fila',
-  claimed: 'Reservado',
-  dispatching: 'Em envio',
-  done: 'Aceito pelo fornecedor',
-  accepted: 'Aceito',
-  rejected: 'Rejeitado',
-  unknown: 'Resultado incerto',
-  processing: 'Processando',
-  delivered: 'Entregue',
-  failed: 'Falhou',
-  SENT: 'Enviado',
-  DELIVERED: 'Entregue',
-  NOT_DELIVERED: 'Não entregue',
-  DUPLICATED: 'Duplicado',
-  INVALID_DESTINATION_ADDRESS: 'Destino inválido',
-  BLACKLIST: 'Lista de bloqueio',
-  MESSAGE_CANCELLED: 'Cancelado',
-  INVALID_MESSAGE_FORMAT: 'Formato inválido',
-  GENERAL_ERROR: 'Erro de entrega',
-}
+import { useTranslation } from 'react-i18next'
+const knownStatuses = new Set([
+  'active',
+  'blocked',
+  'expired',
+  'pending',
+  'queued',
+  'claimed',
+  'dispatching',
+  'done',
+  'accepted',
+  'rejected',
+  'unknown',
+  'processing',
+  'delivered',
+  'failed',
+  'SENT',
+  'DELIVERED',
+  'NOT_DELIVERED',
+  'DUPLICATED',
+  'INVALID_DESTINATION_ADDRESS',
+  'BLACKLIST',
+  'MESSAGE_CANCELLED',
+  'INVALID_MESSAGE_FORMAT',
+  'GENERAL_ERROR',
+])
 export function StatusBadge({ status }: { status: string }) {
+  const { t } = useTranslation()
   const color = ['active', 'accepted', 'delivered', 'DELIVERED'].includes(
     status,
   )
     ? 'bg-emerald-50 text-emerald-800'
     : [
           'blocked',
+          'expired',
           'rejected',
           'failed',
           'NOT_DELIVERED',
@@ -49,7 +53,7 @@ export function StatusBadge({ status }: { status: string }) {
         aria-hidden="true"
         className="h-1.5 w-1.5 rounded-full bg-current"
       />
-      {labels[status] ?? status}
+      {knownStatuses.has(status) ? t(`status.${status}`) : status}
     </span>
   )
 }

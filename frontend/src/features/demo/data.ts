@@ -26,50 +26,49 @@ export const sections: Record<
   }
 > = {
   empresas: {
-    title: 'Empresas',
-    description: 'Organize as empresas que utilizam a API de SMS.',
-    entity: 'empresa',
-    first: 'Empresa',
-    second: 'Referência',
+    title: 'nav.companies',
+    description: 'demo.sections.companies',
+    entity: 'companies',
+    first: 'common.company',
+    second: 'common.reference',
   },
   usuarios: {
-    title: 'Usuários',
-    description: 'Gerencie o acesso da equipe ao backoffice.',
-    entity: 'usuário',
-    first: 'Nome',
-    second: 'E-mail',
+    title: 'nav.users',
+    description: 'demo.sections.users',
+    entity: 'users',
+    first: 'common.name',
+    second: 'common.email',
   },
   credenciais: {
-    title: 'Credenciais da API',
-    description: 'Acessos externos para integração e envio de SMS.',
-    entity: 'credencial',
-    first: 'Usuário da API',
-    second: 'Callback',
+    title: 'nav.credentials',
+    description: 'demo.sections.credentials',
+    entity: 'credentials',
+    first: 'common.apiUsername',
+    second: 'demo.callback',
   },
   envios: {
-    title: 'Envios',
-    description: 'Consulte as tentativas de envio e o retorno do fornecedor.',
-    first: 'ID do envio',
-    second: 'Destinatário',
+    title: 'nav.messages',
+    description: 'demo.sections.messages',
+    first: 'common.messageId',
+    second: 'common.destination',
   },
   agendamentos: {
-    title: 'Agendamentos',
-    description:
-      'Horários solicitados pelos clientes e andamento do despacho. O usuário da API identifica a credencial técnica.',
-    first: 'ID do envio',
-    second: 'Agendado para',
+    title: 'nav.schedules',
+    description: 'demo.sections.schedules',
+    first: 'common.messageId',
+    second: 'schedules.scheduledFor',
   },
   callbacks: {
-    title: 'Callbacks',
-    description: 'Acompanhe a entrega das notificações aos clientes.',
-    first: 'ID do envio',
-    second: 'Destino do callback',
+    title: 'nav.callbacks',
+    description: 'demo.sections.callbacks',
+    first: 'common.messageId',
+    second: 'demo.callbackDestination',
   },
   auditoria: {
-    title: 'Auditoria',
-    description: 'Acompanhe as alterações realizadas pela equipe.',
-    first: 'Responsável',
-    second: 'Ação',
+    title: 'nav.audit',
+    description: 'demo.sections.audit',
+    first: 'audit.actor',
+    second: 'audit.action',
   },
 }
 const companies = [
@@ -98,24 +97,18 @@ export const initialRows: Record<Section, DemoRow[]> = Object.fromEntries(
         const company = companies[i % companies.length]
         const status =
           key === 'envios'
-            ? ['Aceito', 'Aceito', 'Rejeitado', 'Resultado incerto'][i % 4]
+            ? ['accepted', 'accepted', 'rejected', 'unknown'][i % 4]
             : key === 'agendamentos'
               ? i >= 24
-                ? 'Na fila'
-                : [
-                    'Na fila',
-                    'Na fila',
-                    'Reservado',
-                    'Aceito pelo fornecedor',
-                    'Resultado incerto',
-                  ][i % 5]
+                ? 'queued'
+                : ['queued', 'queued', 'claimed', 'done', 'unknown'][i % 5]
               : key === 'callbacks'
-                ? ['Entregue', 'Entregue', 'Pendente', 'Falhou'][i % 4]
+                ? ['delivered', 'delivered', 'pending', 'failed'][i % 4]
                 : key === 'auditoria'
-                  ? 'Registrado'
+                  ? 'recorded'
                   : i % 5 === 4
-                    ? 'Bloqueado'
-                    : 'Ativo'
+                    ? 'blocked'
+                    : 'active'
         const name =
           key === 'empresas'
             ? `${company}${i >= companies.length ? ` ${i + 1}` : ''}`
@@ -140,10 +133,10 @@ export const initialRows: Record<Section, DemoRow[]> = Object.fromEntries(
                   ? `${String(26 + Math.floor(i / 12)).padStart(2, '0')}/10/2026 ${String(8 + (i % 12)).padStart(2, '0')}:00 · integracao_${(i % 6) + 1}`
                   : key === 'auditoria'
                     ? [
-                        'Empresa atualizada',
-                        'Credencial bloqueada',
-                        'Usuário criado',
-                        'Senha da API alterada',
+                        'companyUpdated',
+                        'credentialBlocked',
+                        'userCreated',
+                        'apiPasswordChanged',
                       ][i % 4]
                     : '(11) 9••••-4321'
         return {
@@ -156,7 +149,7 @@ export const initialRows: Record<Section, DemoRow[]> = Object.fromEntries(
               : '',
           company:
             key === 'usuarios'
-              ? ['Administrador', 'Operador', 'Consulta'][i % 3]
+              ? ['admin', 'operator', 'viewer'][i % 3]
               : company,
           status,
           date:

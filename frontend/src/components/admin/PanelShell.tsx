@@ -1,6 +1,8 @@
 import { useRef } from 'react'
 import type { PropsWithChildren } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { LanguageSwitcher } from './LanguageSwitcher'
 import {
   Building2,
   Users,
@@ -15,14 +17,14 @@ import {
   ChevronRight,
 } from 'lucide-react'
 const navigation = [
-  ['/', 'Visão geral', LayoutDashboard, false],
-  ['/empresas', 'Empresas', Building2, false],
-  ['/usuarios', 'Usuários', Users, true],
-  ['/credenciais', 'Credenciais da API', KeyRound, false],
-  ['/envios', 'Envios', MessageSquare, false],
-  ['/agendamentos', 'Agendamentos', CalendarClock, false],
-  ['/callbacks', 'Callbacks', Webhook, false],
-  ['/auditoria', 'Auditoria', History, true],
+  ['/', 'nav.overview', LayoutDashboard, false],
+  ['/empresas', 'nav.companies', Building2, false],
+  ['/usuarios', 'nav.users', Users, true],
+  ['/credenciais', 'nav.credentials', KeyRound, false],
+  ['/envios', 'nav.messages', MessageSquare, false],
+  ['/agendamentos', 'nav.schedules', CalendarClock, false],
+  ['/callbacks', 'nav.callbacks', Webhook, false],
+  ['/auditoria', 'nav.audit', History, true],
 ] as const
 function Navigation({
   admin,
@@ -33,6 +35,7 @@ function Navigation({
   onNavigate?: () => void
   managementOnly?: boolean
 }) {
+  const { t } = useTranslation()
   return (
     <>
       {navigation
@@ -59,7 +62,7 @@ function Navigation({
             }
           >
             <Icon size={18} aria-hidden="true" />
-            {label}
+            {t(label)}
           </NavLink>
         ))}
     </>
@@ -86,13 +89,15 @@ export function PanelShell({
   logoutError,
   onLogout,
 }: Props) {
+  const { t } = useTranslation()
   const menuRef = useRef<HTMLDetailsElement>(null)
   const location = useLocation()
-  const current =
+  const currentKey =
     location.pathname === '/perfil'
-      ? 'Meu perfil'
+      ? 'nav.profile'
       : (navigation.find(([path]) => path === location.pathname)?.[1] ??
-        'Painel')
+        'nav.adminPanel')
+  const current = t(currentKey)
   const initials = name
     .split(' ')
     .filter(Boolean)
@@ -105,7 +110,7 @@ export function PanelShell({
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:p-4"
       >
-        Ir para o conteúdo
+        {t('nav.skipContent')}
       </a>
       <aside className="flex flex-col bg-brand-purple text-white lg:sticky lg:top-0 lg:h-dvh">
         <div className="flex items-center justify-between px-5 py-5 lg:block lg:px-7 lg:pb-8 lg:pt-8">
@@ -114,7 +119,9 @@ export function PanelShell({
             alt="21 Mobile"
             className="h-10 w-auto lg:h-14"
           />
-          <p className="text-xs text-purple-200 lg:mt-3">Backoffice de SMS</p>
+          <p className="text-xs text-purple-200 lg:mt-3">
+            {t('nav.backoffice')}
+          </p>
         </div>
         <details
           ref={menuRef}
@@ -122,12 +129,12 @@ export function PanelShell({
         >
           <summary className="flex min-h-12 cursor-pointer list-none items-center gap-3 rounded-lg px-3 text-sm font-semibold transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
             <Menu size={18} aria-hidden="true" />
-            Menu
+            {t('nav.menu')}
             <span className="ml-auto font-normal text-purple-200">
               {current}
             </span>
           </summary>
-          <nav aria-label="Menu principal" className="grid gap-1 pb-3">
+          <nav aria-label={t('nav.menu')} className="grid gap-1 pb-3">
             <Navigation
               admin={admin}
               onNavigate={() => {
@@ -142,7 +149,7 @@ export function PanelShell({
                 if (menuRef.current) menuRef.current.open = false
               }}
               className="min-h-11 min-w-0 rounded-lg px-2 py-3 text-sm font-semibold hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-white"
-              aria-label={`Abrir meu perfil: ${name}`}
+              aria-label={t('nav.openProfile', { name })}
             >
               {name}
             </NavLink>
@@ -151,12 +158,12 @@ export function PanelShell({
               disabled={pending}
               onClick={onLogout}
             >
-              {pending ? 'Saindo…' : 'Sair'}
+              {pending ? t('nav.loggingOut') : t('nav.logout')}
             </button>
           </div>
         </details>
         <nav
-          aria-label="Menu principal"
+          aria-label={t('nav.menu')}
           className="hidden flex-col gap-1 px-3 lg:flex"
         >
           <Navigation admin={admin} managementOnly={managementOnly} />
@@ -164,7 +171,7 @@ export function PanelShell({
         <div className="mt-auto hidden border-t border-white/15 p-5 lg:block">
           <NavLink
             to="/perfil"
-            aria-label={`Abrir meu perfil: ${name}`}
+            aria-label={t('nav.openProfile', { name })}
             className={({ isActive }) =>
               `flex min-h-14 items-center gap-3 rounded-lg p-2 transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-white ${isActive ? 'bg-white/15' : ''}`
             }
@@ -188,7 +195,7 @@ export function PanelShell({
             className="button-on-dark mt-4 w-full"
           >
             <LogOut size={16} aria-hidden="true" />
-            {pending ? 'Saindo…' : 'Sair'}
+            {pending ? t('nav.loggingOut') : t('nav.logout')}
           </button>
         </div>
         {logoutError ? (
@@ -208,15 +215,18 @@ export function PanelShell({
             />
             <span className="font-semibold text-slate-700">{current}</span>
           </div>
-          {demo ? (
-            <span className="rounded-md bg-purple-50 px-3 py-1 text-xs font-semibold text-brand-purple">
-              Demonstração · dados fictícios
-            </span>
-          ) : (
-            <span className="hidden text-xs text-slate-500 sm:block">
-              Painel administrativo
-            </span>
-          )}
+          <div className="flex items-center gap-3">
+            <LanguageSwitcher />
+            {demo ? (
+              <span className="hidden rounded-md bg-purple-50 px-3 py-1 text-xs font-semibold text-brand-purple sm:block">
+                {t('nav.demoBadge')}
+              </span>
+            ) : (
+              <span className="hidden text-xs text-slate-500 lg:block">
+                {t('nav.adminPanel')}
+              </span>
+            )}
+          </div>
         </header>
         <main
           id="main-content"
@@ -226,8 +236,7 @@ export function PanelShell({
           {children}
           {demo ? (
             <footer className="mt-8 border-t border-slate-200 pt-5 text-xs leading-5 text-slate-500">
-              Ambiente de prévia. Alterações são descartadas ao recarregar.
-              Nenhum SMS é enviado.
+              {t('nav.demoFootnote')}
             </footer>
           ) : null}
         </main>

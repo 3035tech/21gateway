@@ -7,6 +7,7 @@ import { ForgotPasswordPage } from '../features/auth/ForgotPasswordPage'
 import { ResetPasswordPage } from '../features/auth/ResetPasswordPage'
 import { AdminLayout } from './AdminLayout'
 import { NotFoundPage } from './NotFoundPage'
+import { useTranslation } from 'react-i18next'
 const Overview = lazy(() =>
   import('../features/overview/OverviewPage').then((m) => ({
     default: m.OverviewPage,
@@ -15,6 +16,11 @@ const Overview = lazy(() =>
 const Companies = lazy(() =>
   import('../features/companies/CompaniesPage').then((m) => ({
     default: m.CompaniesPage,
+  })),
+)
+const CompanyDetail = lazy(() =>
+  import('../features/companies/CompanyDetailPage').then((m) => ({
+    default: m.CompanyDetailPage,
   })),
 )
 const Users = lazy(() =>
@@ -49,16 +55,18 @@ const Profile = lazy(() =>
   })),
 )
 function AdminOnly({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation()
   return useUser()?.role === 'admin' ? (
     children
   ) : (
-    <p role="alert">Você não tem permissão para acessar esta tela.</p>
+    <p role="alert">{t('app.forbiddenPage')}</p>
   )
 }
 function Home() {
   return <Overview />
 }
 export default function AdminApp() {
+  const { t } = useTranslation()
   return (
     <AuthProvider>
       <Routes>
@@ -69,7 +77,7 @@ export default function AdminApp() {
           path="*"
           element={
             <AdminLayout>
-              <Suspense fallback={<p role="status">Carregando tela…</p>}>
+              <Suspense fallback={<p role="status">{t('app.loadingPage')}</p>}>
                 <Routes>
                   <Route path="/" element={<Home />} />
                   <Route
@@ -77,6 +85,7 @@ export default function AdminApp() {
                     element={<Navigate to="/" replace />}
                   />
                   <Route path="/empresas" element={<Companies />} />
+                  <Route path="/empresas/:id" element={<CompanyDetail />} />
                   <Route
                     path="/usuarios"
                     element={

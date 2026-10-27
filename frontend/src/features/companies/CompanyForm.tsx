@@ -5,6 +5,7 @@ import type { Company, CompanyBody } from './api'
 import { Dialog } from '../../components/admin/Dialog'
 import { FormFooter, FieldError } from '../../components/admin/FormFooter'
 import { useAdminMutation } from '../../components/admin/useAdminMutation'
+import { useTranslation } from 'react-i18next'
 export function CompanyForm({
   company,
   onClose,
@@ -12,6 +13,7 @@ export function CompanyForm({
   company?: Company
   onClose: () => void
 }) {
+  const { t } = useTranslation()
   const form = useForm<CompanyBody>({
     resolver: zodResolver(companyFormSchema),
     defaultValues: {
@@ -26,7 +28,7 @@ export function CompanyForm({
   )
   return (
     <Dialog
-      title={company ? 'Editar empresa' : 'Nova empresa'}
+      title={company ? t('companies.editTitle') : t('companies.new')}
       onClose={onClose}
       busy={mutation.isPending}
     >
@@ -35,18 +37,18 @@ export function CompanyForm({
         onSubmit={form.handleSubmit((body) => mutation.mutate(body))}
       >
         <label className="field">
-          Nome
+          {t('common.name')}
           <input className="form-control" {...form.register('name')} />
           <FieldError message={form.formState.errors.name?.message} />
         </label>
         <label className="field">
-          Referência
+          {t('common.reference')}
           <input className="form-control" {...form.register('reference')} />
           <FieldError message={form.formState.errors.reference?.message} />
         </label>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" {...form.register('active')} />
-          Empresa ativa
+          {t('companies.active')}
         </label>
         <FormFooter
           pending={mutation.isPending}

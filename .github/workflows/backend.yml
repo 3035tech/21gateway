@@ -1,4 +1,4 @@
-name: Build backend
+name: Build 21gateway-back
 
 on:
   pull_request:
@@ -11,6 +11,7 @@ permissions:
 
 jobs:
   build:
+    name: Build and publish 21gateway-back
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -49,4 +50,7 @@ jobs:
           context: backend
           push: ${{ github.event_name == 'push' && github.repository_owner == '3035tech' }}
           tags: ${{ steps.image.outputs.tags }}
-          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.title=21gateway-back
+            org.opencontainers.image.description=21 Mobile Gateway backend API and workers

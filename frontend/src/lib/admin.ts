@@ -1,6 +1,7 @@
 import { isAxiosError } from 'axios'
 import { z } from 'zod'
 import { api } from './api'
+import i18n from './i18n'
 export type ListParams = {
   page: number
   pageSize: number
@@ -34,44 +35,23 @@ export async function list<T extends z.ZodType>(
     })
     .parse(response.data)
 }
-const publicErrors: Record<string, string> = {
-  UNAUTHORIZED: 'Sua sessão expirou. Entre novamente.',
-  FORBIDDEN: 'Você não tem permissão para essa ação.',
-  CONFLICT:
-    'Já existe um cadastro com esses dados, ou a operação conflita com o estado atual.',
-  LAST_ADMIN_REQUIRED: 'Mantenha pelo menos um administrador ativo.',
-  INVALID_REQUEST: 'Confira os campos informados.',
-  RATE_LIMITED: 'Muitas tentativas. Aguarde um minuto e tente novamente.',
-  INVALID_CURRENT_PASSWORD: 'Senha atual incorreta.',
-  MFA_REQUIRED:
-    'Informe o código do aplicativo autenticador ou um código de recuperação.',
-  MFA_INVALID: 'Código de segurança inválido ou já utilizado.',
-  INVALID_RESET_TOKEN:
-    'Link de recuperação inválido ou expirado. Solicite outro.',
-  SERVICE_UNAVAILABLE: 'Este recurso está temporariamente indisponível.',
-  INVITATION_DELIVERY_FAILED:
-    'O convite não pôde ser enviado. Atualize a lista e tente reenviar.',
-}
 export function errorMessage(error: unknown) {
   if (isAxiosError(error)) {
     const code = error.response?.data?.code
-    if (typeof code === 'string' && publicErrors[code])
-      return publicErrors[code]
+    if (typeof code === 'string' && i18n.exists(`errors.${code}`))
+      return i18n.t(`errors.${code}`)
   }
-  return 'Não foi possível concluir. Tente novamente.'
+  return i18n.t('errors.fallback')
 }
 export const formatDate = (value: string) =>
-  new Date(value).toLocaleString('pt-BR')
+  new Date(value).toLocaleString(i18n.language)
 export const roleLabels = {
-  admin: 'Administrador',
-  operator: 'Operador',
-  viewer: 'Consulta',
-}
+  admin: 'roles.admin',
+  operator: 'roles.operator',
+  viewer: 'roles.viewer',
+} as const
 export const roleDescriptions = {
-  admin:
-    'Gerencia usuários e acessos, consulta auditoria e pode fazer um envio de homologação.',
-  operator:
-    'Gerencia empresas e credenciais, troca senhas da API e reprocessa callbacks falhos.',
-  viewer:
-    'Consulta indicadores, empresas, credenciais, envios, agendamentos e callbacks.',
-}
+  admin: 'roles.adminDescription',
+  operator: 'roles.operatorDescription',
+  viewer: 'roles.viewerDescription',
+} as const

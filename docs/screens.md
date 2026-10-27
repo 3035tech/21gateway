@@ -9,6 +9,8 @@ Empresas e usuários: formulários próprios, status ativo/bloqueado e confirma�
 
 O administrador pode abrir **Testar credencial** após salvar: instrução para checagem Basic Auth/IP da rede do cliente, envio controlado ao número de homologação configurado e consulta posterior de DLR. Aceite do fornecedor e entrega são exibidos separadamente. Detalhes e limites em [credential-testing.md](credential-testing.md).
 
+Cadastro de credenciais: permite várias credenciais por empresa, username gerado ou informado, senha gerada, manual ou legada e validade opcional no fuso do navegador. A listagem mostra validade e o status vencido; a edição pode definir ou remover a validade. O usuário e o vínculo da credencial não mudam após criação. O painel oferece português e inglês no login e no cabeçalho, com preferência salva no navegador; textos de telas reais, validações e erros vêm dos catálogos em `frontend/src/locales/`.
+
 Listagens compartilham DataTable, filtros, paginação/tamanho e ordenação no servidor. Envios separam submissão/entrega e resultados incertos. Callbacks mostram fila/falhas e reprocessamento manual, sem reenvio SMS. Auditoria não inclui senhas ou conteúdo SMS. Resumo usa dados reais e não inventa saldo ou contagens.
 
 ## Prévia fictícia
@@ -50,3 +52,9 @@ Listagem distingue configuração DLR/MO e nomeia restrição por IP. Revisão d
 Critérios, matriz de listagens, ajustes e riscos em `docs/reviews/ui-standardization-2026-10-27.md`. As sete listagens reais usam filtro, paginação/tamanho e ordenação em todos os cabeçalhos de dados. Envios e callbacks exibem nome de cliente quando disponível; a busca ocupa a largura do celular e tabelas largas indicam rolagem. Ações não são campos ordenáveis.
 
 Polish posterior: Auditoria mostra nome atual do responsável mais ID, distingue registros do sistema e oferece filtros por responsável, ação e recurso. Abre pelos eventos recentes. A consulta continua restrita ao administrador e sem senhas/conteúdo SMS. Tabelas com colunas ocultas pela largura do celular indicam rolagem horizontal.
+
+## Visão da empresa — 27/10/2026
+
+A listagem de empresas abre `/empresas/{id}` pelo nome. A página mostra cadastro, estado e credenciais da API vinculadas à empresa, com criação e edição no próprio contexto; a seleção da empresa fica fixa. A listagem geral de credenciais permanece disponível. Usuários do painel continuam internos e globais, sem `company_id`; por isso a página não atribui esses usuários a uma empresa. A associação de usuários do painel a clientes exige decisão de escopo e regras de autorização antes de expor uma lista por empresa.
+
+As listagens oferecem Visualizar para consultar os campos disponíveis sem entrar em edição. Empresas abrem a página de detalhes; usuários, credenciais, envios, agendamentos, callbacks e auditoria mostram detalhes em diálogo. Empresas, usuários e credenciais oferecem Arquivar para perfis autorizados, com confirmação e preservação do histórico. Registros de envio, agendamento e auditoria continuam somente leitura; callbacks falhos mantêm a operação de tentativa manual. A prévia fictícia também permite visualizar e arquivar cadastros em memória.

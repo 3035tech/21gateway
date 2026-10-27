@@ -11,10 +11,11 @@ import {
 } from 'lucide-react'
 import { getSummary } from './api'
 import { errorMessage } from '../../lib/admin'
-
-const number = (value: number) => value.toLocaleString('pt-BR')
+import { useTranslation } from 'react-i18next'
 
 export function OverviewPage() {
+  const { t, i18n } = useTranslation()
+  const number = (value: number) => value.toLocaleString(i18n.language)
   const query = useQuery({
     queryKey: ['admin', 'summary'],
     queryFn: ({ signal }) => getSummary(signal),
@@ -25,10 +26,10 @@ export function OverviewPage() {
       <header className="mb-7 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
-            Visão geral
+            {t('nav.overview')}
           </h1>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            Acompanhe a fila e encontre o que precisa de atenção.
+            {t('overview.description')}
           </p>
         </div>
         <button
@@ -36,12 +37,12 @@ export function OverviewPage() {
           disabled={query.isFetching}
           onClick={() => void query.refetch()}
         >
-          <RefreshCw size={16} aria-hidden="true" /> Atualizar dados
+          <RefreshCw size={16} aria-hidden="true" /> {t('overview.refresh')}
         </button>
       </header>
       {query.isPending ? (
         <p role="status" className="rounded-xl bg-white p-8">
-          Carregando indicadores…
+          {t('overview.loading')}
         </p>
       ) : query.isError ? (
         <p role="alert" className="rounded-xl bg-rose-50 p-6 text-rose-800">
@@ -53,29 +54,30 @@ export function OverviewPage() {
             <div className="grid lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
               <div className="p-6 sm:p-8">
                 <h2 className="flex items-center gap-2 text-sm font-semibold text-purple-100">
-                  <CalendarClock size={19} aria-hidden="true" /> Fila de
-                  agendamentos
+                  <CalendarClock size={19} aria-hidden="true" />{' '}
+                  {t('overview.scheduleQueue')}
                 </h2>
                 <div className="mt-5 flex flex-wrap items-end gap-x-5 gap-y-2">
                   <strong className="text-6xl font-bold leading-none tabular-nums tracking-tight sm:text-7xl">
                     {number(data.scheduledDue)}
                   </strong>
                   <p className="max-w-56 pb-1 text-sm leading-6 text-purple-100">
-                    aguardando despacho após o horário previsto
+                    {t('overview.overdue')}
                   </p>
                 </div>
                 <Link
                   to="/agendamentos"
                   className="mt-7 inline-flex min-h-11 items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-bold text-brand-purple hover:bg-purple-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                 >
-                  Ver agendamentos <ArrowUpRight size={17} aria-hidden="true" />
+                  {t('overview.viewSchedules')}{' '}
+                  <ArrowUpRight size={17} aria-hidden="true" />
                 </Link>
               </div>
               <div className="grid grid-cols-3 border-t border-white/20 bg-white/10 lg:grid-cols-1 lg:border-l lg:border-t-0">
                 {[
-                  ['Próximas 24 h', data.scheduledNext24h],
-                  ['Em processamento', data.scheduledActive],
-                  ['Total na fila', data.scheduledQueued],
+                  [t('overview.next24h'), data.scheduledNext24h],
+                  [t('overview.processing'), data.scheduledActive],
+                  [t('overview.queuedTotal'), data.scheduledQueued],
                 ].map(([label, value]) => (
                   <div
                     key={label}
@@ -103,24 +105,25 @@ export function OverviewPage() {
                       className="text-brand-purple"
                       aria-hidden="true"
                     />{' '}
-                    Envios registrados
+                    {t('overview.recordedMessages')}
                   </h2>
                   <p className="mt-1 text-xs text-slate-500">
-                    Acumulado do histórico mantido no banco
+                    {t('overview.historyTotal')}
                   </p>
                 </div>
                 <Link
                   to="/envios"
                   className="inline-flex min-h-11 items-center gap-1 text-sm font-bold text-brand-purple hover:underline"
                 >
-                  Abrir <ArrowUpRight size={16} aria-hidden="true" />
+                  {t('overview.open')}{' '}
+                  <ArrowUpRight size={16} aria-hidden="true" />
                 </Link>
               </div>
               <dl className="mt-6 grid grid-cols-3 gap-3 border-t border-slate-100 pt-6">
                 {[
-                  ['Aceitos', data.accepted],
-                  ['Rejeitados', data.rejected],
-                  ['Incerto', data.unknown],
+                  [t('overview.accepted'), data.accepted],
+                  [t('overview.rejected'), data.rejected],
+                  [t('overview.unknown'), data.unknown],
                 ].map(([label, value]) => (
                   <div key={label}>
                     <dt className="text-xs text-slate-500 sm:text-sm">
@@ -133,8 +136,7 @@ export function OverviewPage() {
                 ))}
               </dl>
               <p className="mt-6 rounded-lg bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-900">
-                Aceite pelo fornecedor não confirma entrega. Resultado incerto
-                exige reconciliação antes de qualquer reenvio.
+                {t('overview.deliveryWarning')}
               </p>
             </section>
 
@@ -147,24 +149,29 @@ export function OverviewPage() {
                       className="text-brand-purple"
                       aria-hidden="true"
                     />{' '}
-                    Notificações aos clientes
+                    {t('overview.clientNotifications')}
                   </h2>
                   <p className="mt-1 text-xs text-slate-500">
-                    Jobs pendentes e falhos de DLR e MO
+                    {t('overview.callbackJobs')}
                   </p>
                 </div>
                 <Link
                   to="/callbacks"
                   className="inline-flex min-h-11 items-center gap-1 text-sm font-bold text-brand-purple hover:underline"
                 >
-                  Ver DLR <ArrowUpRight size={16} aria-hidden="true" />
+                  {t('overview.viewDlr')}{' '}
+                  <ArrowUpRight size={16} aria-hidden="true" />
                 </Link>
               </div>
               <div className="mt-6 grid grid-cols-2 gap-4 border-t border-slate-100 pt-6">
                 {[
-                  ['Status DLR', data.pendingCallbacks, data.failedCallbacks],
                   [
-                    'Respostas MO',
+                    t('overview.dlrStatus'),
+                    data.pendingCallbacks,
+                    data.failedCallbacks,
+                  ],
+                  [
+                    t('overview.moReplies'),
                     data.pendingMoCallbacks,
                     data.failedMoCallbacks,
                   ],
@@ -176,11 +183,13 @@ export function OverviewPage() {
                     <p className="mt-2 text-2xl font-bold tabular-nums text-slate-900">
                       {number(Number(pending))}{' '}
                       <span className="text-xs font-normal text-slate-500">
-                        pendentes
+                        {t('overview.pending')}
                       </span>
                     </p>
                     <p className="mt-1 text-sm text-rose-700">
-                      {number(Number(failed))} com falha
+                      {t('overview.failedCount', {
+                        value: number(Number(failed)),
+                      })}
                     </p>
                   </div>
                 ))}
@@ -189,14 +198,16 @@ export function OverviewPage() {
           </div>
 
           <section className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-2xl border border-slate-200 bg-white px-6 py-5 text-sm">
-            <span className="font-bold text-slate-900">Acessos ativos</span>
+            <span className="font-bold text-slate-900">
+              {t('overview.activeAccess')}
+            </span>
             <span className="inline-flex items-center gap-2 text-slate-700">
               <Building2
                 size={17}
                 className="text-brand-purple"
                 aria-hidden="true"
               />{' '}
-              {number(data.companies)} empresas
+              {t('overview.companyCount', { value: number(data.companies) })}
             </span>
             <span className="inline-flex items-center gap-2 text-slate-700">
               <KeyRound
@@ -204,13 +215,16 @@ export function OverviewPage() {
                 className="text-brand-purple"
                 aria-hidden="true"
               />{' '}
-              {number(data.activeCredentials)} credenciais
+              {t('overview.credentialCount', {
+                value: number(data.activeCredentials),
+              })}
             </span>
             <Link
               to="/credenciais"
               className="ml-auto inline-flex min-h-11 items-center gap-1 font-bold text-brand-purple hover:underline"
             >
-              Gerenciar acessos <ArrowUpRight size={16} aria-hidden="true" />
+              {t('overview.manageAccess')}{' '}
+              <ArrowUpRight size={16} aria-hidden="true" />
             </Link>
           </section>
         </div>

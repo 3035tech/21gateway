@@ -20,6 +20,7 @@ type APICredential struct {
 	CallbackURL      string
 	CallbacksEnabled bool
 	ArchivedAt       *time.Time
+	ExpiresAt        *time.Time
 	ID               uint64 `gorm:"primaryKey"`
 	Username         string
 	PasswordHash     string
@@ -29,6 +30,10 @@ type APICredential struct {
 }
 
 func (APICredential) TableName() string { return "api_credentials" }
+
+func (credential APICredential) ValidAt(now time.Time) bool {
+	return credential.Active && (credential.ExpiresAt == nil || now.Before(*credential.ExpiresAt))
+}
 
 func (credential *APICredential) BeforeCreate(*gorm.DB) error {
 	if credential.AllowedIPs == nil {

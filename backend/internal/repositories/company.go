@@ -19,6 +19,11 @@ func (r *Companies) Company(ctx context.Context, id uint64) (models.Company, err
 	err := r.db.WithContext(ctx).Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ? AND archived_at IS NULL", id).First(&company).Error
 	return company, err
 }
+func (r *Companies) CompanyView(ctx context.Context, id uint64) (models.Company, error) {
+	var company models.Company
+	err := r.db.WithContext(ctx).Where("id = ? AND archived_at IS NULL", id).First(&company).Error
+	return company, err
+}
 func (r *Companies) Companies(ctx context.Context, q dtos.ListQuery) (dtos.Page[models.Company], error) {
 	result := dtos.Page[models.Company]{Items: []models.Company{}, Page: q.Page, PageSize: q.PageSize}
 	db := r.db.WithContext(ctx).Model(&models.Company{}).Where("archived_at IS NULL")

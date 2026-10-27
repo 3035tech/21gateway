@@ -11,10 +11,14 @@ import { errorMessage, roleLabels } from '../../lib/admin'
 import { listUsers, archiveUser, resendInvitation } from './api'
 import type { SystemUser } from './api'
 import { UserForm } from './UserForm'
+import { useTranslation } from 'react-i18next'
+import { RecordDetailsDialog } from '../../components/admin/RecordDetailsDialog'
 export function UsersPage() {
+  const { t } = useTranslation()
   const user = useUser()
   const writable = user?.role === 'admin'
   const [editor, setEditor] = useState<SystemUser | null | undefined>()
+  const [viewing, setViewing] = useState<SystemUser | null>(null)
   const [archive, setArchive] = useState<SystemUser | null>(null)
   const mutation = useAdminMutation(archiveUser, () => setArchive(null))
   const [inviteSent, setInviteSent] = useState(false)
@@ -24,58 +28,67 @@ export function UsersPage() {
   })
   const columns: ColumnDef<SystemUser>[] = [
     { accessorKey: 'id', header: 'ID' },
-    { accessorKey: 'name', header: 'Nome' },
-    { accessorKey: 'email', header: 'E-mail' },
+    { accessorKey: 'name', header: t('common.name') },
+    { accessorKey: 'email', header: t('common.email') },
     {
       accessorKey: 'role',
-      header: 'Perfil',
-      cell: ({ row }) => roleLabels[row.original.role],
+      header: t('roles.label'),
+      cell: ({ row }) => t(roleLabels[row.original.role]),
     },
     {
       accessorKey: 'active',
-      header: 'Status',
+      header: t('common.status'),
       cell: ({ row }) => (
         <StatusBadge status={row.original.active ? 'active' : 'blocked'} />
       ),
     },
     {
       accessorKey: 'createdAt',
-      header: 'Cadastro',
+      header: t('common.createdAt'),
       cell: ({ row }) => <DateCell value={row.original.createdAt} />,
     },
   ]
-  if (writable)
-    columns.push({
-      id: 'actions',
-      header: 'Ações',
-      enableSorting: false,
-      cell: ({ row }) => (
-        <div className="flex gap-1">
-          <button
-            className="table-action"
-            onClick={() => setEditor(row.original)}
-          >
-            Editar
-          </button>
-          <button
-            className="table-action"
-            disabled={resend.isPending}
-            onClick={() => {
-              setInviteSent(false)
-              resend.mutate(row.original.id)
-            }}
-          >
-            Reenviar convite
-          </button>
-          <button
-            className="table-action-danger"
-            onClick={() => setArchive(row.original)}
-          >
-            Arquivar
-          </button>
-        </div>
-      ),
-    })
+  columns.push({
+    id: 'actions',
+    header: t('common.actions'),
+    enableSorting: false,
+    cell: ({ row }) => (
+      <div className="flex gap-1">
+        <button
+          className="table-action"
+          onClick={() => setViewing(row.original)}
+        >
+          {t('common.view')}
+        </button>
+        {writable ? (
+          <>
+            <button
+              className="table-action"
+              onClick={() => setEditor(row.original)}
+            >
+              {t('common.edit')}
+            </button>
+            <button
+              className="table-action"
+              disabled={resend.isPending}
+              onClick={() => {
+                setInviteSent(false)
+                resend.mutate(row.original.id)
+              }}
+            >
+              {t('users.resendInvitation')}
+            </button>
+            <button
+              className="table-action-danger"
+              onClick={() => setArchive(row.original)}
+            >
+              {t('common.archive')}
+            </button>
+          </>
+        ) : null}
+      </div>
+    ),
+  })
   return (
     <>
       {inviteSent ? (
@@ -83,7 +96,7 @@ export function UsersPage() {
           role="status"
           className="mb-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800"
         >
-          Convite enviado. O novo link expira em 15 minutos.
+          {t('users.invitationSent')}
         </p>
       ) : null}
       {resend.isError ? (
@@ -95,18 +108,18 @@ export function UsersPage() {
         </p>
       ) : null}
       <Listing
-        title="Usuários"
-        description="Gerencie os acessos internos ao backoffice. Novos usuários definem a própria senha pelo convite enviado por e-mail."
-        searchPlaceholder="Nome ou e-mail do usuário"
+        title={t('nav.users')}
+        description={t('users.description')}
+        searchPlaceholder={t('users.searchPlaceholder')}
         queryKey="users"
         columns={columns}
         load={listUsers}
         onCreate={writable ? () => setEditor(null) : undefined}
-        createLabel="Novo usuário"
+        createLabel={t('users.new')}
         filterName="active"
         filterOptions={[
-          ['true', 'Ativos'],
-          ['false', 'Bloqueados'],
+          ['true', t('users.activePlural')],
+          ['false', t('users.blockedPlural')],
         ]}
       />
       {editor !== undefined ? (
@@ -115,10 +128,30 @@ export function UsersPage() {
           onClose={() => setEditor(undefined)}
         />
       ) : null}
+      {viewing ? (
+        <RecordDetailsDialog
+          title={viewing.name}
+          onClose={() => setViewing(null)}
+          fields={[
+            { label: 'ID', value: viewing.id },
+            { label: t('common.name'), value: viewing.name },
+            { label: t('common.email'), value: viewing.email },
+            { label: t('roles.label'), value: t(roleLabels[viewing.role]) },
+            {
+              label: t('common.status'),
+              value: t(viewing.active ? 'status.active' : 'status.blocked'),
+            },
+            {
+              label: t('common.createdAt'),
+              value: <DateCell value={viewing.createdAt} />,
+            },
+          ]}
+        />
+      ) : null}
       {archive ? (
         <Confirmation
-          title="Arquivar usuário"
-          description={`Arquivar ${archive.name} encerrará suas sessões de acesso. O histórico será mantido.`}
+          title={t('users.archiveTitle')}
+          description={t('users.archiveDescription', { name: archive.name })}
           pending={mutation.isPending}
           error={mutation.error}
           onConfirm={() => mutation.mutate(archive.id)}

@@ -39,7 +39,7 @@ func (r *Credentials) credentialQuery(ctx context.Context) *gorm.DB {
 }
 func (r *Credentials) Credentials(ctx context.Context, q dtos.ListQuery) (dtos.Page[models.APICredential], error) {
 	result := dtos.Page[models.APICredential]{Items: []models.APICredential{}, Page: q.Page, PageSize: q.PageSize}
-	db := r.credentialQuery(ctx).Select("api_credentials.id,api_credentials.company_id,companies.name AS company_name,api_credentials.username,api_credentials.active,api_credentials.callback_url,api_credentials.callbacks_enabled,api_credentials.created_at,api_credentials.provider_token_encrypted,api_credentials.whitelist_enabled,api_credentials.allowed_ips,api_credentials.mo_callback_url,api_credentials.mo_callbacks_enabled,api_credentials.legacy_account_id")
+	db := r.credentialQuery(ctx).Select("api_credentials.id,api_credentials.company_id,companies.name AS company_name,api_credentials.username,api_credentials.active,api_credentials.callback_url,api_credentials.callbacks_enabled,api_credentials.created_at,api_credentials.expires_at,api_credentials.provider_token_encrypted,api_credentials.whitelist_enabled,api_credentials.allowed_ips,api_credentials.mo_callback_url,api_credentials.mo_callbacks_enabled,api_credentials.legacy_account_id")
 	if q.Search != "" {
 		db = db.Where("api_credentials.username ILIKE ?", searchTerm(q.Search))
 	}
@@ -61,6 +61,7 @@ func (r *Credentials) Credentials(ctx context.Context, q dtos.ListQuery) (dtos.P
 		"whitelistEnabled":        "api_credentials.whitelist_enabled", "active": "api_credentials.active",
 		"notifications": "(api_credentials.callbacks_enabled::int + api_credentials.mo_callbacks_enabled::int)",
 		"createdAt":     "api_credentials.created_at",
+		"expiresAt":     "api_credentials.expires_at",
 	}[q.Sort]
 	if q.Sort == "" {
 		column = "api_credentials.created_at"

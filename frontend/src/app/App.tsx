@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 const AdminApp = lazy(() => import('./AdminApp'))
 
@@ -8,6 +9,7 @@ const DemoApp = import.meta.env.DEV
   : null
 
 export function App() {
+  const { t } = useTranslation()
   if (
     DemoApp &&
     (import.meta.env.VITE_DEMO_MODE === 'true' ||
@@ -20,7 +22,7 @@ export function App() {
           window.location.pathname.startsWith('/demo') ? '/demo' : undefined
         }
       >
-        <Suspense fallback={<p className="p-8">Carregando demonstração…</p>}>
+        <Suspense fallback={<p className="p-8">{t('app.loadingDemo')}</p>}>
           <DemoApp />
         </Suspense>
       </BrowserRouter>
@@ -28,7 +30,7 @@ export function App() {
   }
   return (
     <BrowserRouter>
-      <Suspense fallback={<p className="p-8">Carregando painel…</p>}>
+      <Suspense fallback={<p className="p-8">{t('app.loadingPanel')}</p>}>
         <AdminApp />
       </Suspense>
     </BrowserRouter>

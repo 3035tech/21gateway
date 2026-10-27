@@ -17,22 +17,34 @@ export const credentialSchema = z.object({
   callbackUrl: z.string(),
   callbacksEnabled: z.boolean(),
   createdAt: z.string(),
+  expiresAt: z.string().nullable(),
 })
 export type Credential = z.infer<typeof credentialSchema>
 export const credentialFormSchema = z
   .object({
-    companyId: z.number().int().positive('Selecione uma empresa.'),
+    companyId: z.number().int().positive('validation.selectCompany'),
+    generateUsername: z.boolean(),
+    passwordMode: z.enum(['generated', 'manual', 'legacy']),
     username: z
       .string()
-      .min(1)
       .max(120)
-      .regex(/^[^:\r\n]+$/, 'Usuário inválido.'),
+      .regex(/^[^:\r\n]*$/, 'validation.invalidUsername'),
     preserveLegacyPassword: z.boolean(),
     legacyPassword: z.string().max(128),
+    manualPassword: z.string().max(128),
+    expiresAtText: z
+      .string()
+      .refine(
+        (value) =>
+          !value ||
+          (!Number.isNaN(new Date(value).getTime()) &&
+            new Date(value).getTime() > Date.now()),
+        'validation.futureExpiry',
+      ),
     providerToken: z
       .string()
       .max(4096)
-      .refine((value) => !/[\r\n]/.test(value), 'Token inválido.'),
+      .refine((value) => !/[\r\n]/.test(value), 'validation.invalidToken'),
     clearProviderToken: z.boolean(),
     whitelistEnabled: z.boolean(),
     allowedIPsText: z.string().max(8192),
@@ -53,14 +65,14 @@ export const credentialFormSchema = z
         } catch {
           return false
         }
-      }, 'Use uma URL HTTPS válida.'),
+      }, 'validation.httpsUrl'),
     moCallbacksEnabled: z.boolean(),
     legacyAccountId: z
       .string()
       .max(64)
       .refine(
         (value) => !value || /^[0-9]+(_[0-9]+)?$/.test(value),
-        'Use o ID legado, como 2340 ou 2340_779.',
+        'validation.legacyId',
       ),
     active: z.boolean(),
     callbackUrl: z
@@ -80,29 +92,53 @@ export const credentialFormSchema = z
         } catch {
           return false
         }
-      }, 'Use uma URL HTTPS válida.'),
+      }, 'validation.httpsUrl'),
     callbacksEnabled: z.boolean(),
   })
   .refine((value) => !value.callbacksEnabled || !!value.callbackUrl, {
     path: ['callbackUrl'],
-    message: 'Informe o destino do callback.',
+    message: 'validation.callbackDestination',
   })
   .refine((value) => !value.whitelistEnabled || !!value.allowedIPsText.trim(), {
     path: ['allowedIPsText'],
-    message: 'Informe ao menos um IP ou rede.',
+    message: 'validation.ipRequired',
   })
   .refine((value) => !value.moCallbacksEnabled || !!value.moCallbackUrl, {
     path: ['moCallbackUrl'],
-    message: 'Informe a URL de respostas MO.',
+    message: 'validation.moUrl',
   })
   .refine((value) => !value.clearProviderToken || !value.providerToken, {
     path: ['providerToken'],
-    message: 'Escolha substituir ou remover o token.',
+    message: 'validation.tokenChoice',
   })
   .refine((value) => !value.preserveLegacyPassword || !!value.legacyPassword, {
     path: ['legacyPassword'],
-    message: 'Informe a senha usada atualmente na API 21.',
+    message: 'validation.legacyPassword',
   })
+  .refine((value) => value.generateUsername || !!value.username.trim(), {
+    path: ['username'],
+    message: 'validation.invalidUsername',
+  })
+  .refine(
+    (value) =>
+      !value.manualPassword ||
+      Array.from(value.manualPassword.trim()).length >= 15,
+    {
+      path: ['manualPassword'],
+      message: 'validation.passwordMinimumTrimmed',
+    },
+  )
+  .refine((value) => !value.manualPassword || !value.preserveLegacyPassword, {
+    path: ['manualPassword'],
+    message: 'validation.passwordModeConflict',
+  })
+  .refine(
+    (value) => value.passwordMode !== 'manual' || !!value.manualPassword,
+    {
+      path: ['manualPassword'],
+      message: 'validation.manualPasswordRequired',
+    },
+  )
 export type CredentialBody = z.infer<typeof credentialFormSchema>
 const secretSchema = z.object({
   credential: credentialSchema,
@@ -120,11 +156,25 @@ export async function saveCredential(
     legacyAccountId,
     preserveLegacyPassword,
     legacyPassword,
+    manualPassword,
+    expiresAtText,
+    generateUsername,
+    passwordMode,
     ...fields
   } = body
   const payload = {
     ...fields,
-    legacyPassword: preserveLegacyPassword ? legacyPassword : undefined,
+    legacyPassword:
+      preserveLegacyPassword && passwordMode === 'legacy'
+        ? legacyPassword
+        : undefined,
+    manualPassword: passwordMode === 'manual' ? manualPassword : undefined,
+    generateUsername: !id && generateUsername,
+    username: generateUsername && !id ? '' : body.username,
+    expiresAt: expiresAtText
+      ? new Date(expiresAtText).toISOString()
+      : undefined,
+    clearExpiry: !!id && !expiresAtText,
     allowedIPs: allowedIPsText.split(/[\s,;]+/).filter(Boolean),
     providerToken: providerToken || undefined,
     legacyAccountId: legacyAccountId || undefined,

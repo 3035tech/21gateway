@@ -1,10 +1,11 @@
 import { errorMessage } from '../../lib/admin'
+import { useTranslation } from 'react-i18next'
 export function FormFooter({
   pending,
   error,
   onCancel,
-  submitLabel = 'Salvar alterações',
-  pendingLabel = 'Salvando…',
+  submitLabel,
+  pendingLabel,
 }: {
   pending: boolean
   error: unknown
@@ -12,6 +13,7 @@ export function FormFooter({
   pendingLabel?: string
   onCancel: () => void
 }) {
+  const { t } = useTranslation()
   return (
     <>
       {error ? (
@@ -26,19 +28,22 @@ export function FormFooter({
           disabled={pending}
           onClick={onCancel}
         >
-          Cancelar
+          {t('common.cancel')}
         </button>
         <button className="button-primary" type="submit" disabled={pending}>
-          {pending ? pendingLabel : submitLabel}
+          {pending
+            ? (pendingLabel ?? t('common.saving'))
+            : (submitLabel ?? t('common.save'))}
         </button>
       </div>
     </>
   )
 }
 export function FieldError({ message }: { message?: string }) {
+  const { t } = useTranslation()
   return message ? (
     <span role="alert" className="text-xs text-rose-700">
-      {message}
+      {message.startsWith('validation.') ? t(message) : message}
     </span>
   ) : null
 }

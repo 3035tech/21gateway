@@ -10,8 +10,8 @@ export const systemPasswordLimits = {
 } as const
 
 export const userFormSchema = z.object({
-  name: z.string().trim().min(1, 'Informe o nome.').max(120),
-  email: z.email('Informe um e-mail válido.').max(254),
+  name: z.string().trim().min(1, 'validation.name').max(120),
+  email: z.email('validation.email').max(254),
   role: z.enum(roles),
   active: z.boolean(),
 })

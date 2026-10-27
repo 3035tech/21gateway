@@ -1,20 +1,22 @@
 import type { PropsWithChildren } from 'react'
 import { NavLink, Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 export function AppLayout({ children }: PropsWithChildren) {
+  const { t } = useTranslation()
   return (
     <div className="flex min-h-dvh flex-col">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-white focus:px-4 focus:py-3 focus:text-brand-purple"
       >
-        Ir para o conteúdo
+        {t('nav.skipContent')}
       </a>
       <header className="border-b-[3px] border-brand-magenta bg-brand-purple text-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-5 py-5 sm:px-8">
           <Link
             to="/"
-            aria-label="21 Mobile — início"
+            aria-label={t('app.brandHome')}
             className="rounded-sm focus-visible:outline-white"
           >
             <img
@@ -25,12 +27,12 @@ export function AppLayout({ children }: PropsWithChildren) {
             />
           </Link>
           <span className="border-l border-white/25 pl-6 text-sm font-medium text-white/90">
-            Painel administrativo
+            {t('nav.adminPanel')}
           </span>
         </div>
       </header>
       <nav
-        aria-label="Principal"
+        aria-label={t('app.mainNav')}
         className="border-b border-slate-200 bg-white"
       >
         <div className="mx-auto max-w-6xl px-5 sm:px-8">
@@ -41,7 +43,7 @@ export function AppLayout({ children }: PropsWithChildren) {
               `inline-flex border-b-2 px-1 py-4 text-sm font-semibold ${isActive ? 'border-brand-purple text-brand-purple' : 'border-transparent text-slate-600 hover:text-brand-purple'}`
             }
           >
-            Visão geral
+            {t('nav.overview')}
           </NavLink>
         </div>
       </nav>
@@ -55,7 +57,7 @@ export function AppLayout({ children }: PropsWithChildren) {
       <footer className="border-t border-slate-200">
         <div className="mx-auto flex max-w-6xl flex-wrap justify-between gap-2 px-5 py-5 text-xs text-slate-500 sm:px-8">
           <span>21 Mobile</span>
-          <span>Painel de gestão de SMS</span>
+          <span>{t('app.smsPanel')}</span>
         </div>
       </footer>
     </div>

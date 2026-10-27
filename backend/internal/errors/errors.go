@@ -1,7 +1,12 @@
 // Package errors defines application error codes independently of HTTP.
 package errors
 
-import "fmt"
+import (
+	"embed"
+	"encoding/json"
+	"fmt"
+	"strings"
+)
 
 type Code string
 
@@ -36,61 +41,38 @@ const (
 	CodeInvitationDeliveryFailed  Code = "INVITATION_DELIVERY_FAILED"
 )
 
-func (c Code) Message() string {
-	switch c {
-	case CodeInvalidRequest:
-		return "A requisição é inválida."
-	case CodeUnauthorized:
-		return "Autenticação necessária."
-	case CodeForbidden:
-		return "Acesso não permitido."
-	case CodeNotFound:
-		return "Recurso não encontrado."
-	case CodeRateLimited:
-		return "Limite de requisições excedido."
-	case CodeServiceUnavailable, CodeDatabaseUnavailable:
-		return "Serviço temporariamente indisponível."
-	case CodeInvalidDestination:
-		return "Número de destino inválido."
-	case CodeInvalidMessage:
-		return "Mensagem inválida."
-	case CodeBatchUnsupported:
-		return "Esta etapa aceita apenas uma mensagem por requisição."
-	case CodeScheduleUnsupported:
-		return "Agendamento não disponível nesta etapa."
-	case CodeProviderUnauthorized:
-		return "Falha de autenticação com o fornecedor."
-	case CodeInsufficientBalance:
-		return "Saldo insuficiente para o envio."
-	case CodeProviderRejected:
-		return "O fornecedor rejeitou o envio."
-	case CodeUnknownOutcome:
-		return "Não foi possível confirmar o resultado do envio. Não reenviar automaticamente."
-	case CodeConflict:
-		return "Já existe um registro com esses dados, ou a operação conflita com o estado atual."
-	case CodeLastAdmin:
-		return "Mantenha pelo menos um administrador ativo."
-	case CodeCSRFInvalid:
-		return "A sessão de segurança expirou. Atualize a página e tente novamente."
-	case CodeTestDestinationNotAllowed:
-		return "Use o número de homologação autorizado para o teste."
-	case CodeTestNotConfigured:
-		return "O número de homologação ainda não foi configurado."
-	case CodeInvalidCurrentPassword:
-		return "Senha atual incorreta."
-	case CodeMFARequired:
-		return "Informe o código do aplicativo autenticador ou um código de recuperação."
-	case CodeMFAInvalid:
-		return "Código de segurança inválido."
-	case CodeInvalidResetToken:
-		return "Link de recuperação inválido ou expirado."
-	case CodeInvitationDeliveryFailed:
-		return "Não foi possível enviar o convite. Atualize a lista e tente reenviar."
-	case CodeConfigurationInvalid:
-		return "Configuração da aplicação inválida."
-	default:
-		return "Ocorreu um erro interno."
+//go:embed locales/*.json
+var catalogs embed.FS
+
+var messages = loadMessages()
+
+func loadMessages() map[string]map[Code]string {
+	result := make(map[string]map[Code]string)
+	for _, language := range []string{"pt-BR", "en-US"} {
+		contents, err := catalogs.ReadFile("locales/" + language + ".json")
+		if err != nil {
+			panic(err)
+		}
+		var catalog map[Code]string
+		if err := json.Unmarshal(contents, &catalog); err != nil {
+			panic(err)
+		}
+		result[language] = catalog
 	}
+	return result
+}
+
+func (c Code) Message() string { return c.MessageFor("pt-BR") }
+
+func (c Code) MessageFor(language string) string {
+	locale := "pt-BR"
+	if strings.HasPrefix(strings.ToLower(language), "en") {
+		locale = "en-US"
+	}
+	if value := messages[locale][c]; value != "" {
+		return value
+	}
+	return messages[locale][CodeInternal]
 }
 
 type Error struct {

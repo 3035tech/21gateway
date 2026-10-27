@@ -10,13 +10,16 @@ import { login } from './api'
 import { MfaCodeInput } from './MfaCodeInput'
 import { useUser } from './context'
 import { errorMessage } from '../../lib/admin'
+import { useTranslation } from 'react-i18next'
+import { LanguageSwitcher } from '../../components/admin/LanguageSwitcher'
 const schema = z.object({
-  email: z.email('Informe um e-mail válido.'),
-  password: z.string().min(1, 'Informe a senha.').max(128),
+  email: z.email(),
+  password: z.string().min(1).max(128),
   factor: z.string().max(32).optional(),
   remember: z.boolean().optional(),
 })
 export function LoginPage() {
+  const { t } = useTranslation()
   const id = useId()
   const [visible, setVisible] = useState(false)
   const [factorRequired, setFactorRequired] = useState(false)
@@ -49,16 +52,19 @@ export function LoginPage() {
         <img src="/brand/21-mobile.png" alt="21 Mobile" className="w-48" />
         <div>
           <h1 className="max-w-md text-4xl font-semibold leading-tight">
-            Sua operação de SMS, conectada.
+            {t('auth.heroTitle')}
           </h1>
           <p className="mt-5 max-w-sm text-base leading-7 text-purple-100">
-            Gerencie empresas, acessos e acompanhe os envios em um único painel.
+            {t('auth.heroDescription')}
           </p>
         </div>
-        <p className="text-sm text-purple-200">21 Mobile · Backoffice</p>
+        <p className="text-sm text-purple-200">{t('auth.brandFooter')}</p>
       </div>
       <main className="flex items-center justify-center px-6 py-10">
         <section className="w-full max-w-sm">
+          <div className="mb-4 flex justify-end">
+            <LanguageSwitcher />
+          </div>
           <div className="mb-8 w-fit rounded-lg bg-brand-purple px-5 py-4 lg:hidden">
             <img
               src="/brand/21-mobile.png"
@@ -66,9 +72,9 @@ export function LoginPage() {
               className="h-10 w-auto"
             />
           </div>
-          <h2 className="text-3xl font-bold">Entrar no backoffice</h2>
+          <h2 className="text-3xl font-bold">{t('auth.loginTitle')}</h2>
           <p className="mt-3 text-sm text-slate-500">
-            Use seu acesso de usuário de sistema.
+            {t('auth.loginDescription')}
           </p>
           <form
             className="mt-8 space-y-5"
@@ -80,13 +86,13 @@ export function LoginPage() {
                 htmlFor={`${id}-email`}
                 className="block text-sm font-semibold"
               >
-                E-mail
+                {t('common.email')}
               </label>
               <input
                 id={`${id}-email`}
                 autoComplete="username"
                 type="email"
-                placeholder="seu.nome@empresa.com.br"
+                placeholder={t('auth.emailPlaceholder')}
                 aria-invalid={!!form.formState.errors.email}
                 aria-describedby={
                   form.formState.errors.email ? `${id}-email-error` : undefined
@@ -100,7 +106,7 @@ export function LoginPage() {
                   role="alert"
                   className="mt-2 text-xs text-rose-700"
                 >
-                  {form.formState.errors.email.message}
+                  {t('validation.email')}
                 </p>
               ) : null}
             </div>
@@ -109,7 +115,7 @@ export function LoginPage() {
                 htmlFor={`${id}-password`}
                 className="block text-sm font-semibold"
               >
-                Senha
+                {t('auth.password')}
               </label>
               <div className="relative mt-2">
                 <input
@@ -128,7 +134,9 @@ export function LoginPage() {
                 <button
                   type="button"
                   className="button-icon absolute right-0 top-0 rounded-l-none"
-                  aria-label={visible ? 'Ocultar senha' : 'Mostrar senha'}
+                  aria-label={
+                    visible ? t('auth.hidePassword') : t('auth.showPassword')
+                  }
                   aria-pressed={visible}
                   onClick={() => setVisible((current) => !current)}
                 >
@@ -145,13 +153,15 @@ export function LoginPage() {
                   role="alert"
                   className="mt-2 text-xs text-rose-700"
                 >
-                  {form.formState.errors.password.message}
+                  {t('validation.passwordRequired')}
                 </p>
               ) : null}
             </div>
             {factorRequired ? (
               <div className="space-y-3">
-                <p className="text-sm font-semibold">Código de segurança</p>
+                <p className="text-sm font-semibold">
+                  {t('auth.securityCode')}
+                </p>
                 {factorMode === 'app' ? (
                   <MfaCodeInput
                     value={factor}
@@ -170,7 +180,7 @@ export function LoginPage() {
                     type="text"
                     autoComplete="off"
                     maxLength={32}
-                    placeholder="Código de recuperação"
+                    placeholder={t('auth.recoveryCode')}
                     {...form.register('factor')}
                   />
                 )}
@@ -185,17 +195,16 @@ export function LoginPage() {
                   }}
                 >
                   {factorMode === 'app'
-                    ? 'Usar código de recuperação'
-                    : 'Usar aplicativo autenticador'}
+                    ? t('auth.useRecoveryCode')
+                    : t('auth.useAuthenticator')}
                 </button>
               </div>
             ) : null}
             {mutation.isError ? (
               <p role="alert" className="text-sm text-rose-700">
-                {mutation.error &&
-                errorMessage(mutation.error) ===
-                  'Sua sessão expirou. Entre novamente.'
-                  ? 'E-mail ou senha inválidos.'
+                {isAxiosError(mutation.error) &&
+                mutation.error.response?.data?.code === 'UNAUTHORIZED'
+                  ? t('auth.invalidCredentials')
                   : errorMessage(mutation.error)}
               </p>
             ) : null}
@@ -205,13 +214,13 @@ export function LoginPage() {
                 className="h-4 w-4 accent-brand-purple"
                 {...form.register('remember')}
               />
-              Lembrar de mim por até 14 dias
+              {t('auth.rememberMe')}
             </label>
             <Link
               to="/esqueci-senha"
               className="block text-right text-sm font-semibold text-brand-purple underline-offset-4 hover:underline"
             >
-              Esqueceu sua senha?
+              {t('auth.forgotPassword')}
             </Link>
             <button
               disabled={
@@ -230,7 +239,7 @@ export function LoginPage() {
                   className="animate-spin"
                 />
               ) : null}
-              {mutation.isPending ? 'Entrando…' : 'Entrar'}
+              {mutation.isPending ? t('auth.signingIn') : t('auth.signIn')}
             </button>
           </form>
         </section>

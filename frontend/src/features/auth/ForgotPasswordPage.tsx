@@ -4,8 +4,11 @@ import { useMutation } from '@tanstack/react-query'
 import { KeyRound, Mail } from 'lucide-react'
 import { requestPasswordRecovery } from './api'
 import { errorMessage } from '../../lib/admin'
+import { useTranslation } from 'react-i18next'
+import { LanguageSwitcher } from '../../components/admin/LanguageSwitcher'
 
 export function ForgotPasswordPage() {
+  const { t } = useTranslation()
   const [email, setEmail] = useState('')
   const request = useMutation({
     mutationFn: () => requestPasswordRecovery(email),
@@ -13,24 +16,25 @@ export function ForgotPasswordPage() {
   return (
     <main className="flex min-h-dvh items-center justify-center bg-slate-50 px-5 py-10">
       <section className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+        <div className="flex justify-end">
+          <LanguageSwitcher />
+        </div>
         <div className="flex items-center gap-3 text-brand-purple">
           <KeyRound size={28} aria-hidden="true" />
           <span className="text-xs font-bold uppercase tracking-[0.18em]">
-            Segurança da conta
+            {t('auth.accountSecurity')}
           </span>
         </div>
-        <h1 className="mt-5 text-3xl font-bold">Recuperar senha</h1>
+        <h1 className="mt-5 text-3xl font-bold">{t('auth.recoverPassword')}</h1>
         <p className="mt-3 text-sm leading-6 text-slate-600">
-          Informe o e-mail da sua conta interna. Se ela existir, você receberá
-          um link válido por 15 minutos.
+          {t('auth.recoveryDescription')}
         </p>
         {request.isSuccess ? (
           <p
             role="status"
             className="mt-6 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800"
           >
-            Se o e-mail estiver cadastrado, enviaremos as instruções de
-            recuperação.
+            {t('auth.recoverySent')}
           </p>
         ) : (
           <form
@@ -41,7 +45,7 @@ export function ForgotPasswordPage() {
             }}
           >
             <label className="field">
-              E-mail
+              {t('common.email')}
               <input
                 className="form-control"
                 type="email"
@@ -62,7 +66,7 @@ export function ForgotPasswordPage() {
               disabled={request.isPending}
             >
               <Mail size={17} aria-hidden="true" />
-              {request.isPending ? 'Enviando…' : 'Enviar link'}
+              {request.isPending ? t('auth.sending') : t('auth.sendLink')}
             </button>
           </form>
         )}
@@ -70,7 +74,7 @@ export function ForgotPasswordPage() {
           to="/login"
           className="mt-6 block text-sm font-semibold text-brand-purple hover:underline"
         >
-          Voltar ao login
+          {t('auth.backToLogin')}
         </Link>
       </section>
     </main>

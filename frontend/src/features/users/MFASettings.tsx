@@ -5,8 +5,10 @@ import { ShieldCheck, ShieldOff, Copy, KeyRound } from 'lucide-react'
 import { beginMFA, confirmMFA, disableMFA, mfaStatus } from '../auth/api'
 import { MfaCodeInput } from '../auth/MfaCodeInput'
 import { errorMessage } from '../../lib/admin'
+import { useTranslation } from 'react-i18next'
 
 export function MFASettings() {
+  const { t } = useTranslation()
   const client = useQueryClient()
   const status = useQuery({ queryKey: ['admin', 'mfa'], queryFn: mfaStatus })
   const [password, setPassword] = useState('')
@@ -47,15 +49,12 @@ export function MFASettings() {
         id="mfa-heading"
         className="flex items-center gap-2 text-lg font-bold"
       >
-        <ShieldCheck size={20} aria-hidden="true" /> Verificação em duas etapas
+        <ShieldCheck size={20} aria-hidden="true" /> {t('mfa.title')}
       </h2>
-      <p className="mt-2 text-sm text-slate-500">
-        Use um aplicativo autenticador para proteger o acesso ao painel. Guarde
-        os códigos de recuperação em local seguro.
-      </p>
+      <p className="mt-2 text-sm text-slate-500">{t('mfa.description')}</p>
       {status.isPending ? (
         <p role="status" className="mt-5 text-sm text-slate-500">
-          Carregando estado de segurança…
+          {t('mfa.loading')}
         </p>
       ) : null}
       {status.isError ? (
@@ -68,16 +67,15 @@ export function MFASettings() {
           <span
             className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold ${status.data.enabled ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800'}`}
           >
-            {status.data.enabled ? 'Ativada' : 'Desativada'}
+            {status.data.enabled ? t('mfa.enabled') : t('mfa.disabled')}
           </span>
           {recoveryCodes.length > 0 ? (
             <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-5">
               <h3 className="font-bold text-emerald-950">
-                Códigos de recuperação
+                {t('mfa.recoveryCodes')}
               </h3>
               <p className="mt-2 text-sm text-emerald-900">
-                Cada código funciona uma única vez. Eles aparecem somente agora.
-                Copie e guarde fora deste computador.
+                {t('mfa.recoveryHint')}
               </p>
               <div className="mt-4 grid gap-2 font-mono text-sm sm:grid-cols-2">
                 {recoveryCodes.map((value) => (
@@ -91,14 +89,14 @@ export function MFASettings() {
                   void navigator.clipboard.writeText(recoveryCodes.join('\n'))
                 }
               >
-                <Copy size={16} aria-hidden="true" /> Copiar códigos
+                <Copy size={16} aria-hidden="true" /> {t('mfa.copyCodes')}
               </button>
               <button
                 type="button"
                 className="ml-3 min-h-11 rounded-lg px-3 text-sm font-semibold text-emerald-900 underline transition-colors hover:bg-emerald-100 active:bg-emerald-200"
                 onClick={() => setRecoveryCodes([])}
               >
-                Já salvei os códigos
+                {t('mfa.savedCodes')}
               </button>
             </div>
           ) : null}
@@ -111,7 +109,7 @@ export function MFASettings() {
               }}
             >
               <label className="field">
-                Confirme sua senha
+                {t('mfa.confirmPassword')}
                 <input
                   className="form-control"
                   type="password"
@@ -131,36 +129,31 @@ export function MFASettings() {
                 disabled={begin.isPending}
                 className="button-primary"
               >
-                <KeyRound size={16} aria-hidden="true" /> Configurar aplicativo
+                <KeyRound size={16} aria-hidden="true" />{' '}
+                {t('mfa.configureApp')}
               </button>
             </form>
           ) : null}
           {setup ? (
             <div className="mt-5 space-y-4">
-              <p className="text-sm font-medium">
-                Escaneie o QR code no aplicativo autenticador. Se preferir,
-                digite a chave manualmente.
-              </p>
+              <p className="text-sm font-medium">{t('mfa.scanHint')}</p>
               <div className="w-fit rounded-xl border border-slate-200 bg-white p-4">
                 <QRCodeSVG
                   value={setup.uri}
                   size={192}
                   marginSize={4}
-                  title="QR code para configurar a autenticação em duas etapas"
+                  title={t('mfa.qrTitle')}
                 />
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Chave manual
+                  {t('mfa.manualKey')}
                 </p>
                 <code className="mt-1 block break-all text-sm font-semibold">
                   {setup.secret}
                 </code>
               </div>
-              <p className="text-xs text-slate-500">
-                Este QR code contém uma chave secreta. Não compartilhe a tela. A
-                configuração expira em dez minutos.
-              </p>
+              <p className="text-xs text-slate-500">{t('mfa.qrWarning')}</p>
               <form
                 className="max-w-md space-y-3"
                 onSubmit={(event) => {
@@ -168,7 +161,7 @@ export function MFASettings() {
                   if (/^\d{6}$/.test(code)) confirm.mutate(code)
                 }}
               >
-                <p className="text-sm font-semibold">Código de 6 dígitos</p>
+                <p className="text-sm font-semibold">{t('mfa.sixDigitCode')}</p>
                 <MfaCodeInput
                   value={code}
                   onChange={setCode}
@@ -184,7 +177,7 @@ export function MFASettings() {
                   className="button-primary"
                   disabled={confirm.isPending || !/^\d{6}$/.test(code)}
                 >
-                  Ativar verificação
+                  {t('mfa.enable')}
                 </button>
               </form>
             </div>
@@ -204,15 +197,12 @@ export function MFASettings() {
               }}
             >
               <h3 className="flex items-center gap-2 text-sm font-bold">
-                <ShieldOff size={17} aria-hidden="true" /> Desativar segundo
-                fator
+                <ShieldOff size={17} aria-hidden="true" />{' '}
+                {t('mfa.disableTitle')}
               </h3>
-              <p className="text-xs text-slate-500">
-                Exige sua senha e um código válido. Todos os códigos de
-                recuperação serão invalidados.
-              </p>
+              <p className="text-xs text-slate-500">{t('mfa.disableHint')}</p>
               <label className="field">
-                Senha atual
+                {t('profile.currentPassword')}
                 <input
                   className="form-control"
                   type="password"
@@ -223,7 +213,9 @@ export function MFASettings() {
                 />
               </label>
               <div className="space-y-3">
-                <p className="text-sm font-semibold">Código de segurança</p>
+                <p className="text-sm font-semibold">
+                  {t('auth.securityCode')}
+                </p>
                 {factorMode === 'app' ? (
                   <MfaCodeInput
                     value={code}
@@ -238,7 +230,7 @@ export function MFASettings() {
                     className="form-control w-full font-mono"
                     autoComplete="off"
                     maxLength={32}
-                    placeholder="Código de recuperação"
+                    placeholder={t('auth.recoveryCode')}
                     value={code}
                     onChange={(event) => setCode(event.target.value)}
                   />
@@ -254,8 +246,8 @@ export function MFASettings() {
                   }}
                 >
                   {factorMode === 'app'
-                    ? 'Usar código de recuperação'
-                    : 'Usar aplicativo autenticador'}
+                    ? t('auth.useRecoveryCode')
+                    : t('auth.useAuthenticator')}
                 </button>
               </div>
               {disable.isError ? (
@@ -273,7 +265,7 @@ export function MFASettings() {
                     : !/^[0-9a-fA-F]{32}$/.test(code))
                 }
               >
-                Desativar verificação
+                {t('mfa.disable')}
               </button>
             </form>
           ) : null}

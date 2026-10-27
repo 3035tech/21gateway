@@ -14,33 +14,35 @@ import { changeOwnPassword } from '../auth/api'
 import { systemPasswordLimits } from './api'
 import { errorMessage, formatDate, roleLabels } from '../../lib/admin'
 import { MFASettings } from './MFASettings'
+import { useTranslation } from 'react-i18next'
 
 const schema = z
   .object({
-    currentPassword: z.string().min(1, 'Informe a senha atual.').max(128),
+    currentPassword: z.string().min(1, 'validation.currentPassword').max(128),
     newPassword: z
       .string()
-      .min(15, 'Use pelo menos 15 caracteres.')
+      .min(15, 'validation.passwordMinimum')
       .max(128)
       .refine(
         (value) =>
           Array.from(value.trim()).length >=
           systemPasswordLimits.minimumCharacters,
-        'Use pelo menos 15 caracteres sem contar espaços nas pontas.',
+        'validation.passwordMinimumTrimmed',
       ),
     confirmation: z.string(),
   })
   .refine((value) => value.newPassword === value.confirmation, {
     path: ['confirmation'],
-    message: 'As senhas não coincidem.',
+    message: 'validation.passwordMismatch',
   })
   .refine((value) => value.currentPassword !== value.newPassword, {
     path: ['newPassword'],
-    message: 'Escolha uma senha diferente da atual.',
+    message: 'validation.passwordDifferent',
   })
 type FormValues = z.infer<typeof schema>
 
 export function ProfilePage() {
+  const { t } = useTranslation()
   const user = useUser()
   const client = useQueryClient()
   const [changed, setChanged] = useState(false)
@@ -65,14 +67,14 @@ export function ProfilePage() {
         <div className="flex items-center gap-3 text-brand-purple">
           <CircleUserRound size={30} aria-hidden="true" />
           <span className="text-xs font-bold uppercase tracking-[0.18em]">
-            Conta e segurança
+            {t('auth.accountSecurity')}
           </span>
         </div>
         <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-900">
-          Meu perfil
+          {t('nav.profile')}
         </h1>
         <p className="mt-2 text-sm text-slate-500">
-          Confira seus dados de acesso e proteja sua conta administrativa.
+          {t('profile.description')}
         </p>
       </div>
       <section
@@ -83,25 +85,26 @@ export function ProfilePage() {
           id="profile-details"
           className="flex items-center gap-2 text-lg font-bold"
         >
-          <CircleUserRound size={20} aria-hidden="true" /> Dados da conta
+          <CircleUserRound size={20} aria-hidden="true" />{' '}
+          {t('profile.accountDetails')}
         </h2>
         <dl className="mt-5 grid gap-5 text-sm sm:grid-cols-2">
           <div>
-            <dt className="text-slate-500">Nome</dt>
+            <dt className="text-slate-500">{t('common.name')}</dt>
             <dd className="mt-1 font-semibold text-slate-900">{user.name}</dd>
           </div>
           <div>
-            <dt className="text-slate-500">E-mail</dt>
+            <dt className="text-slate-500">{t('common.email')}</dt>
             <dd className="mt-1 font-semibold text-slate-900">{user.email}</dd>
           </div>
           <div>
-            <dt className="text-slate-500">Perfil</dt>
+            <dt className="text-slate-500">{t('roles.label')}</dt>
             <dd className="mt-1 font-semibold text-slate-900">
-              {roleLabels[user.role]}
+              {t(roleLabels[user.role])}
             </dd>
           </div>
           <div>
-            <dt className="text-slate-500">Conta criada em</dt>
+            <dt className="text-slate-500">{t('profile.createdAt')}</dt>
             <dd className="mt-1 font-semibold text-slate-900">
               {formatDate(user.createdAt)}
             </dd>
@@ -116,18 +119,18 @@ export function ProfilePage() {
           id="change-password"
           className="flex items-center gap-2 text-lg font-bold"
         >
-          <KeyRound size={20} aria-hidden="true" /> Alterar senha
+          <KeyRound size={20} aria-hidden="true" />{' '}
+          {t('profile.changePassword')}
         </h2>
         <p className="mt-2 text-sm text-slate-500">
-          Depois da alteração, todas as sessões serão encerradas. Entre
-          novamente com a nova senha.
+          {t('profile.changePasswordHint')}
         </p>
         <form
           className="mt-5 max-w-lg space-y-4"
           onSubmit={form.handleSubmit((value) => mutation.mutate(value))}
         >
           <label className="field">
-            Senha atual
+            {t('profile.currentPassword')}
             <input
               className="form-control"
               type="password"
@@ -135,11 +138,12 @@ export function ProfilePage() {
               {...form.register('currentPassword')}
             />
             <span className="text-xs text-rose-700">
-              {form.formState.errors.currentPassword?.message}
+              {form.formState.errors.currentPassword?.message &&
+                t(form.formState.errors.currentPassword.message)}
             </span>
           </label>
           <label className="field">
-            Nova senha
+            {t('auth.newPassword')}
             <input
               className="form-control"
               type="password"
@@ -147,11 +151,12 @@ export function ProfilePage() {
               {...form.register('newPassword')}
             />
             <span className="text-xs text-rose-700">
-              {form.formState.errors.newPassword?.message}
+              {form.formState.errors.newPassword?.message &&
+                t(form.formState.errors.newPassword.message)}
             </span>
           </label>
           <label className="field">
-            Confirmar nova senha
+            {t('profile.confirmNewPassword')}
             <input
               className="form-control"
               type="password"
@@ -159,13 +164,14 @@ export function ProfilePage() {
               {...form.register('confirmation')}
             />
             <span className="text-xs text-rose-700">
-              {form.formState.errors.confirmation?.message}
+              {form.formState.errors.confirmation?.message &&
+                t(form.formState.errors.confirmation.message)}
             </span>
           </label>
           <p className="text-xs leading-5 text-slate-500">
-            Use uma frase com pelo menos{' '}
-            {systemPasswordLimits.minimumCharacters} caracteres, sem contar
-            espaços nas pontas. Evite senhas comuns.
+            {t('profile.passwordHint', {
+              count: systemPasswordLimits.minimumCharacters,
+            })}
           </p>
           {mutation.isError ? (
             <p role="alert" className="text-sm text-rose-700">
@@ -182,7 +188,9 @@ export function ProfilePage() {
             ) : (
               <ShieldCheck size={17} aria-hidden="true" />
             )}
-            {mutation.isPending ? 'Alterando…' : 'Salvar nova senha'}
+            {mutation.isPending
+              ? t('profile.changing')
+              : t('auth.saveNewPassword')}
           </button>
         </form>
       </section>
@@ -192,7 +200,7 @@ export function ProfilePage() {
           role="status"
           className="rounded-xl bg-emerald-50 p-4 text-sm font-medium text-emerald-800"
         >
-          Senha alterada. Entre novamente para continuar.
+          {t('profile.passwordChanged')}
         </p>
       ) : null}
     </div>

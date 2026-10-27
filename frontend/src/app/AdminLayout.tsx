@@ -5,7 +5,9 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useUser } from '../features/auth/context'
 import { logout } from '../features/auth/api'
 import { errorMessage, roleLabels } from '../lib/admin'
+import { useTranslation } from 'react-i18next'
 export function AdminLayout({ children }: PropsWithChildren) {
+  const { t } = useTranslation()
   const user = useUser()
   const client = useQueryClient()
   const mutation = useMutation({
@@ -19,7 +21,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
   return (
     <PanelShell
       name={user.name}
-      role={roleLabels[user.role]}
+      role={t(roleLabels[user.role])}
       admin={user.role === 'admin'}
       pending={mutation.isPending}
       logoutError={mutation.isError ? errorMessage(mutation.error) : undefined}

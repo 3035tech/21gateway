@@ -8,6 +8,7 @@ import (
 	"github.com/21mobile/sms-gateway/internal/repositories"
 	"github.com/21mobile/sms-gateway/internal/security"
 	"github.com/google/uuid"
+	"time"
 )
 
 const testSMSMessage = "Teste de integracao 21 Mobile."
@@ -43,7 +44,7 @@ func (s *MessageService) SendTest(ctx context.Context, actor, credentialID uint6
 	if err != nil {
 		return empty, dbError(err)
 	}
-	if !credential.Active || (credential.CompanyID != nil && (credential.CompanyActive == nil || !*credential.CompanyActive)) {
+	if !credential.ValidAt(time.Now()) || (credential.CompanyID != nil && (credential.CompanyActive == nil || !*credential.CompanyActive)) {
 		return empty, apperrors.Wrap(apperrors.CodeConflict, nil)
 	}
 	credential.PasswordHash = ""

@@ -45,6 +45,7 @@ func New(origins []string, docsEnabled bool, ping func(context.Context) error, d
 	controllers.ConfigureErrors()
 	router := chi.NewRouter()
 	router.Use(middleware.RequestID, middleware.Recoverer)
+	router.Use(localizeAdminErrors)
 	router.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("X-Content-Type-Options", "nosniff")
@@ -55,7 +56,7 @@ func New(origins []string, docsEnabled bool, ping func(context.Context) error, d
 			next.ServeHTTP(w, r)
 		})
 	})
-	router.Use(cors.Handler(cors.Options{AllowedOrigins: origins, AllowedMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"}, AllowedHeaders: []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"}, AllowCredentials: true, MaxAge: config.CORSMaxAgeSeconds}))
+	router.Use(cors.Handler(cors.Options{AllowedOrigins: origins, AllowedMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"}, AllowedHeaders: []string{"Accept", "Accept-Language", "Authorization", "Content-Type", "X-CSRF-Token"}, AllowCredentials: true, MaxAge: config.CORSMaxAgeSeconds}))
 	if dependencies.Sessions != nil {
 		router.Use(AdminMiddleware(dependencies.Sessions, origins))
 	}

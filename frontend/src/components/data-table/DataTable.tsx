@@ -12,6 +12,7 @@ import type {
   SortingState,
 } from '@tanstack/react-table'
 import { PAGE_SIZE_OPTIONS } from './constants'
+import { useTranslation } from 'react-i18next'
 import {
   ArrowDown,
   ArrowUp,
@@ -54,12 +55,14 @@ export function DataTable<T>({
   search,
   onSearchChange,
   filters,
-  caption = 'Resultados da consulta',
-  searchPlaceholder = 'Buscar nos resultados',
+  caption,
+  searchPlaceholder,
   wide = false,
   isLoading = false,
   error,
 }: DataTableProps<T>) {
+  const { t } = useTranslation()
+  const tableCaption = caption ?? t('table.caption')
   const id = useId()
   const [draft, setDraft] = useState(search)
   // eslint-disable-next-line react-hooks/incompatible-library -- React Compiler is not enabled; this table is not memoized.
@@ -88,7 +91,7 @@ export function DataTable<T>({
       >
         <div className="flex w-full flex-col gap-1 sm:min-w-48 sm:flex-1">
           <label htmlFor={`${id}-search`} className="text-sm font-semibold">
-            Buscar
+            {t('common.search')}
           </label>
           <div className="relative">
             <Search
@@ -99,7 +102,7 @@ export function DataTable<T>({
             <input
               id={`${id}-search`}
               type="search"
-              placeholder={searchPlaceholder}
+              placeholder={searchPlaceholder ?? t('table.searchPlaceholder')}
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
               className="form-control w-full pl-10"
@@ -108,7 +111,7 @@ export function DataTable<T>({
         </div>
         {filters}
         <button type="submit" className="button-primary">
-          Buscar
+          {t('common.search')}
         </button>
       </form>
       {error ? (
@@ -119,17 +122,16 @@ export function DataTable<T>({
       <p
         className={`flex items-center gap-2 text-xs text-slate-500 ${wide ? '' : 'sm:hidden'}`}
       >
-        <ArrowLeftRight size={15} aria-hidden="true" /> Deslize a tabela para
-        ver mais colunas.
+        <ArrowLeftRight size={15} aria-hidden="true" /> {t('table.scrollHint')}
       </p>
       <div
         className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm"
         role="region"
-        aria-label={`${caption}: resultados`}
+        aria-label={t('table.regionLabel', { caption: tableCaption })}
         tabIndex={0}
       >
         <table className="data-grid w-full min-w-max border-collapse text-left text-sm">
-          <caption className="sr-only">{caption}</caption>
+          <caption className="sr-only">{tableCaption}</caption>
           <thead className="border-b border-slate-200 bg-slate-50 text-slate-700">
             {table.getHeaderGroups().map((group) => (
               <tr key={group.id}>
@@ -203,7 +205,7 @@ export function DataTable<T>({
                     aria-hidden="true"
                     className="mx-auto mb-3 animate-spin text-brand-purple"
                   />
-                  Carregando resultados…
+                  {t('table.loading')}
                 </td>
               </tr>
             ) : error ? (
@@ -217,7 +219,7 @@ export function DataTable<T>({
                     aria-hidden="true"
                     className="mx-auto mb-3 text-slate-400"
                   />
-                  Resultados indisponíveis. Tente atualizar a consulta.
+                  {t('table.unavailableHint')}
                 </td>
               </tr>
             ) : table.getRowModel().rows.length ? (
@@ -250,9 +252,7 @@ export function DataTable<T>({
                     aria-hidden="true"
                     className="mx-auto mb-3 text-slate-400"
                   />
-                  {error
-                    ? 'Resultados indisponíveis.'
-                    : 'Nenhum resultado encontrado. Ajuste os filtros para uma nova consulta.'}
+                  {error ? t('table.unavailable') : t('table.empty')}
                 </td>
               </tr>
             )}
@@ -261,7 +261,7 @@ export function DataTable<T>({
       </div>
       <div className="flex flex-wrap items-center justify-between gap-4 px-1 text-sm text-slate-600">
         <label className="flex items-center gap-2">
-          Itens por página
+          {t('common.itemsPerPage')}
           <select
             value={pagination.pageSize}
             onChange={(event) =>
@@ -284,31 +284,36 @@ export function DataTable<T>({
           <span aria-live="polite">
             {total > 0 && !error && !isLoading ? (
               <span className="mr-3 hidden tabular-nums xl:inline">
-                {pagination.pageIndex * pagination.pageSize + 1}–
-                {pagination.pageIndex * pagination.pageSize + data.length} de{' '}
-                {total}
+                {t('common.resultsRange', {
+                  from: pagination.pageIndex * pagination.pageSize + 1,
+                  to: pagination.pageIndex * pagination.pageSize + data.length,
+                  total,
+                })}
               </span>
             ) : null}
-            Página {error ? 1 : pagination.pageIndex + 1} de{' '}
-            {Math.max(1, table.getPageCount())} · {error ? 0 : total} itens
+            {t('common.page', {
+              page: error ? 1 : pagination.pageIndex + 1,
+              pages: Math.max(1, table.getPageCount()),
+              count: error ? 0 : total,
+            })}
           </span>
           <button
             type="button"
             disabled={isLoading || !table.getCanPreviousPage()}
             onClick={() => table.previousPage()}
-            aria-label="Anterior"
+            aria-label={t('common.previous')}
             className="button-secondary"
           >
-            Anterior
+            {t('common.previous')}
           </button>
           <button
             type="button"
             disabled={isLoading || !table.getCanNextPage()}
             onClick={() => table.nextPage()}
-            aria-label="Próxima"
+            aria-label={t('common.next')}
             className="button-secondary"
           >
-            Próxima
+            {t('common.next')}
           </button>
         </div>
       </div>

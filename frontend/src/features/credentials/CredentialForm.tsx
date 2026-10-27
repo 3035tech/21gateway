@@ -11,19 +11,35 @@ import { Building2, KeyRound, Link2, ShieldCheck } from 'lucide-react'
 import type { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { useAdminMutation } from '../../components/admin/useAdminMutation'
+import { useTranslation } from 'react-i18next'
+function localDateTime(value?: string | null) {
+  if (!value) return ''
+  const date = new Date(value)
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
+  return local.toISOString().slice(0, 16)
+}
 export function CredentialForm({
   credential,
+  initialCompanyId,
+  initialCompanyName,
   onClose,
   onSecret,
 }: {
   credential?: Credential
+  initialCompanyId?: number
+  initialCompanyName?: string
   onClose: () => void
   onSecret: (username: string, password: string) => void
 }) {
+  const { t } = useTranslation()
+  const selectedCompanyId = credential?.companyId ?? initialCompanyId
   const [search, setSearch] = useState('')
+  const [passwordMode, setPasswordMode] = useState<
+    'generated' | 'manual' | 'legacy'
+  >('generated')
   const companies = useQuery({
     queryKey: ['admin', 'company-options', search],
-    enabled: !credential?.companyId,
+    enabled: !selectedCompanyId,
     queryFn: ({ signal }) =>
       listCompanies(
         { page: 1, pageSize: 100, search, direction: 'asc', sort: 'name' },
@@ -33,13 +49,17 @@ export function CredentialForm({
   const form = useForm<CredentialBody>({
     resolver: zodResolver(credentialFormSchema),
     defaultValues: {
-      companyId: credential?.companyId ?? 0,
+      companyId: selectedCompanyId ?? 0,
+      generateUsername: !credential,
+      passwordMode: 'generated',
       username: credential?.username ?? '',
       active: credential?.active ?? true,
       callbackUrl: credential?.callbackUrl ?? '',
       callbacksEnabled: credential?.callbacksEnabled ?? false,
       preserveLegacyPassword: false,
       legacyPassword: '',
+      manualPassword: '',
+      expiresAtText: localDateTime(credential?.expiresAt),
       providerToken: '',
       clearProviderToken: false,
       whitelistEnabled: credential?.whitelistEnabled ?? false,
@@ -51,13 +71,14 @@ export function CredentialForm({
   })
   const mutation = useAdminMutation<CredentialBody>(async (body) => {
     const result = await saveCredential(credential?.id, body)
-    if (result.password) onSecret(result.credential.username, result.password)
+    if (result.password || (!credential && body.generateUsername))
+      onSecret(result.credential.username, result.password)
   }, onClose)
 
-  const [preservePassword, removeToken, restrictIPs, active] = useWatch({
+  const [generateUsername, removeToken, restrictIPs, active] = useWatch({
     control: form.control,
     name: [
-      'preserveLegacyPassword',
+      'generateUsername',
       'clearProviderToken',
       'whitelistEnabled',
       'active',
@@ -65,59 +86,63 @@ export function CredentialForm({
   })
   return (
     <Dialog
-      title={credential ? 'Editar credencial' : 'Nova credencial da API'}
+      title={
+        credential ? t('credentials.editTitle') : t('credentials.newTitle')
+      }
       onClose={onClose}
       busy={mutation.isPending}
       wide
     >
       <p className="mb-6 max-w-xl text-sm leading-6 text-slate-600">
-        Configure o acesso do cliente, o envio de mensagens e os destinos das
-        notificações.
+        {t('credentials.formDescription')}
       </p>
       <form onSubmit={form.handleSubmit((body) => mutation.mutate(body))}>
         <fieldset disabled={mutation.isPending} className="min-w-0 space-y-7">
-          <CredentialSection title="Acesso do cliente" icon={Building2}>
+          <CredentialSection
+            title={t('credentials.clientAccess')}
+            icon={Building2}
+          >
             <div className="grid gap-5 sm:grid-cols-2">
               <div className="space-y-4">
-                {!credential?.companyId ? (
+                {!selectedCompanyId ? (
                   <label className="field">
-                    Buscar empresa
+                    {t('credentials.searchCompany')}
                     <input
                       className="form-control"
-                      placeholder="Nome ou referência"
+                      placeholder={t('credentials.companySearchPlaceholder')}
                       value={search}
                       onChange={(event) => setSearch(event.target.value)}
                     />
                   </label>
                 ) : null}
                 <label className="field">
-                  Empresa
+                  {t('common.company')}
                   <select
                     className="form-control"
                     disabled={
-                      !!credential?.companyId ||
+                      !!selectedCompanyId ||
                       companies.isPending ||
                       companies.isError
                     }
                     {...form.register('companyId', { valueAsNumber: true })}
                   >
                     <option value={0}>
-                      {companies.isPending && !credential?.companyId
-                        ? 'Carregando empresas…'
-                        : 'Selecione uma empresa'}
+                      {companies.isPending && !selectedCompanyId
+                        ? t('credentials.loadingCompanies')
+                        : t('credentials.selectCompany')}
                     </option>
-                    {credential?.companyId &&
+                    {selectedCompanyId &&
                     !companies.data?.items.some(
-                      (c) => c.id === credential.companyId,
+                      (c) => c.id === selectedCompanyId,
                     ) ? (
-                      <option value={credential.companyId}>
-                        {credential.companyName}
+                      <option value={selectedCompanyId}>
+                        {credential?.companyName ?? initialCompanyName}
                       </option>
                     ) : null}
                     {companies.data?.items.map((company) => (
                       <option value={company.id} key={company.id}>
                         {company.name}
-                        {company.active ? '' : ' (bloqueada)'}
+                        {company.active ? '' : t('credentials.blockedSuffix')}
                       </option>
                     ))}
                   </select>
@@ -127,34 +152,50 @@ export function CredentialForm({
                 </label>
                 {companies.isError ? (
                   <p role="alert" className="text-xs text-rose-700">
-                    Não foi possível carregar as empresas.{' '}
+                    {t('credentials.companyLoadFailed')}{' '}
                     <button
                       className="rounded px-1 font-semibold text-brand-purple underline underline-offset-2 hover:bg-purple-50"
                       type="button"
                       onClick={() => void companies.refetch()}
                     >
-                      Tentar novamente
+                      {t('common.retry')}
                     </button>
                   </p>
                 ) : null}
               </div>
               <div className="space-y-4">
+                {!credential ? (
+                  <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
+                    <input
+                      className="size-4 accent-brand-purple"
+                      type="checkbox"
+                      {...form.register('generateUsername')}
+                    />
+                    {t('credentials.generateUsername')}
+                  </label>
+                ) : null}
+                {!generateUsername ? (
+                  <label className="field">
+                    {t('common.apiUsername')}
+                    <input
+                      className="form-control"
+                      autoComplete="off"
+                      readOnly={!!credential}
+                      {...form.register('username')}
+                    />
+                    <FieldError
+                      message={form.formState.errors.username?.message}
+                    />
+                  </label>
+                ) : (
+                  <p className="text-xs leading-5 text-slate-500">
+                    {t('credentials.generatedUsernameHint')}
+                  </p>
+                )}
                 <label className="field">
-                  Usuário da API
-                  <input
-                    className="form-control"
-                    autoComplete="off"
-                    readOnly={!!credential}
-                    {...form.register('username')}
-                  />
-                  <FieldError
-                    message={form.formState.errors.username?.message}
-                  />
-                </label>
-                <label className="field">
-                  ID legado{' '}
+                  {t('credentials.legacyId')}{' '}
                   <span className="-mt-1 text-xs font-normal text-slate-500">
-                    Opcional
+                    {t('credentials.optional')}
                   </span>
                   <input
                     className="form-control"
@@ -170,17 +211,38 @@ export function CredentialForm({
             </div>
             {!credential ? (
               <div className="mt-5 space-y-4 border-t border-slate-100 pt-4">
-                <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
-                  <input
-                    className="size-4 accent-brand-purple"
-                    type="checkbox"
-                    {...form.register('preserveLegacyPassword')}
-                  />
-                  Manter a senha de um cliente existente
-                </label>
-                {preservePassword ? (
+                <fieldset className="space-y-2">
+                  <legend className="text-sm font-semibold">
+                    {t('credentials.passwordSetup')}
+                  </legend>
+                  {(['generated', 'manual', 'legacy'] as const).map((mode) => (
+                    <label
+                      key={mode}
+                      className="flex min-h-10 items-center gap-3 text-sm"
+                    >
+                      <input
+                        type="radio"
+                        name="credential-password-mode"
+                        value={mode}
+                        checked={passwordMode === mode}
+                        onChange={() => {
+                          setPasswordMode(mode)
+                          form.setValue('passwordMode', mode)
+                          form.setValue(
+                            'preserveLegacyPassword',
+                            mode === 'legacy',
+                          )
+                          form.setValue('legacyPassword', '')
+                          form.setValue('manualPassword', '')
+                        }}
+                      />
+                      {t(`credentials.passwordMode.${mode}`)}
+                    </label>
+                  ))}
+                </fieldset>
+                {passwordMode === 'legacy' ? (
                   <label className="field max-w-sm">
-                    Senha atual da API 21
+                    {t('credentials.currentApiPassword')}
                     <input
                       type="password"
                       autoComplete="new-password"
@@ -191,14 +253,28 @@ export function CredentialForm({
                       message={form.formState.errors.legacyPassword?.message}
                     />
                     <span className="text-xs font-normal leading-5 text-slate-500">
-                      O cliente mantém seu acesso. A senha não será exibida após
-                      salvar.
+                      {t('credentials.preservePasswordHint')}
+                    </span>
+                  </label>
+                ) : passwordMode === 'manual' ? (
+                  <label className="field max-w-sm">
+                    {t('credentials.manualPassword')}
+                    <input
+                      type="password"
+                      autoComplete="new-password"
+                      className="form-control"
+                      {...form.register('manualPassword')}
+                    />
+                    <FieldError
+                      message={form.formState.errors.manualPassword?.message}
+                    />
+                    <span className="text-xs font-normal leading-5 text-slate-500">
+                      {t('credentials.manualPasswordHint')}
                     </span>
                   </label>
                 ) : (
                   <p className="text-xs leading-5 text-slate-500">
-                    Uma nova senha será gerada e exibida uma única vez após o
-                    cadastro.
+                    {t('credentials.newPasswordHint')}
                   </p>
                 )}
               </div>
@@ -209,29 +285,45 @@ export function CredentialForm({
                 type="checkbox"
                 {...form.register('active')}
               />
-              Credencial ativa
+              {t('credentials.active')}
             </label>
             {!active ? (
               <p
                 role="status"
                 className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900"
               >
-                Ao salvar, os envios e as notificações desta credencial ficam
-                bloqueados.
+                {t('credentials.inactiveHint')}
               </p>
             ) : null}
+            <label className="field mt-4 max-w-sm">
+              {t('credentials.expiresAt')}
+              <input
+                type="datetime-local"
+                className="form-control"
+                {...form.register('expiresAtText')}
+              />
+              <FieldError
+                message={form.formState.errors.expiresAtText?.message}
+              />
+              <span className="text-xs font-normal leading-5 text-slate-500">
+                {t('credentials.expiryHint')}
+              </span>
+            </label>
           </CredentialSection>
-          <CredentialSection title="Envio pela Zoug" icon={KeyRound}>
+          <CredentialSection
+            title={t('credentials.providerSection')}
+            icon={KeyRound}
+          >
             <p className="mb-4 text-sm leading-6 text-slate-600">
               {credential?.providerTokenConfigured
-                ? 'Token configurado. Preencha apenas para substituir o atual.'
-                : 'Adicione o token da conta do cliente para habilitar os envios.'}
+                ? t('credentials.tokenConfiguredHint')
+                : t('credentials.tokenMissingHint')}
             </p>
             {!removeToken ? (
               <label className="field">
                 {credential?.providerTokenConfigured
-                  ? 'Novo token'
-                  : 'Token da Zoug'}
+                  ? t('credentials.newToken')
+                  : t('credentials.providerToken')}
                 <input
                   type="password"
                   autoComplete="new-password"
@@ -263,29 +355,30 @@ export function CredentialForm({
                         })
                     }}
                   />
-                  Remover o token desta conta
+                  {t('credentials.removeToken')}
                 </label>
                 {removeToken ? (
                   <p
                     role="status"
                     className="rounded-lg bg-rose-50 px-3 py-2 text-xs leading-5 text-rose-800"
                   >
-                    Ao salvar, novos envios ficam indisponíveis até configurar
-                    outro token.
+                    {t('credentials.removeTokenHint')}
                   </p>
                 ) : null}
               </div>
             ) : null}
           </CredentialSection>
-          <CredentialSection title="Notificações ao cliente" icon={Link2}>
+          <CredentialSection
+            title={t('credentials.notificationsSection')}
+            icon={Link2}
+          >
             <p className="mb-4 text-sm leading-6 text-slate-600">
-              Use destinos separados para os status de entrega e as respostas
-              recebidas.
+              {t('credentials.notificationsHint')}
             </p>
             <div className="grid gap-5 sm:grid-cols-2">
               <fieldset className="min-w-0 rounded-xl border border-slate-200 p-4">
                 <legend className="px-1 text-sm font-semibold">
-                  Status de entrega · DLR
+                  {t('credentials.dlrTitle')}
                 </legend>
                 <label className="flex min-h-11 items-center gap-3 text-sm">
                   <input
@@ -293,10 +386,10 @@ export function CredentialForm({
                     type="checkbox"
                     {...form.register('callbacksEnabled')}
                   />
-                  Encaminhar status
+                  {t('credentials.forwardStatus')}
                 </label>
                 <label className="field mt-2">
-                  URL de status (DLR)
+                  {t('credentials.dlrUrl')}
                   <input
                     className="form-control w-full"
                     type="url"
@@ -309,12 +402,12 @@ export function CredentialForm({
                   />
                 </label>
                 <p className="mt-3 text-xs leading-5 text-slate-500">
-                  O cliente recebe os status por GET nesta URL.
+                  {t('credentials.dlrHint')}
                 </p>
               </fieldset>
               <fieldset className="min-w-0 rounded-xl border border-slate-200 p-4">
                 <legend className="px-1 text-sm font-semibold">
-                  Respostas recebidas · MO
+                  {t('credentials.moTitle')}
                 </legend>
                 <label className="flex min-h-11 items-center gap-3 text-sm">
                   <input
@@ -322,10 +415,10 @@ export function CredentialForm({
                     type="checkbox"
                     {...form.register('moCallbacksEnabled')}
                   />
-                  Encaminhar respostas
+                  {t('credentials.forwardReplies')}
                 </label>
                 <label className="field mt-2">
-                  URL de respostas (MO)
+                  {t('credentials.moUrl')}
                   <input
                     className="form-control w-full"
                     type="url"
@@ -338,27 +431,29 @@ export function CredentialForm({
                   />
                 </label>
                 <p className="mt-3 text-xs leading-5 text-slate-500">
-                  O cliente recebe as respostas por POST nesta URL.
+                  {t('credentials.moHint')}
                 </p>
               </fieldset>
             </div>
             <p className="mt-4 text-xs leading-5 text-slate-500">
-              Use URLs HTTPS. A entrega depende da homologação da integração com
-              o fornecedor.
+              {t('credentials.httpsHint')}
             </p>
           </CredentialSection>
-          <CredentialSection title="Restrição de acesso" icon={ShieldCheck}>
+          <CredentialSection
+            title={t('credentials.accessRestriction')}
+            icon={ShieldCheck}
+          >
             <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
               <input
                 className="size-4 accent-brand-purple"
                 type="checkbox"
                 {...form.register('whitelistEnabled')}
               />
-              Permitir apenas IPs autorizados
+              {t('credentials.whitelistEnabled')}
             </label>
             {restrictIPs ? (
               <label className="field mt-3">
-                IPs ou redes autorizadas
+                {t('credentials.allowedIps')}
                 <textarea
                   rows={3}
                   spellCheck={false}
@@ -370,14 +465,12 @@ export function CredentialForm({
                   message={form.formState.errors.allowedIPsText?.message}
                 />
                 <span className="text-xs font-normal leading-5 text-slate-500">
-                  Um IP ou rede por linha. A restrição vale para chamadas à API
-                  desta credencial.
+                  {t('credentials.ipHint')}
                 </span>
               </label>
             ) : (
               <p className="mt-2 text-xs leading-5 text-slate-500">
-                O acesso não será limitado por IP. Usuário e senha continuam
-                obrigatórios.
+                {t('credentials.noIpHint')}
               </p>
             )}
           </CredentialSection>
@@ -387,7 +480,9 @@ export function CredentialForm({
             pending={mutation.isPending}
             error={mutation.error}
             onCancel={onClose}
-            submitLabel={credential ? 'Salvar alterações' : 'Criar credencial'}
+            submitLabel={
+              credential ? t('common.save') : t('credentials.create')
+            }
           />
         </div>
       </form>

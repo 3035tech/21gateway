@@ -1,5 +1,6 @@
 import { Dialog } from './Dialog'
 import { errorMessage } from '../../lib/admin'
+import { useTranslation } from 'react-i18next'
 export function Confirmation({
   title,
   description,
@@ -15,6 +16,7 @@ export function Confirmation({
   onConfirm: () => void
   onClose: () => void
 }) {
+  const { t } = useTranslation()
   return (
     <Dialog title={title} onClose={onClose} busy={pending}>
       <p className="text-sm leading-6 text-slate-600">{description}</p>
@@ -29,14 +31,14 @@ export function Confirmation({
           className="button-secondary"
           onClick={onClose}
         >
-          Cancelar
+          {t('common.cancel')}
         </button>
         <button
           disabled={pending}
           className="button-danger"
           onClick={onConfirm}
         >
-          {pending ? 'Processando…' : 'Confirmar'}
+          {pending ? t('common.processing') : t('common.confirm')}
         </button>
       </div>
     </Dialog>

@@ -11,6 +11,8 @@ O router e cmd/api compõem dependências. Conexão/transações, sessão, autor
 
 Frontend real em features/auth, companies, users, credentials, messages, schedules, callbacks, audit e overview. App coordena rotas e layout; components/admin e components/data-table reúnem UI compartilhada. O módulo demo é prévia fictícia e não define a organização da integração real.
 
+Internacionalização transversal usa catálogos JSON por idioma no frontend e no pacote de erros públicos do backend. Componentes de cada domínio referenciam chaves; o seletor persiste `pt-BR`/`en-US`. Respostas administrativas localizam `detail` por código e `Accept-Language`; o middleware HTTP não altera `/v1`. O domínio de credenciais possui a validade opcional e a geração/cadastro manual de username e senha; autenticação e workers consultam `APICredential.ValidAt`. Migração 017 acrescenta `expires_at` sem alterar as contas existentes. A separação por domínio permanece: o middleware de idioma e o catálogo de erros são infraestrutura transversal, sem regras de credenciais.
+
 Visibilidade administrativa de agendamentos reside em controller, service, DTO e repository de `scheduled_sms`; o resumo agrega indicadores de fila e MO no domínio `summary`. Router e cmd/api apenas compõem. Migração 014 adiciona índices de leitura por horário previsto e credencial. Não há exceções à separação por domínio. A credencial técnica não identifica a pessoa física que enviou a requisição.
 
 O polish da Auditoria permanece em controller, service, DTO e repository de `audit`. A listagem junta o usuário atual para exibir seu nome, preservando `actor_id` como referência estável; filtros são parametrizados e a ordenação usa lista fechada. Nenhuma tabela, migração ou serviço novo.
@@ -68,3 +70,5 @@ Scheduler local no domínio scheduled_sms: model/repository/service/worker próp
 ## Scheduler Go e SQS — implementação de 15/10/2026
 
 Decisão posterior autorizada e implementada: scheduler Go → outbox PostgreSQL → SQS Standard → consumidores limitados. Consulte [sqs-dispatch.md](sqs-dispatch.md) para fluxo, segurança de concorrência, configuração e recuperação. SDK oficial AWS v2, referências somente com UUID, um lote aberto por conta, reservas parciais e orçamento compartilhado; envios imediatos seguem síncronos. Migrações até 014 obrigatórias nos novos binários; SQS opt-in desligado. Nenhum recurso AWS criado. PostgreSQL local validado em 27/10/2026; SQS real/carga ainda pendentes. Testes simulados não homologam produção. Esta decisão substitui o estado anterior que descrevia SQS apenas como opção.
+
+Visão da empresa: leitura individual em `GET /admin/companies/{id}` no domínio de empresas; a listagem de credenciais reutiliza o filtro `companyId` do domínio de credenciais. Usuários internos não possuem vínculo com empresa. Uma futura visão de usuários por empresa precisa de modelo e autorização próprios, sem inferir esse vínculo das credenciais.

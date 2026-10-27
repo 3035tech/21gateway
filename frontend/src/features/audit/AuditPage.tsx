@@ -7,51 +7,74 @@ import { useListState } from '../../components/data-table/useListState'
 import { errorMessage } from '../../lib/admin'
 import { listAudit } from './api'
 import type { Audit, AuditListParams } from './api'
+import { useTranslation } from 'react-i18next'
+import { RecordDetailsDialog } from '../../components/admin/RecordDetailsDialog'
 
-const actions: Record<string, string> = {
-  created: 'Cadastro criado',
-  updated: 'Cadastro atualizado',
-  archived: 'Cadastro arquivado',
-  password_rotated: 'Senha da API alterada',
-  login: 'Login',
-  callback_retried: 'Callback recolocado na fila',
-}
-const resources: Record<string, string> = {
-  companies: 'Empresas',
-  users: 'Usuários',
-  credentials: 'Credenciais',
-  callbacks: 'Callbacks',
-}
-const columns: ColumnDef<Audit>[] = [
-  { accessorKey: 'id', header: 'ID' },
-  {
-    accessorKey: 'actorName',
-    header: 'Responsável',
-    cell: ({ row }) =>
-      row.original.actorId
-        ? `${row.original.actorName || 'Usuário'} #${row.original.actorId}`
-        : 'Sistema',
-  },
-  {
-    accessorKey: 'action',
-    header: 'Ação',
-    cell: ({ row }) => actions[row.original.action] ?? row.original.action,
-  },
-  {
-    accessorKey: 'resource',
-    header: 'Recurso',
-    cell: ({ row }) =>
-      resources[row.original.resource] ?? row.original.resource,
-  },
-  { accessorKey: 'resourceId', header: 'ID do recurso' },
-  {
-    accessorKey: 'createdAt',
-    header: 'Data',
-    cell: ({ row }) => <DateCell value={row.original.createdAt} />,
-  },
+const actions = [
+  'created',
+  'updated',
+  'archived',
+  'password_rotated',
+  'login',
+  'callback_retried',
 ]
+const resources = ['companies', 'users', 'credentials', 'callbacks']
+function auditColumns(
+  t: (key: string, options?: Record<string, unknown>) => string,
+  onView: (row: Audit) => void,
+): ColumnDef<Audit>[] {
+  return [
+    { accessorKey: 'id', header: 'ID' },
+    {
+      accessorKey: 'actorName',
+      header: t('audit.actor'),
+      cell: ({ row }) =>
+        row.original.actorId
+          ? t('audit.actorNumber', {
+              name: row.original.actorName || t('audit.user'),
+              id: row.original.actorId,
+            })
+          : t('audit.system'),
+    },
+    {
+      accessorKey: 'action',
+      header: t('audit.action'),
+      cell: ({ row }) =>
+        actions.includes(row.original.action)
+          ? t(`audit.actions.${row.original.action}`)
+          : row.original.action,
+    },
+    {
+      accessorKey: 'resource',
+      header: t('audit.resource'),
+      cell: ({ row }) =>
+        resources.includes(row.original.resource)
+          ? t(`audit.resources.${row.original.resource}`)
+          : row.original.resource,
+    },
+    { accessorKey: 'resourceId', header: t('audit.resourceId') },
+    {
+      accessorKey: 'createdAt',
+      header: t('common.date'),
+      cell: ({ row }) => <DateCell value={row.original.createdAt} />,
+    },
+    {
+      id: 'actions',
+      header: t('common.actions'),
+      enableSorting: false,
+      cell: ({ row }) => (
+        <button className="table-action" onClick={() => onView(row.original)}>
+          {t('common.view')}
+        </button>
+      ),
+    },
+  ]
+}
 
 export function AuditPage() {
+  const { t } = useTranslation()
+  const [viewing, setViewing] = useState<Audit | null>(null)
+  const columns = auditColumns(t, setViewing)
   const table = useListState([{ id: 'createdAt', desc: true }])
   const [actorId, setActorId] = useState('')
   const [action, setAction] = useState('')
@@ -78,17 +101,16 @@ export function AuditPage() {
     <>
       <header className="mb-7">
         <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-          Auditoria
+          {t('nav.audit')}
         </h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-          Consulte alterações e acessos da equipe. O nome exibido é o atual; o
-          ID identifica a conta mesmo após uma mudança de nome.
+          {t('audit.description')}
         </p>
       </header>
       <DataTable
         {...table}
-        caption="Eventos de auditoria"
-        searchPlaceholder="Responsável, ação ou recurso"
+        caption={t('audit.caption')}
+        searchPlaceholder={t('audit.searchPlaceholder')}
         columns={columns}
         data={query.data?.items ?? []}
         total={query.data?.total ?? 0}
@@ -98,7 +120,7 @@ export function AuditPage() {
         filters={
           <>
             <label className="flex flex-col gap-1 text-sm font-semibold">
-              ID do responsável
+              {t('audit.actorId')}
               <input
                 className="form-control w-36"
                 type="number"
@@ -111,7 +133,7 @@ export function AuditPage() {
               />
             </label>
             <label className="flex flex-col gap-1 text-sm font-semibold">
-              Ação
+              {t('audit.action')}
               <select
                 className="form-control"
                 value={action}
@@ -120,16 +142,16 @@ export function AuditPage() {
                   resetPage()
                 }}
               >
-                <option value="">Todas</option>
-                {Object.entries(actions).map(([value, label]) => (
+                <option value="">{t('audit.allActions')}</option>
+                {actions.map((value) => (
                   <option key={value} value={value}>
-                    {label}
+                    {t(`audit.actions.${value}`)}
                   </option>
                 ))}
               </select>
             </label>
             <label className="flex flex-col gap-1 text-sm font-semibold">
-              Recurso
+              {t('audit.resource')}
               <select
                 className="form-control"
                 value={resource}
@@ -138,10 +160,10 @@ export function AuditPage() {
                   resetPage()
                 }}
               >
-                <option value="">Todos</option>
-                {Object.entries(resources).map(([value, label]) => (
+                <option value="">{t('common.all')}</option>
+                {resources.map((value) => (
                   <option key={value} value={value}>
-                    {label}
+                    {t(`audit.resources.${value}`)}
                   </option>
                 ))}
               </select>
@@ -149,12 +171,47 @@ export function AuditPage() {
           </>
         }
       />
+      {viewing ? (
+        <RecordDetailsDialog
+          title={t('nav.audit')}
+          onClose={() => setViewing(null)}
+          fields={[
+            { label: 'ID', value: viewing.id },
+            {
+              label: t('audit.actor'),
+              value: viewing.actorId
+                ? t('audit.actorNumber', {
+                    name: viewing.actorName || t('audit.user'),
+                    id: viewing.actorId,
+                  })
+                : t('audit.system'),
+            },
+            {
+              label: t('audit.action'),
+              value: actions.includes(viewing.action)
+                ? t(`audit.actions.${viewing.action}`)
+                : viewing.action,
+            },
+            {
+              label: t('audit.resource'),
+              value: resources.includes(viewing.resource)
+                ? t(`audit.resources.${viewing.resource}`)
+                : viewing.resource,
+            },
+            { label: t('audit.resourceId'), value: viewing.resourceId },
+            {
+              label: t('common.createdAt'),
+              value: <DateCell value={viewing.createdAt} />,
+            },
+          ]}
+        />
+      ) : null}
       {query.isError ? (
         <button
           className="button-secondary mt-4"
           onClick={() => void query.refetch()}
         >
-          Tentar novamente
+          {t('common.retry')}
         </button>
       ) : null}
     </>

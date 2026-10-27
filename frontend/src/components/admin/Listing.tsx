@@ -7,6 +7,7 @@ import { DataTable } from '../data-table/DataTable'
 import { useListState } from '../data-table/useListState'
 import type { ListParams, Page } from '../../lib/admin'
 import { errorMessage } from '../../lib/admin'
+import { useTranslation } from 'react-i18next'
 type Props<T extends { id: number }> = {
   title: string
   description: string
@@ -19,6 +20,8 @@ type Props<T extends { id: number }> = {
   filterName?: 'active' | 'state' | 'callbackState'
   filterOptions?: [string, string][]
   extra?: ReactNode
+  fixedCompanyId?: number
+  headingLevel?: 1 | 2
 }
 export function Listing<T extends { id: number }>({
   title,
@@ -32,7 +35,10 @@ export function Listing<T extends { id: number }>({
   filterName,
   filterOptions,
   extra,
+  fixedCompanyId,
+  headingLevel = 1,
 }: Props<T>) {
+  const { t } = useTranslation()
   const state = useListState()
   const [filter, setFilter] = useState('')
   const [company, setCompany] = useState('')
@@ -46,7 +52,11 @@ export function Listing<T extends { id: number }>({
     ...(filterName && filter
       ? { [filterName]: filterName === 'active' ? filter === 'true' : filter }
       : {}),
-    ...(company ? { companyId: Number(company) } : {}),
+    ...(fixedCompanyId
+      ? { companyId: fixedCompanyId }
+      : company
+        ? { companyId: Number(company) }
+        : {}),
   }
   const query = useQuery({
     queryKey: ['admin', queryKey, params],
@@ -56,9 +66,15 @@ export function Listing<T extends { id: number }>({
     <>
       <div className="mb-7 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            {title}
-          </h1>
+          {headingLevel === 1 ? (
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+              {title}
+            </h1>
+          ) : (
+            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
+              {title}
+            </h2>
+          )}
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
             {description}
           </p>
@@ -86,7 +102,7 @@ export function Listing<T extends { id: number }>({
           <>
             {filterName ? (
               <label className="flex flex-col gap-1 text-sm font-semibold">
-                Status
+                {t('common.status')}
                 <select
                   className="form-control"
                   value={filter}
@@ -98,7 +114,7 @@ export function Listing<T extends { id: number }>({
                     })
                   }}
                 >
-                  <option value="">Todos</option>
+                  <option value="">{t('common.all')}</option>
                   {filterOptions?.map(([value, label]) => (
                     <option key={value} value={value}>
                       {label}
@@ -107,9 +123,10 @@ export function Listing<T extends { id: number }>({
                 </select>
               </label>
             ) : null}
-            {['credentials', 'messages', 'callbacks'].includes(queryKey) ? (
+            {!fixedCompanyId &&
+            ['credentials', 'messages', 'callbacks'].includes(queryKey) ? (
               <label className="flex flex-col gap-1 text-sm font-semibold">
-                ID da empresa
+                {t('common.companyId')}
                 <input
                   type="number"
                   min={1}
@@ -133,7 +150,7 @@ export function Listing<T extends { id: number }>({
           className="button-secondary mt-4"
           onClick={() => void query.refetch()}
         >
-          Tentar novamente
+          {t('common.retry')}
         </button>
       ) : null}
     </>

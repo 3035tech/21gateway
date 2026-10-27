@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 type CredentialService struct {
@@ -38,17 +39,32 @@ func ValidateCallbackURL(raw string) bool {
 func (s *CredentialService) SaveCredential(ctx context.Context, actor, id uint64, body dtos.CredentialBody) (dtos.CredentialSecret, error) {
 	var result models.APICredential
 	secret := ""
-	if strings.TrimSpace(body.Username) == "" || strings.ContainsAny(body.Username, ":\r\n") || !ValidateCallbackURL(body.CallbackURL) || (body.CallbacksEnabled && body.CallbackURL == "") {
+	username := body.Username
+	if body.GenerateUsername {
+		if id != 0 || username != "" {
+			return dtos.CredentialSecret{}, apperrors.Wrap(apperrors.CodeInvalidRequest, nil)
+		}
+		username = "gw_" + rand.Text()
+	}
+	if strings.TrimSpace(username) == "" || strings.ContainsAny(username, ":\r\n") || !ValidateCallbackURL(body.CallbackURL) || (body.CallbacksEnabled && body.CallbackURL == "") || (body.ManualPassword != nil && body.LegacyPassword != nil) || (body.ExpiresAt != nil && body.ClearExpiry) {
+		return dtos.CredentialSecret{}, apperrors.Wrap(apperrors.CodeInvalidRequest, nil)
+	}
+	if body.ExpiresAt != nil && !body.ExpiresAt.After(time.Now()) {
 		return dtos.CredentialSecret{}, apperrors.Wrap(apperrors.CodeInvalidRequest, nil)
 	}
 	hash := ""
 	var err error
-	if id != 0 && body.LegacyPassword != nil {
+	if id != 0 && (body.LegacyPassword != nil || body.ManualPassword != nil) {
 		return dtos.CredentialSecret{}, apperrors.Wrap(apperrors.CodeInvalidRequest, nil)
 	}
 	if id == 0 {
 		password := ""
-		if body.LegacyPassword != nil {
+		if body.ManualPassword != nil {
+			password = *body.ManualPassword
+			if utf8.RuneCountInString(strings.TrimSpace(password)) < 15 || len(password) > security.MaximumPasswordLength {
+				return dtos.CredentialSecret{}, apperrors.Wrap(apperrors.CodeInvalidRequest, nil)
+			}
+		} else if body.LegacyPassword != nil {
 			password = *body.LegacyPassword
 			if len(password) < 1 || len(password) > security.MaximumPasswordLength {
 				return dtos.CredentialSecret{}, apperrors.Wrap(apperrors.CodeInvalidRequest, nil)
@@ -73,12 +89,12 @@ func (s *CredentialService) SaveCredential(ctx context.Context, actor, id uint64
 			if err != nil {
 				return err
 			}
-			if result.Username != body.Username || (result.CompanyID != nil && *result.CompanyID != body.CompanyID) {
+			if result.Username != username || (result.CompanyID != nil && *result.CompanyID != body.CompanyID) {
 				return apperrors.Wrap(apperrors.CodeInvalidRequest, nil)
 			}
 			action = auditUpdated
 		} else {
-			result.Username = body.Username
+			result.Username = username
 			result.PasswordHash = hash
 		}
 		result.CompanyID = &body.CompanyID
@@ -86,6 +102,12 @@ func (s *CredentialService) SaveCredential(ctx context.Context, actor, id uint64
 		result.Active = body.Active
 		result.CallbackURL = body.CallbackURL
 		result.CallbacksEnabled = body.CallbacksEnabled
+		if body.ClearExpiry {
+			result.ExpiresAt = nil
+		} else if body.ExpiresAt != nil {
+			expiresAt := body.ExpiresAt.UTC()
+			result.ExpiresAt = &expiresAt
+		}
 		if err := s.applySettings(&result, body); err != nil {
 			return err
 		}

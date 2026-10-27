@@ -1,6 +1,7 @@
 import { Eye, Settings2, ShieldCheck } from 'lucide-react'
 import { roleDescriptions, roleLabels } from '../../lib/admin'
 import type { UserBody } from './api'
+import { useTranslation } from 'react-i18next'
 
 type Role = UserBody['role']
 
@@ -19,10 +20,11 @@ export function RolePicker({
   onChange: (value: Role) => void
   disabled?: boolean
 }) {
+  const { t } = useTranslation()
   return (
     <fieldset className="space-y-2" disabled={disabled}>
       <legend className="mb-2 text-sm font-semibold text-slate-900">
-        Perfil de acesso
+        {t('roles.label')}
       </legend>
       {options.map(({ value: role, Icon }) => {
         const selected = role === value
@@ -48,10 +50,10 @@ export function RolePicker({
             </span>
             <span className="min-w-0">
               <span className="block text-sm font-bold text-slate-900">
-                {roleLabels[role]}
+                {t(roleLabels[role])}
               </span>
               <span className="mt-0.5 block text-xs leading-5 text-slate-600">
-                {roleDescriptions[role]}
+                {t(roleDescriptions[role])}
               </span>
             </span>
             <span

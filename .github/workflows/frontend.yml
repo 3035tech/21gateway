@@ -1,4 +1,4 @@
-name: Build frontend
+name: Build 21gateway-front
 
 on:
   pull_request:
@@ -11,6 +11,7 @@ permissions:
 
 jobs:
   build:
+    name: Build and publish 21gateway-front
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -55,4 +56,7 @@ jobs:
           build-args: VITE_API_URL=https://21gateway-back.3035service.com
           push: ${{ github.event_name == 'push' && github.repository_owner == '3035tech' }}
           tags: ${{ steps.image.outputs.tags }}
-          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.title=21gateway-front
+            org.opencontainers.image.description=21 Mobile Gateway frontend

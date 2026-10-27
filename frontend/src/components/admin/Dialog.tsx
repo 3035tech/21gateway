@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import type { PropsWithChildren } from 'react'
 import { X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 export function Dialog({
   title,
   onClose,
@@ -13,6 +14,7 @@ export function Dialog({
   busy?: boolean
   wide?: boolean
 }>) {
+  const { t } = useTranslation()
   const ref = useRef<HTMLDialogElement>(null)
   useEffect(() => {
     const dialog = ref.current
@@ -37,7 +39,7 @@ export function Dialog({
           onClick={onClose}
           disabled={busy}
           className="button-secondary"
-          aria-label="Fechar"
+          aria-label={t('common.close')}
         >
           <X size={18} />
         </button>

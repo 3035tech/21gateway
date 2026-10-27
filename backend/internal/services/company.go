@@ -20,6 +20,10 @@ func (s *CompanyService) Companies(ctx context.Context, q dtos.ListQuery) (dtos.
 	values, err := s.repository.Companies(ctx, q)
 	return mapPage(values, dtos.CompanyDTO), dbError(err)
 }
+func (s *CompanyService) Company(ctx context.Context, id uint64) (dtos.CompanyView, error) {
+	value, err := s.repository.CompanyView(ctx, id)
+	return dtos.CompanyDTO(value), dbError(err)
+}
 func (s *CompanyService) SaveCompany(ctx context.Context, actor, id uint64, body dtos.CompanyBody) (dtos.CompanyView, error) {
 	var result models.Company
 	if strings.TrimSpace(body.Name) == "" {

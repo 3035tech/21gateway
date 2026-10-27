@@ -1,14 +1,15 @@
 import { useQuery } from '@tanstack/react-query'
 import { CircleAlert, CircleCheck, RefreshCw, Radio, Users } from 'lucide-react'
 import { getReadiness } from '../../lib/api'
-
-const timeFormatter = new Intl.DateTimeFormat('pt-BR', {
-  hour: '2-digit',
-  minute: '2-digit',
-  second: '2-digit',
-})
+import { useTranslation } from 'react-i18next'
 
 export function SystemPage() {
+  const { t, i18n } = useTranslation()
+  const timeFormatter = new Intl.DateTimeFormat(i18n.language, {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
   const health = useQuery({
     queryKey: ['system', 'readiness'],
     queryFn: ({ signal }) => getReadiness(signal),
@@ -23,29 +24,28 @@ export function SystemPage() {
       ? CircleAlert
       : CircleCheck
   const statusTitle = offline
-    ? 'Sem conexão com a internet'
+    ? t('system.offline')
     : checking
-      ? 'Verificando conexão'
+      ? t('system.checking')
       : health.isError
-        ? 'Conexão indisponível'
-        : 'Conectado à API'
+        ? t('system.unavailable')
+        : t('system.connected')
   const statusDescription = offline
-    ? 'Restabeleça sua conexão para verificar a disponibilidade do serviço.'
+    ? t('system.offlineHint')
     : checking
-      ? 'Aguarde enquanto verificamos a disponibilidade do serviço.'
+      ? t('system.checkingHint')
       : health.isError
-        ? 'Não foi possível acessar o serviço. Tente novamente em alguns instantes.'
-        : 'O serviço respondeu à última verificação de conexão.'
+        ? t('system.unavailableHint')
+        : t('system.connectedHint')
 
   return (
     <>
       <div className="mb-8 max-w-2xl">
         <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-          Visão geral
+          {t('nav.overview')}
         </h1>
         <p className="mt-3 leading-7 text-slate-600">
-          Confira a conexão com o serviço de SMS e acompanhe a preparação do seu
-          painel.
+          {t('system.description')}
         </p>
       </div>
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
@@ -56,7 +56,7 @@ export function SystemPage() {
           <div className="flex items-center gap-3 border-b border-slate-100 px-6 py-5 sm:px-7">
             <Radio size={20} className="text-brand-purple" aria-hidden="true" />
             <h2 id="connection-title" className="text-base font-bold">
-              Conexão com a API
+              {t('system.apiConnection')}
             </h2>
           </div>
           <div className="px-6 py-7 sm:px-7">
@@ -90,18 +90,20 @@ export function SystemPage() {
                 className="button-primary"
               >
                 <RefreshCw size={16} aria-hidden="true" />
-                {checking ? 'Verificando…' : 'Verificar novamente'}
+                {checking
+                  ? t('system.checkingProgress')
+                  : t('system.checkAgain')}
               </button>
               <span className="text-xs text-slate-500">
                 {checkedAt ? (
                   <>
-                    Última verificação{' '}
+                    {t('system.lastChecked')}{' '}
                     <time dateTime={new Date(checkedAt).toISOString()}>
                       {timeFormatter.format(checkedAt)}
                     </time>
                   </>
                 ) : (
-                  'A primeira verificação está em andamento.'
+                  t('system.firstCheck')
                 )}
               </span>
             </div>
@@ -116,15 +118,13 @@ export function SystemPage() {
             id="management-title"
             className="mt-4 text-base font-bold text-brand-purple"
           >
-            Gestão de usuários e empresas
+            {t('system.management')}
           </h2>
           <p className="mt-3 text-sm leading-6 text-slate-600">
-            Os cadastros e as permissões de acesso serão disponibilizados neste
-            painel na próxima etapa.
+            {t('system.managementHint')}
           </p>
           <p className="mt-5 border-t border-purple-100 pt-4 text-xs leading-5 text-slate-500">
-            A verificação de conexão não confirma o envio nem a entrega de
-            mensagens.
+            {t('system.disclaimer')}
           </p>
         </aside>
       </div>

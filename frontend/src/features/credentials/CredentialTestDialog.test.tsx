@@ -24,6 +24,7 @@ const credential: Credential = {
   callbackUrl: '',
   callbacksEnabled: false,
   createdAt: '2026-10-27T12:00:00Z',
+  expiresAt: null,
   providerTokenConfigured: true,
   whitelistEnabled: true,
   allowedIPs: ['192.0.2.10'],

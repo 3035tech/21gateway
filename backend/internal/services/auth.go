@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"time"
 
 	"gorm.io/gorm"
 
@@ -99,7 +100,7 @@ func (s *AuthService) Authenticate(ctx context.Context, authorization string) (m
 	if err != nil {
 		return empty, apperrors.Wrap(apperrors.CodeServiceUnavailable, err)
 	}
-	if !found || !match || !credential.Active || (credential.CompanyID != nil && (credential.CompanyActive == nil || !*credential.CompanyActive)) {
+	if !found || !match || !credential.ValidAt(time.Now()) || (credential.CompanyID != nil && (credential.CompanyActive == nil || !*credential.CompanyActive)) {
 		if s.protection != nil {
 			if err := s.protection.Failure(ctx, accountKey, security.AuthenticationFailureLimit); err != nil {
 				return empty, apperrors.Wrap(apperrors.CodeServiceUnavailable, err)

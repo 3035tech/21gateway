@@ -8,56 +8,64 @@ import { StatusBadge } from '../../components/admin/StatusBadge'
 import { errorMessage } from '../../lib/admin'
 import { listSchedules, scheduleStates } from './api'
 import type { Schedule, ScheduleListParams } from './api'
+import { useTranslation } from 'react-i18next'
+import { RecordDetailsDialog } from '../../components/admin/RecordDetailsDialog'
 
-const columns: ColumnDef<Schedule>[] = [
-  { accessorKey: 'attemptId', header: 'ID do envio' },
-  {
-    accessorKey: 'companyName',
-    header: 'Cliente',
-    cell: ({ row }) => row.original.companyName || 'Sem empresa vinculada',
-  },
-  { accessorKey: 'username', header: 'Usuário da API' },
-  {
-    accessorKey: 'createdAt',
-    header: 'Solicitado em',
-    cell: ({ row }) => <DateCell value={row.original.createdAt} />,
-  },
-  {
-    accessorKey: 'scheduledAt',
-    header: 'Agendado para',
-    cell: ({ row }) => <DateCell value={row.original.scheduledAt} />,
-  },
-  {
-    accessorKey: 'state',
-    header: 'Fila',
-    cell: ({ row }) => <StatusBadge status={row.original.state} />,
-  },
-  {
-    accessorKey: 'submissionState',
-    header: 'Envio',
-    cell: ({ row }) => <StatusBadge status={row.original.submissionState} />,
-  },
-  { accessorKey: 'destination', header: 'Destinatário' },
-  { accessorKey: 'correlationId', header: 'Referência' },
-  {
-    accessorKey: 'dispatchedAt',
-    header: 'Despachado em',
-    cell: ({ row }) =>
-      row.original.dispatchedAt ? (
-        <DateCell value={row.original.dispatchedAt} />
-      ) : (
-        'Ainda não despachado'
+function scheduleColumns(
+  t: (key: string) => string,
+  onView: (row: Schedule) => void,
+): ColumnDef<Schedule>[] {
+  return [
+    { accessorKey: 'attemptId', header: t('common.messageId') },
+    {
+      accessorKey: 'companyName',
+      header: t('common.client'),
+      cell: ({ row }) => row.original.companyName || t('common.noCompany'),
+    },
+    { accessorKey: 'username', header: t('common.apiUsername') },
+    {
+      accessorKey: 'createdAt',
+      header: t('schedules.requestedAt'),
+      cell: ({ row }) => <DateCell value={row.original.createdAt} />,
+    },
+    {
+      accessorKey: 'scheduledAt',
+      header: t('schedules.scheduledFor'),
+      cell: ({ row }) => <DateCell value={row.original.scheduledAt} />,
+    },
+    {
+      accessorKey: 'state',
+      header: t('schedules.queue'),
+      cell: ({ row }) => <StatusBadge status={row.original.state} />,
+    },
+    {
+      accessorKey: 'submissionState',
+      header: t('common.sending'),
+      cell: ({ row }) => <StatusBadge status={row.original.submissionState} />,
+    },
+    { accessorKey: 'destination', header: t('common.destination') },
+    { accessorKey: 'correlationId', header: t('common.reference') },
+    {
+      accessorKey: 'dispatchedAt',
+      header: t('schedules.dispatchedAt'),
+      cell: ({ row }) =>
+        row.original.dispatchedAt ? (
+          <DateCell value={row.original.dispatchedAt} />
+        ) : (
+          t('schedules.notDispatched')
+        ),
+    },
+    {
+      id: 'actions',
+      header: t('common.actions'),
+      enableSorting: false,
+      cell: ({ row }) => (
+        <button className="table-action" onClick={() => onView(row.original)}>
+          {t('common.view')}
+        </button>
       ),
-  },
-]
-
-const stateLabels: Record<(typeof scheduleStates)[number], string> = {
-  queued: 'Na fila',
-  claimed: 'Reservado',
-  dispatching: 'Em envio',
-  done: 'Aceito pelo fornecedor',
-  failed: 'Falhou',
-  unknown: 'Resultado incerto',
+    },
+  ]
 }
 
 function utc(value: string) {
@@ -67,6 +75,9 @@ function utc(value: string) {
 }
 
 export function SchedulesPage() {
+  const { t } = useTranslation()
+  const [viewing, setViewing] = useState<Schedule | null>(null)
+  const columns = scheduleColumns(t, setViewing)
   const table = useListState([{ id: 'scheduledAt', desc: true }])
   const [companyId, setCompanyId] = useState('')
   const [credentialId, setCredentialId] = useState('')
@@ -97,27 +108,24 @@ export function SchedulesPage() {
   return (
     <>
       <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-        Agendamentos
+        {t('nav.schedules')}
       </h1>
       <p className="mb-2 mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-        Veja quando o cliente solicitou o agendamento, o horário previsto e o
-        andamento da fila. O usuário da API identifica a credencial técnica;
-        esta integração não identifica a pessoa que fez a solicitação.
+        {t('schedules.description')}
       </p>
       <p className="mb-6 text-xs text-slate-500">
-        Os horários e os filtros usam o fuso do seu navegador. Aceite pelo
-        fornecedor ainda não confirma entrega.
+        {t('schedules.timezoneHint')}
       </p>
       {invalidRange ? (
         <p role="alert" className="mb-4 text-sm text-rose-700">
-          O início do período deve ser anterior ao fim.
+          {t('schedules.invalidRange')}
         </p>
       ) : null}
       <DataTable
         {...table}
-        caption="Agendamentos de SMS"
+        caption={t('schedules.caption')}
         wide
-        searchPlaceholder="Destinatário ou referência"
+        searchPlaceholder={t('common.destinationOrReference')}
         columns={columns}
         data={invalidRange ? [] : (query.data?.items ?? [])}
         total={invalidRange ? 0 : (query.data?.total ?? 0)}
@@ -127,7 +135,7 @@ export function SchedulesPage() {
         filters={
           <>
             <label className="flex flex-col gap-1 text-sm font-semibold">
-              Empresa ID
+              {t('common.companyId')}
               <input
                 className="form-control w-28"
                 type="number"
@@ -140,7 +148,7 @@ export function SchedulesPage() {
               />
             </label>
             <label className="flex flex-col gap-1 text-sm font-semibold">
-              Credencial ID
+              {t('schedules.credentialId')}
               <input
                 className="form-control w-28"
                 type="number"
@@ -153,7 +161,7 @@ export function SchedulesPage() {
               />
             </label>
             <label className="flex flex-col gap-1 text-sm font-semibold">
-              Estado da fila
+              {t('schedules.queueState')}
               <select
                 className="form-control"
                 value={state}
@@ -162,16 +170,16 @@ export function SchedulesPage() {
                   resetPage()
                 }}
               >
-                <option value="">Todos</option>
+                <option value="">{t('common.all')}</option>
                 {scheduleStates.map((value) => (
                   <option key={value} value={value}>
-                    {stateLabels[value]}
+                    {t(`status.${value}`)}
                   </option>
                 ))}
               </select>
             </label>
             <label className="flex flex-col gap-1 text-sm font-semibold">
-              De
+              {t('schedules.from')}
               <input
                 className="form-control"
                 type="datetime-local"
@@ -183,7 +191,7 @@ export function SchedulesPage() {
               />
             </label>
             <label className="flex flex-col gap-1 text-sm font-semibold">
-              Até
+              {t('schedules.to')}
               <input
                 className="form-control"
                 type="datetime-local"
@@ -197,12 +205,49 @@ export function SchedulesPage() {
           </>
         }
       />
+      {viewing ? (
+        <RecordDetailsDialog
+          title={t('nav.schedules')}
+          onClose={() => setViewing(null)}
+          fields={[
+            { label: t('common.messageId'), value: viewing.attemptId },
+            { label: t('common.company'), value: viewing.companyName },
+            { label: t('common.apiUsername'), value: viewing.username },
+            { label: t('common.destination'), value: viewing.destination },
+            { label: t('common.reference'), value: viewing.correlationId },
+            {
+              label: t('schedules.requestedAt'),
+              value: <DateCell value={viewing.createdAt} />,
+            },
+            {
+              label: t('schedules.scheduledFor'),
+              value: <DateCell value={viewing.scheduledAt} />,
+            },
+            {
+              label: t('schedules.queue'),
+              value: <StatusBadge status={viewing.state} />,
+            },
+            {
+              label: t('common.sending'),
+              value: <StatusBadge status={viewing.submissionState} />,
+            },
+            {
+              label: t('schedules.dispatchedAt'),
+              value: viewing.dispatchedAt ? (
+                <DateCell value={viewing.dispatchedAt} />
+              ) : (
+                t('schedules.notDispatched')
+              ),
+            },
+          ]}
+        />
+      ) : null}
       {query.isError ? (
         <button
           className="button-secondary mt-4"
           onClick={() => void query.refetch()}
         >
-          Tentar novamente
+          {t('common.retry')}
         </button>
       ) : null}
     </>

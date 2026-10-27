@@ -6,6 +6,7 @@ import type { SystemUser, UserBody } from './api'
 import { RolePicker } from './RolePicker'
 import { Dialog } from '../../components/admin/Dialog'
 import { FormFooter, FieldError } from '../../components/admin/FormFooter'
+import { useTranslation } from 'react-i18next'
 export function UserForm({
   user,
   onClose,
@@ -13,6 +14,7 @@ export function UserForm({
   user?: SystemUser
   onClose: () => void
 }) {
+  const { t } = useTranslation()
   const client = useQueryClient()
   const form = useForm<UserBody>({
     resolver: zodResolver(userFormSchema),
@@ -38,7 +40,7 @@ export function UserForm({
   })
   return (
     <Dialog
-      title={user ? 'Editar usuário' : 'Novo usuário'}
+      title={user ? t('users.editTitle') : t('users.new')}
       onClose={onClose}
       busy={mutation.isPending}
     >
@@ -47,13 +49,11 @@ export function UserForm({
         onSubmit={form.handleSubmit((body) => mutation.mutate(body))}
       >
         <p className="text-sm leading-6 text-slate-600">
-          {user
-            ? 'Atualize os dados e o acesso deste usuário interno.'
-            : 'Convide um novo usuário para o painel. Ele definirá a própria senha pelo e-mail recebido.'}
+          {user ? t('users.editDescription') : t('users.inviteDescription')}
         </p>
         <fieldset disabled={mutation.isPending} className="space-y-5">
           <label className="field">
-            Nome
+            {t('common.name')}
             <input
               className="form-control"
               autoComplete="name"
@@ -62,7 +62,7 @@ export function UserForm({
             <FieldError message={form.formState.errors.name?.message} />
           </label>
           <label className="field">
-            E-mail
+            {t('common.email')}
             <input
               className="form-control"
               type="email"
@@ -82,8 +82,7 @@ export function UserForm({
             }
           />
           <p className="text-xs leading-5 text-slate-500">
-            Estes perfis são da equipe interna e têm visibilidade de todas as
-            empresas.
+            {t('roles.globalAccess')}
           </p>
           <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-900">
             <input
@@ -91,22 +90,24 @@ export function UserForm({
               className="h-4 w-4 accent-brand-purple"
               {...form.register('active')}
             />
-            Acesso ativo
+            {t('users.activeAccess')}
           </label>
         </fieldset>
         <p className="text-xs leading-5 text-slate-500">
           {user
-            ? 'Alterar o perfil ou o status encerra as sessões atuais deste usuário.'
+            ? t('users.editHint')
             : active
-              ? 'O convite expira em 15 minutos. O usuário poderá entrar após definir a senha.'
-              : 'O convite expira em 15 minutos. O usuário só poderá entrar depois que o acesso for ativado.'}
+              ? t('users.inviteActiveHint')
+              : t('users.inviteInactiveHint')}
         </p>
         <FormFooter
           pending={mutation.isPending}
           error={mutation.error}
           onCancel={onClose}
-          submitLabel={user ? 'Salvar alterações' : 'Enviar convite'}
-          pendingLabel={user ? 'Salvando…' : 'Enviando convite…'}
+          submitLabel={user ? t('common.save') : t('users.sendInvitation')}
+          pendingLabel={
+            user ? t('common.saving') : t('users.sendingInvitation')
+          }
         />
       </form>
     </Dialog>

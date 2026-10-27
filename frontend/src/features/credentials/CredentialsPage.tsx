@@ -11,11 +11,21 @@ import { listCredentials, archiveCredential, rotateCredential } from './api'
 import type { Credential } from './api'
 import { CredentialForm } from './CredentialForm'
 import { CredentialTestDialog } from './CredentialTestDialog'
-export function CredentialsPage() {
+import { useTranslation } from 'react-i18next'
+import { RecordDetailsDialog } from '../../components/admin/RecordDetailsDialog'
+export function CredentialsPage({
+  companyId,
+  companyName,
+}: { companyId?: number; companyName?: string } = {}) {
+  const { t } = useTranslation()
   const role = useUser()?.role
   const writable = role !== 'viewer'
   const canTest = role === 'admin'
   const [editor, setEditor] = useState<Credential | null | undefined>()
+  const [viewing, setViewing] = useState<{
+    credential: Credential
+    status: 'active' | 'blocked' | 'expired'
+  } | null>(null)
   const [action, setAction] = useState<{
     credential: Credential
     rotate: boolean
@@ -42,35 +52,54 @@ export function CredentialsPage() {
   )
   const columns: ColumnDef<Credential>[] = [
     { accessorKey: 'id', header: 'ID' },
-    { accessorKey: 'username', header: 'Usuário da API' },
-    { accessorKey: 'companyName', header: 'Empresa' },
+    { accessorKey: 'username', header: t('common.apiUsername') },
+    { accessorKey: 'companyName', header: t('common.company') },
     {
       accessorKey: 'providerTokenConfigured',
       header: 'Zoug',
       cell: ({ row }) =>
         row.original.providerTokenConfigured
-          ? 'Token configurado'
-          : 'Sem token',
+          ? t('credentials.tokenConfigured')
+          : t('credentials.noToken'),
     },
     {
       accessorKey: 'whitelistEnabled',
-      header: 'Acesso por IP',
+      header: t('credentials.ipAccess'),
       cell: ({ row }) =>
         row.original.whitelistEnabled
-          ? `${row.original.allowedIPs.length} IPs/redes`
-          : 'Sem restrição',
+          ? t('credentials.ipCount', { count: row.original.allowedIPs.length })
+          : t('credentials.unrestricted'),
     },
     {
       accessorKey: 'active',
-      header: 'Status',
+      header: t('common.status'),
       cell: ({ row }) => (
-        <StatusBadge status={row.original.active ? 'active' : 'blocked'} />
+        <StatusBadge
+          status={
+            !row.original.active
+              ? 'blocked'
+              : row.original.expiresAt &&
+                  new Date(row.original.expiresAt).getTime() <= Date.now()
+                ? 'expired'
+                : 'active'
+          }
+        />
       ),
+    },
+    {
+      accessorKey: 'expiresAt',
+      header: t('credentials.expiresAt'),
+      cell: ({ row }) =>
+        row.original.expiresAt ? (
+          <DateCell value={row.original.expiresAt} />
+        ) : (
+          t('credentials.noExpiry')
+        ),
     },
     {
       accessorKey: 'callbacksEnabled',
       id: 'notifications',
-      header: 'Notificações',
+      header: t('credentials.notificationsSection'),
       cell: ({ row }) => (
         <div className="flex flex-wrap gap-1.5">
           {[
@@ -80,11 +109,15 @@ export function CredentialsPage() {
             <span
               key={String(label)}
               className={`inline-flex rounded-md px-2 py-1 text-xs font-semibold ${enabled ? 'bg-purple-50 text-brand-purple' : 'bg-slate-100 text-slate-500'}`}
-              title={enabled ? `${label} habilitado` : `${label} desabilitado`}
+              title={
+                enabled
+                  ? t('credentials.notificationEnabled', { label })
+                  : t('credentials.notificationDisabled', { label })
+              }
             >
               {label}{' '}
               <span className="sr-only">
-                {enabled ? 'habilitado' : 'desabilitado'}
+                {enabled ? t('credentials.enabled') : t('credentials.disabled')}
               </span>
             </span>
           ))}
@@ -93,83 +126,178 @@ export function CredentialsPage() {
     },
     {
       accessorKey: 'createdAt',
-      header: 'Cadastro',
+      header: t('common.createdAt'),
       cell: ({ row }) => <DateCell value={row.original.createdAt} />,
     },
   ]
-  if (writable)
-    columns.push({
-      id: 'actions',
-      header: 'Ações',
-      enableSorting: false,
-      cell: ({ row }) => (
-        <div className="flex flex-nowrap gap-1">
-          {canTest ? (
+  columns.push({
+    id: 'actions',
+    header: t('common.actions'),
+    enableSorting: false,
+    cell: ({ row }) => (
+      <div className="flex flex-nowrap gap-1">
+        <button
+          className="table-action"
+          onClick={() =>
+            setViewing({
+              credential: row.original,
+              status: !row.original.active
+                ? 'blocked'
+                : row.original.expiresAt &&
+                    new Date(row.original.expiresAt).getTime() <= Date.now()
+                  ? 'expired'
+                  : 'active',
+            })
+          }
+        >
+          {t('common.view')}
+        </button>
+        {writable ? (
+          <>
+            {canTest ? (
+              <button
+                className="table-action"
+                onClick={() => setTestCredential(row.original)}
+              >
+                {t('credentials.test')}
+              </button>
+            ) : null}
             <button
               className="table-action"
-              onClick={() => setTestCredential(row.original)}
+              onClick={() => setEditor(row.original)}
             >
-              Testar credencial
+              {t('common.edit')}
             </button>
-          ) : null}
-          <button
-            className="table-action"
-            onClick={() => setEditor(row.original)}
-          >
-            Editar
-          </button>
-          <button
-            className="table-action"
-            onClick={() => {
-              mutation.reset()
-              setAction({ credential: row.original, rotate: true })
-            }}
-          >
-            Trocar senha
-          </button>
-          <button
-            className="table-action-danger"
-            onClick={() => {
-              mutation.reset()
-              setAction({ credential: row.original, rotate: false })
-            }}
-          >
-            Arquivar
-          </button>
-        </div>
-      ),
-    })
+            <button
+              className="table-action"
+              onClick={() => {
+                mutation.reset()
+                setAction({ credential: row.original, rotate: true })
+              }}
+            >
+              {t('credentials.rotatePassword')}
+            </button>
+            <button
+              className="table-action-danger"
+              onClick={() => {
+                mutation.reset()
+                setAction({ credential: row.original, rotate: false })
+              }}
+            >
+              {t('common.archive')}
+            </button>
+          </>
+        ) : null}
+      </div>
+    ),
+  })
   return (
     <>
       <Listing
-        title="Credenciais da API"
-        description="Configure o acesso dos clientes, os tokens de envio e as notificações de cada conta."
-        searchPlaceholder="Usuário da API"
+        title={
+          companyId ? t('companyDetail.credentialsTitle') : t('nav.credentials')
+        }
+        description={
+          companyId
+            ? t('companyDetail.credentialsHint')
+            : t('credentials.listDescription')
+        }
+        searchPlaceholder={t('common.apiUsername')}
         queryKey="credentials"
+        fixedCompanyId={companyId}
+        headingLevel={companyId ? 2 : 1}
         columns={columns}
         load={listCredentials}
         onCreate={writable ? () => setEditor(null) : undefined}
-        createLabel="Nova credencial"
+        createLabel={t('credentials.new')}
         filterName="active"
         filterOptions={[
-          ['true', 'Ativas'],
-          ['false', 'Bloqueadas'],
+          ['true', t('companies.activePlural')],
+          ['false', t('companies.blockedPlural')],
         ]}
       />
       {editor !== undefined ? (
         <CredentialForm
           credential={editor ?? undefined}
+          initialCompanyId={companyId}
+          initialCompanyName={companyName}
           onClose={() => setEditor(undefined)}
           onSecret={(username, password) => setSecret({ username, password })}
         />
       ) : null}
+      {viewing ? (
+        <RecordDetailsDialog
+          title={viewing.credential.username}
+          onClose={() => setViewing(null)}
+          fields={[
+            { label: 'ID', value: viewing.credential.id },
+            {
+              label: t('common.company'),
+              value: viewing.credential.companyName,
+            },
+            {
+              label: t('common.apiUsername'),
+              value: viewing.credential.username,
+            },
+            { label: t('common.status'), value: t(`status.${viewing.status}`) },
+            {
+              label: t('credentials.expiresAt'),
+              value: viewing.credential.expiresAt ? (
+                <DateCell value={viewing.credential.expiresAt} />
+              ) : (
+                t('credentials.noExpiry')
+              ),
+            },
+            {
+              label: t('credentials.legacyId'),
+              value: viewing.credential.legacyAccountId,
+            },
+            {
+              label: t('credentials.providerToken'),
+              value: viewing.credential.providerTokenConfigured
+                ? t('credentials.tokenConfigured')
+                : t('credentials.noToken'),
+            },
+            {
+              label: t('credentials.ipAccess'),
+              value: viewing.credential.whitelistEnabled
+                ? viewing.credential.allowedIPs.join(', ')
+                : t('credentials.unrestricted'),
+            },
+            {
+              label: 'DLR',
+              value: viewing.credential.callbacksEnabled
+                ? viewing.credential.callbackUrl
+                : t('credentials.disabled'),
+            },
+            {
+              label: 'MO',
+              value: viewing.credential.moCallbacksEnabled
+                ? viewing.credential.moCallbackUrl
+                : t('credentials.disabled'),
+            },
+            {
+              label: t('common.createdAt'),
+              value: <DateCell value={viewing.credential.createdAt} />,
+            },
+          ]}
+        />
+      ) : null}
       {action ? (
         <Confirmation
-          title={action.rotate ? 'Trocar senha da API' : 'Arquivar credencial'}
+          title={
+            action.rotate
+              ? t('credentials.rotateTitle')
+              : t('credentials.archiveTitle')
+          }
           description={
             action.rotate
-              ? `A senha atual de ${action.credential.username} deixará de funcionar. Atualize a integração do cliente após a troca.`
-              : `A credencial ${action.credential.username} será bloqueada. O histórico será mantido.`
+              ? t('credentials.rotateDescription', {
+                  username: action.credential.username,
+                })
+              : t('credentials.archiveDescription', {
+                  username: action.credential.username,
+                })
           }
           pending={mutation.isPending}
           error={mutation.error}
@@ -178,29 +306,39 @@ export function CredentialsPage() {
         />
       ) : null}
       {secret && editor === undefined && action === null ? (
-        <Dialog title="Guarde a nova senha" onClose={() => setSecret(null)}>
+        <Dialog
+          title={
+            secret.password
+              ? t('credentials.secretTitle')
+              : t('credentials.usernameTitle')
+          }
+          onClose={() => setSecret(null)}
+        >
           <p className="mb-4 text-sm text-slate-600">
-            A senha só aparece agora. Guarde-a em um local seguro antes de
-            fechar.
+            {secret.password
+              ? t('credentials.secretHint')
+              : t('credentials.usernameHint')}
           </p>
           <label className="field">
-            Usuário
+            {t('credentials.username')}
             <input readOnly className="form-control" value={secret.username} />
           </label>
-          <label className="field mt-4">
-            Senha
-            <input
-              readOnly
-              autoComplete="off"
-              className="form-control font-mono"
-              value={secret.password}
-            />
-          </label>
+          {secret.password ? (
+            <label className="field mt-4">
+              {t('auth.password')}
+              <input
+                readOnly
+                autoComplete="off"
+                className="form-control font-mono"
+                value={secret.password}
+              />
+            </label>
+          ) : null}
           <button
             className="button-primary mt-6 w-full"
             onClick={() => setSecret(null)}
           >
-            Já guardei a senha
+            {t('credentials.savedCredential')}
           </button>
         </Dialog>
       ) : null}
