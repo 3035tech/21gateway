@@ -118,41 +118,51 @@ export function CredentialForm({
                     />
                   </label>
                 ) : null}
-                <label className="field">
-                  {t('common.company')}
-                  <select
-                    className="form-control"
-                    disabled={
-                      !!selectedCompanyId ||
-                      companies.isPending ||
-                      companies.isError
-                    }
-                    {...form.register('companyId', { valueAsNumber: true })}
-                  >
-                    <option value={0}>
-                      {companies.isPending && !selectedCompanyId
-                        ? t('credentials.loadingCompanies')
-                        : t('credentials.selectCompany')}
-                    </option>
-                    {selectedCompanyId &&
-                    !companies.data?.items.some(
-                      (c) => c.id === selectedCompanyId,
-                    ) ? (
-                      <option value={selectedCompanyId}>
-                        {credential?.companyName ?? initialCompanyName}
+                {selectedCompanyId ? (
+                  <>
+                    <input
+                      type="hidden"
+                      value={selectedCompanyId}
+                      {...form.register('companyId', { valueAsNumber: true })}
+                    />
+                    <label className="field">
+                      {t('common.company')}
+                      <input
+                        className="form-control"
+                        readOnly
+                        value={
+                          credential?.companyName ??
+                          initialCompanyName ??
+                          t('common.companyNumber', { id: selectedCompanyId })
+                        }
+                      />
+                    </label>
+                  </>
+                ) : (
+                  <label className="field">
+                    {t('common.company')}
+                    <select
+                      className="form-control"
+                      disabled={companies.isPending || companies.isError}
+                      {...form.register('companyId', { valueAsNumber: true })}
+                    >
+                      <option value={0}>
+                        {companies.isPending
+                          ? t('credentials.loadingCompanies')
+                          : t('credentials.selectCompany')}
                       </option>
-                    ) : null}
-                    {companies.data?.items.map((company) => (
-                      <option value={company.id} key={company.id}>
-                        {company.name}
-                        {company.active ? '' : t('credentials.blockedSuffix')}
-                      </option>
-                    ))}
-                  </select>
-                  <FieldError
-                    message={form.formState.errors.companyId?.message}
-                  />
-                </label>
+                      {companies.data?.items.map((company) => (
+                        <option value={company.id} key={company.id}>
+                          {company.name}
+                          {company.active ? '' : t('credentials.blockedSuffix')}
+                        </option>
+                      ))}
+                    </select>
+                    <FieldError
+                      message={form.formState.errors.companyId?.message}
+                    />
+                  </label>
+                )}
                 {companies.isError ? (
                   <p role="alert" className="text-xs text-rose-700">
                     {t('credentials.companyLoadFailed')}{' '}
@@ -238,6 +248,7 @@ export function CredentialForm({
                     >
                       <input
                         type="radio"
+                        className="size-4 accent-brand-purple"
                         name="credential-password-mode"
                         value={mode}
                         checked={passwordMode === mode}

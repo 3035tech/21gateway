@@ -373,6 +373,7 @@ function Listing({
     'generated' | 'manual' | 'legacy'
   >('generated')
   const [demoPassword, setDemoPassword] = useState('')
+  const [demoGenerateUsername, setDemoGenerateUsername] = useState(false)
   const [demoSecret, setDemoSecret] = useState<{
     username: string
     password: string
@@ -499,7 +500,10 @@ function Listing({
         {config.entity ? (
           <button
             className="button-primary"
-            onClick={() =>
+            onClick={() => {
+              setDemoGenerateUsername(false)
+              setDemoPasswordMode('generated')
+              setDemoPassword('')
               setEditing({
                 id: '',
                 name: '',
@@ -511,7 +515,7 @@ function Listing({
                 status: 'active',
                 date: '',
               })
-            }
+            }}
           >
             <Plus size={17} />
             {t(`demo.newEntity.${section}`)}
@@ -711,78 +715,119 @@ function Listing({
         </Dialog>
       ) : null}
       {editing ? (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/40 p-4 sm:items-center">
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="edit-title"
-            className="max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-5 shadow-xl sm:p-6"
-          >
-            <h2 id="edit-title" className="text-xl font-bold">
-              {t(`demo.${editing.id ? 'editEntity' : 'newEntity'}.${section}`)}
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              {section === 'usuarios' && !editing.id
-                ? t('demo.inviteHint')
-                : t('demo.recordHint')}
-            </p>
-            <form
-              className="mt-6 space-y-4"
-              onSubmit={(event) => {
-                event.preventDefault()
-                if (
-                  section === 'credenciais' &&
-                  !editing.id &&
-                  demoPasswordMode !== 'generated' &&
-                  !demoPassword
-                )
-                  return
-                if (
-                  section === 'credenciais' &&
-                  !editing.id &&
-                  demoPasswordMode === 'generated'
-                )
-                  setDemoSecret({
-                    username: editing.name,
-                    password: crypto.randomUUID(),
-                  })
-                onSave({
-                  ...editing,
-                  id: editing.id || `${section}-${crypto.randomUUID()}`,
-                  date: new Date().toLocaleString(i18n.language),
+        <Dialog
+          title={t(
+            `demo.${editing.id ? 'editEntity' : 'newEntity'}.${section}`,
+          )}
+          onClose={() => setEditing(null)}
+        >
+          <p className="mt-1 text-sm text-slate-500">
+            {section === 'usuarios' && !editing.id
+              ? t('demo.inviteHint')
+              : t('demo.recordHint')}
+          </p>
+          <form
+            className="mt-6 space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault()
+              const username =
+                section === 'credenciais' && !editing.id && demoGenerateUsername
+                  ? `gw_${crypto.randomUUID().replaceAll('-', '').slice(0, 12)}`
+                  : editing.name
+              if (
+                section === 'credenciais' &&
+                !editing.id &&
+                demoPasswordMode !== 'generated' &&
+                !demoPassword
+              )
+                return
+              if (
+                section === 'credenciais' &&
+                !editing.id &&
+                demoPasswordMode === 'generated'
+              )
+                setDemoSecret({
+                  username,
+                  password: crypto.randomUUID(),
                 })
-                setEditing(null)
-                setDemoPassword('')
-                setNotice(
-                  section === 'usuarios' && !editing.id
-                    ? t('demo.invitationSimulated')
-                    : t('demo.recordSaved'),
-                )
-              }}
-            >
-              {section === 'credenciais' ? (
-                <div className="rounded-xl border border-purple-100 bg-purple-50 p-4">
-                  <h3 className="font-bold text-brand-purple">
-                    {t('credentials.clientAccess')}
-                  </h3>
-                  <p className="mt-1 text-xs leading-5 text-slate-600">
-                    {t('credentials.basicAuthHint')}
-                  </p>
-                </div>
-              ) : null}
+              onSave({
+                ...editing,
+                name: username,
+                id: editing.id || `${section}-${crypto.randomUUID()}`,
+                date: new Date().toLocaleString(i18n.language),
+              })
+              setEditing(null)
+              setDemoPassword('')
+              setNotice(
+                section === 'usuarios' && !editing.id
+                  ? t('demo.invitationSimulated')
+                  : t('demo.recordSaved'),
+              )
+            }}
+          >
+            {section === 'credenciais' ? (
               <label className="flex flex-col gap-2 text-sm font-semibold">
-                {t(config.first)}
-                <input
-                  autoFocus
-                  required
-                  maxLength={120}
+                {t('common.company')}
+                <select
                   className="form-control"
-                  value={editing.name}
+                  value={editing.company}
+                  disabled={!!editing.id}
                   onChange={(event) =>
-                    setEditing({ ...editing, name: event.target.value })
+                    setEditing({ ...editing, company: event.target.value })
+                  }
+                >
+                  {initialRows.empresas.slice(0, 6).map((row) => (
+                    <option key={row.id}>{row.name}</option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+            {section === 'credenciais' ? (
+              <div className="rounded-xl border border-purple-100 bg-purple-50 p-4">
+                <h3 className="font-bold text-brand-purple">
+                  {t('credentials.clientAccess')}
+                </h3>
+                <p className="mt-1 text-xs leading-5 text-slate-600">
+                  {t('credentials.basicAuthHint')}
+                </p>
+              </div>
+            ) : null}
+            {section === 'credenciais' && !editing.id ? (
+              <label className="flex min-h-11 items-center gap-2 text-sm font-semibold">
+                <input
+                  type="checkbox"
+                  className="size-4 accent-brand-purple"
+                  checked={demoGenerateUsername}
+                  onChange={(event) =>
+                    setDemoGenerateUsername(event.target.checked)
                   }
                 />
+                {t('credentials.generateUsername')}
               </label>
+            ) : null}
+            <label className="flex flex-col gap-2 text-sm font-semibold">
+              {t(config.first)}
+              <input
+                autoFocus
+                required={!demoGenerateUsername}
+                maxLength={120}
+                className="form-control"
+                readOnly={
+                  section === 'credenciais' &&
+                  (!!editing.id || demoGenerateUsername)
+                }
+                placeholder={
+                  section === 'credenciais' && demoGenerateUsername
+                    ? t('credentials.generatedUsernamePlaceholder')
+                    : undefined
+                }
+                value={editing.name}
+                onChange={(event) =>
+                  setEditing({ ...editing, name: event.target.value })
+                }
+              />
+            </label>
+            {section !== 'credenciais' ? (
               <label className="flex flex-col gap-2 text-sm font-semibold">
                 {t(config.second)}
                 <input
@@ -795,188 +840,187 @@ function Listing({
                   }
                 />
               </label>
-              {section === 'credenciais' ? (
-                editing.id ? (
-                  <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
-                    {t('credentials.passwordStoredHint')}
-                  </p>
-                ) : (
-                  <fieldset className="space-y-3 rounded-xl border border-slate-200 p-4">
-                    <legend className="px-1 text-sm font-bold">
-                      {t('credentials.passwordSetup')}
+            ) : null}
+            {section === 'credenciais' ? (
+              editing.id ? (
+                <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
+                  {t('credentials.passwordStoredHint')}
+                </p>
+              ) : (
+                <fieldset className="space-y-3 rounded-xl border border-slate-200 p-4">
+                  <legend className="px-1 text-sm font-bold">
+                    {t('credentials.passwordSetup')}
+                  </legend>
+                  {(['generated', 'manual', 'legacy'] as const).map((mode) => (
+                    <label
+                      key={mode}
+                      className="flex min-h-10 items-center gap-2 text-sm"
+                    >
+                      <input
+                        type="radio"
+                        className="size-4 accent-brand-purple"
+                        name="demo-basic-password"
+                        checked={demoPasswordMode === mode}
+                        onChange={() => {
+                          setDemoPasswordMode(mode)
+                          setDemoPassword('')
+                        }}
+                      />
+                      {t(`credentials.passwordMode.${mode}`)}
+                    </label>
+                  ))}
+                  {demoPasswordMode !== 'generated' ? (
+                    <label className="flex flex-col gap-2 text-sm font-semibold">
+                      {t(
+                        demoPasswordMode === 'manual'
+                          ? 'credentials.manualPassword'
+                          : 'credentials.currentApiPassword',
+                      )}
+                      <input
+                        type="password"
+                        autoComplete="new-password"
+                        required
+                        minLength={demoPasswordMode === 'manual' ? 15 : 1}
+                        className="form-control"
+                        value={demoPassword}
+                        onChange={(event) =>
+                          setDemoPassword(event.target.value)
+                        }
+                      />
+                    </label>
+                  ) : (
+                    <p className="text-xs text-slate-500">
+                      {t('credentials.newPasswordHint')}
+                    </p>
+                  )}
+                </fieldset>
+              )
+            ) : null}
+            {section === 'credenciais' ? (
+              <label className="flex flex-col gap-2 text-sm font-semibold">
+                {t('credentials.dlrUrl')}
+                <input
+                  type="url"
+                  className="form-control"
+                  value={editing.detail}
+                  onChange={(event) =>
+                    setEditing({ ...editing, detail: event.target.value })
+                  }
+                />
+              </label>
+            ) : null}
+            {section === 'usuarios' ? (
+              <>
+                <RolePicker
+                  value={
+                    editing.company === 'admin'
+                      ? 'admin'
+                      : editing.company === 'operator'
+                        ? 'operator'
+                        : 'viewer'
+                  }
+                  onChange={(role) =>
+                    setEditing({
+                      ...editing,
+                      company: demoRoleValue(role),
+                      companyAccess:
+                        role === 'admin'
+                          ? []
+                          : editing.companyAccess?.length
+                            ? editing.companyAccess
+                            : ['Horizonte Saúde'],
+                    })
+                  }
+                />
+                <p className="text-xs leading-5 text-slate-500">
+                  {editing.company === 'admin'
+                    ? t('roles.globalAccess')
+                    : t('users.companyAccessHint')}
+                </p>
+                {editing.company !== 'admin' ? (
+                  <fieldset className="space-y-2">
+                    <legend className="text-sm font-semibold">
+                      {t('users.companyAccess')}
                     </legend>
-                    {(['generated', 'manual', 'legacy'] as const).map(
-                      (mode) => (
+                    <div className="flex flex-wrap gap-2">
+                      {initialRows.empresas.slice(0, 6).map((company) => (
                         <label
-                          key={mode}
-                          className="flex min-h-10 items-center gap-2 text-sm"
+                          key={company.id}
+                          className="flex min-h-11 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm"
                         >
                           <input
-                            type="radio"
-                            name="demo-basic-password"
-                            checked={demoPasswordMode === mode}
-                            onChange={() => {
-                              setDemoPasswordMode(mode)
-                              setDemoPassword('')
-                            }}
+                            type="checkbox"
+                            className="accent-brand-purple"
+                            checked={
+                              editing.companyAccess?.includes(company.name) ??
+                              false
+                            }
+                            onChange={(event) =>
+                              setEditing({
+                                ...editing,
+                                companyAccess: event.target.checked
+                                  ? [
+                                      ...(editing.companyAccess ?? []),
+                                      company.name,
+                                    ]
+                                  : (editing.companyAccess ?? []).filter(
+                                      (name) => name !== company.name,
+                                    ),
+                              })
+                            }
                           />
-                          {t(`credentials.passwordMode.${mode}`)}
+                          {company.name}
                         </label>
-                      ),
-                    )}
-                    {demoPasswordMode !== 'generated' ? (
-                      <label className="flex flex-col gap-2 text-sm font-semibold">
-                        {t(
-                          demoPasswordMode === 'manual'
-                            ? 'credentials.manualPassword'
-                            : 'credentials.currentApiPassword',
-                        )}
-                        <input
-                          type="password"
-                          autoComplete="new-password"
-                          required
-                          className="form-control"
-                          value={demoPassword}
-                          onChange={(event) =>
-                            setDemoPassword(event.target.value)
-                          }
-                        />
-                      </label>
-                    ) : (
-                      <p className="text-xs text-slate-500">
-                        {t('credentials.newPasswordHint')}
+                      ))}
+                    </div>
+                    {!editing.companyAccess?.length ? (
+                      <p className="text-xs text-rose-700">
+                        {t('validation.companyAccess')}
                       </p>
-                    )}
+                    ) : null}
                   </fieldset>
-                )
-              ) : null}
-              {section === 'credenciais' ? (
-                <label className="flex flex-col gap-2 text-sm font-semibold">
-                  {t('common.company')}
-                  <select
-                    className="form-control"
-                    value={editing.company}
-                    onChange={(event) =>
-                      setEditing({ ...editing, company: event.target.value })
-                    }
-                  >
-                    {initialRows.empresas.slice(0, 6).map((row) => (
-                      <option key={row.id}>{row.name}</option>
-                    ))}
-                  </select>
-                </label>
-              ) : null}
-              {section === 'usuarios' ? (
-                <>
-                  <RolePicker
-                    value={
-                      editing.company === 'admin'
-                        ? 'admin'
-                        : editing.company === 'operator'
-                          ? 'operator'
-                          : 'viewer'
-                    }
-                    onChange={(role) =>
-                      setEditing({
-                        ...editing,
-                        company: demoRoleValue(role),
-                        companyAccess:
-                          role === 'admin'
-                            ? []
-                            : editing.companyAccess?.length
-                              ? editing.companyAccess
-                              : ['Horizonte Saúde'],
-                      })
-                    }
-                  />
-                  <p className="text-xs leading-5 text-slate-500">
-                    {editing.company === 'admin'
-                      ? t('roles.globalAccess')
-                      : t('users.companyAccessHint')}
-                  </p>
-                  {editing.company !== 'admin' ? (
-                    <fieldset className="space-y-2">
-                      <legend className="text-sm font-semibold">
-                        {t('users.companyAccess')}
-                      </legend>
-                      <div className="flex flex-wrap gap-2">
-                        {initialRows.empresas.slice(0, 6).map((company) => (
-                          <label
-                            key={company.id}
-                            className="flex min-h-11 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm"
-                          >
-                            <input
-                              type="checkbox"
-                              className="accent-brand-purple"
-                              checked={
-                                editing.companyAccess?.includes(company.name) ??
-                                false
-                              }
-                              onChange={(event) =>
-                                setEditing({
-                                  ...editing,
-                                  companyAccess: event.target.checked
-                                    ? [
-                                        ...(editing.companyAccess ?? []),
-                                        company.name,
-                                      ]
-                                    : (editing.companyAccess ?? []).filter(
-                                        (name) => name !== company.name,
-                                      ),
-                                })
-                              }
-                            />
-                            {company.name}
-                          </label>
-                        ))}
-                      </div>
-                      {!editing.companyAccess?.length ? (
-                        <p className="text-xs text-rose-700">
-                          {t('validation.companyAccess')}
-                        </p>
-                      ) : null}
-                    </fieldset>
-                  ) : null}
-                </>
-              ) : null}
-              <label className="flex flex-col gap-2 text-sm font-semibold">
-                {t('common.status')}
-                <select
-                  className="form-control"
-                  value={editing.status}
-                  onChange={(event) =>
-                    setEditing({ ...editing, status: event.target.value })
-                  }
-                >
-                  <option value="active">{t('status.active')}</option>
-                  <option value="blocked">{t('status.blocked')}</option>
-                </select>
-              </label>
-              <div className="flex justify-end gap-3 border-t border-slate-100 pt-5">
-                <button
-                  className="button-secondary"
-                  type="button"
-                  onClick={() => setEditing(null)}
-                >
-                  {t('common.cancel')}
-                </button>
-                <button
-                  className="button-primary"
-                  type="submit"
-                  disabled={
-                    section === 'usuarios' &&
-                    editing.company !== 'admin' &&
-                    !editing.companyAccess?.length
-                  }
-                >
-                  {section === 'usuarios' && !editing.id
-                    ? t('demo.simulateInvitation')
+                ) : null}
+              </>
+            ) : null}
+            <label className="flex flex-col gap-2 text-sm font-semibold">
+              {t('common.status')}
+              <select
+                className="form-control"
+                value={editing.status}
+                onChange={(event) =>
+                  setEditing({ ...editing, status: event.target.value })
+                }
+              >
+                <option value="active">{t('status.active')}</option>
+                <option value="blocked">{t('status.blocked')}</option>
+              </select>
+            </label>
+            <div className="flex justify-end gap-3 border-t border-slate-100 pt-5">
+              <button
+                className="button-secondary"
+                type="button"
+                onClick={() => setEditing(null)}
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                className="button-primary"
+                type="submit"
+                disabled={
+                  section === 'usuarios' &&
+                  editing.company !== 'admin' &&
+                  !editing.companyAccess?.length
+                }
+              >
+                {section === 'usuarios' && !editing.id
+                  ? t('demo.simulateInvitation')
+                  : section === 'credenciais' && !editing.id
+                    ? t('credentials.create')
                     : t('common.save')}
-                </button>
-              </div>
-            </form>
-          </section>
-        </div>
+              </button>
+            </div>
+          </form>
+        </Dialog>
       ) : null}
       {demoSecret ? (
         <Dialog

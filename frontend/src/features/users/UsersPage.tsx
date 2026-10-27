@@ -24,11 +24,12 @@ export function UsersPage({
   const fromCompany = searchParams.get('fromCompany')
   const { recordId } = useParams()
   const linkedRecordId = Number(recordId)
+  const validRecordId =
+    !!recordId && Number.isSafeInteger(linkedRecordId) && linkedRecordId > 0
   const linkedRecord = useQuery({
     queryKey: ['admin', 'user', linkedRecordId],
     queryFn: ({ signal }) => getUser(linkedRecordId, signal),
-    enabled:
-      !!recordId && Number.isSafeInteger(linkedRecordId) && linkedRecordId > 0,
+    enabled: validRecordId,
   })
   const user = useUser()
   const writable = user?.role === 'admin'
@@ -164,7 +165,17 @@ export function UsersPage({
           onClose={() => setEditor(undefined)}
         />
       ) : null}
-      {recordId && linkedRecord.isError ? (
+      {recordId && !validRecordId ? (
+        <p role="alert" className="mt-4 text-rose-700">
+          {t('app.notFoundTitle')}
+        </p>
+      ) : null}
+      {validRecordId && linkedRecord.isPending ? (
+        <p role="status" className="mt-4 text-slate-600">
+          {t('common.loading')}
+        </p>
+      ) : null}
+      {validRecordId && linkedRecord.isError ? (
         <p role="alert" className="mt-4 text-rose-700">
           {errorMessage(linkedRecord.error)}
         </p>

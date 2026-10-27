@@ -1,5 +1,9 @@
 # Estado da implementação
 
+## Polimento da interface — 27/10/2026
+
+Na prévia, o cadastro de credenciais agora apresenta primeiro a empresa, identifica os campos HTTP Basic Auth, permite gerar o username e usa o diálogo compartilhado com foco e fechamento por Escape. Os controles de seleção seguem a cor da marca. No painel real, a empresa fixa aparece como campo somente leitura ao editar ou criar a partir dela. Links diretos para usuários e credenciais mostram carregamento e erro de consulta; IDs inválidos recebem estado de registro não encontrado. Nenhum contrato ou regra de autenticação foi alterado.
+
 ## Escopo administrativo e histórico de SMS — 27/10/2026
 
 Administradores têm acesso global, sem vínculo de empresa; usuários `operator` e `viewer` exigem uma ou mais empresas ativas e suas consultas ficam restritas a elas no backend. Alterar vínculos revoga sessões antigas. A migração 018 cria os vínculos. A prévia exibe “Lembrar de mim”; o login real já possui essa opção, restrita à sessão `/admin`.

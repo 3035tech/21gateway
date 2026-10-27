@@ -20,6 +20,7 @@ import { CredentialForm } from './CredentialForm'
 import { CredentialTestDialog } from './CredentialTestDialog'
 import { useTranslation } from 'react-i18next'
 import { RecordDetailsDialog } from '../../components/admin/RecordDetailsDialog'
+import { errorMessage } from '../../lib/admin'
 export function CredentialsPage({
   companyId,
   companyName,
@@ -30,11 +31,12 @@ export function CredentialsPage({
   const fromCompany = searchParams.get('fromCompany')
   const { recordId } = useParams()
   const linkedRecordId = Number(recordId)
+  const validRecordId =
+    !!recordId && Number.isSafeInteger(linkedRecordId) && linkedRecordId > 0
   const linkedRecord = useQuery({
     queryKey: ['admin', 'credential', linkedRecordId],
     queryFn: ({ signal }) => getCredential(linkedRecordId, signal),
-    enabled:
-      !!recordId && Number.isSafeInteger(linkedRecordId) && linkedRecordId > 0,
+    enabled: validRecordId,
   })
   const role = useUser()?.role
   const writable = role !== 'viewer'
@@ -272,9 +274,19 @@ export function CredentialsPage({
           onSecret={(username, password) => setSecret({ username, password })}
         />
       ) : null}
-      {recordId && linkedRecord.isError ? (
+      {recordId && !validRecordId ? (
         <p role="alert" className="mt-4 text-rose-700">
           {t('app.notFoundTitle')}
+        </p>
+      ) : null}
+      {validRecordId && linkedRecord.isPending ? (
+        <p role="status" className="mt-4 text-slate-600">
+          {t('common.loading')}
+        </p>
+      ) : null}
+      {validRecordId && linkedRecord.isError ? (
+        <p role="alert" className="mt-4 text-rose-700">
+          {errorMessage(linkedRecord.error)}
         </p>
       ) : null}
       {activeViewing ? (

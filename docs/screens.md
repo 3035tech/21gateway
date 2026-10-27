@@ -11,6 +11,8 @@ O administrador pode abrir **Testar credencial** após salvar: instrução para 
 
 Cadastro de credenciais: permite várias credenciais por empresa, username gerado ou informado, senha gerada, manual ou legada e validade opcional no fuso do navegador. A listagem mostra validade e o status vencido; a edição pode definir ou remover a validade. O usuário e o vínculo da credencial não mudam após criação. O painel oferece português e inglês no login e no cabeçalho, com preferência salva no navegador; textos de telas reais, validações e erros vêm dos catálogos em `frontend/src/locales/`.
 
+Polimento de 27/10/2026: a prévia ordena o formulário de credencial por empresa e acesso Basic Auth, permite gerar username e exibe a senha gerada uma vez em diálogo. O formulário real mostra a empresa fixa em campo somente leitura. Os links diretos de usuário e credencial apresentam estados de carregamento, erro e ID inválido. A prévia continua apenas em memória.
+
 Listagens compartilham DataTable, filtros, paginação/tamanho e ordenação no servidor. Envios separam submissão/entrega e resultados incertos. Callbacks mostram fila/falhas e reprocessamento manual, sem reenvio SMS. Auditoria não inclui senhas ou conteúdo SMS. Resumo usa dados reais e não inventa saldo ou contagens.
 
 ## Prévia fictícia
