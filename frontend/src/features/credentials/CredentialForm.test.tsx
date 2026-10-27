@@ -170,8 +170,9 @@ it('uses the selected company when creating an operator credential', async () =>
       }),
     ).toBeChecked()
     expect(
-      screen.getByRole('textbox', { name: 'Usuário Basic Auth' }),
-    ).toHaveAttribute('readonly')
+      screen.queryByRole('textbox', { name: 'Usuário Basic Auth' }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByText('Gerado ao salvar')).toBeInTheDocument()
     await user.click(
       screen.getByRole('checkbox', {
         name: 'Gerar usuário Basic Auth aleatório',
@@ -198,6 +199,53 @@ it('uses the selected company when creating an operator credential', async () =>
         }),
       ),
     )
+  } finally {
+    post.mockRestore()
+  }
+})
+
+it('submits generated credentials without a username input', async () => {
+  const post = vi.spyOn(api, 'post').mockResolvedValue({
+    data: {
+      credential: { ...credential, id: 3, username: 'generated-user' },
+      password: 'generated-secret',
+    },
+  })
+  try {
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+    const onSecret = vi.fn()
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter>
+          <CredentialForm
+            initialCompanyId={1}
+            initialCompanyName="Empresa exemplo"
+            onClose={vi.fn()}
+            onSecret={onSecret}
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+    expect(
+      screen.queryByRole('textbox', { name: 'Usuário Basic Auth' }),
+    ).not.toBeInTheDocument()
+    await userEvent
+      .setup()
+      .click(screen.getByRole('button', { name: 'Criar credencial' }))
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith(
+        '/admin/credentials',
+        expect.objectContaining({
+          companyId: 1,
+          generateUsername: true,
+          username: '',
+          manualPassword: undefined,
+        }),
+      ),
+    )
+    expect(onSecret).toHaveBeenCalledWith('generated-user', 'generated-secret')
   } finally {
     post.mockRestore()
   }

@@ -392,31 +392,33 @@ export function CredentialForm({
                       {t('credentials.generateUsername')}
                     </label>
                   ) : null}
-                  <label className="field">
-                    {t('credentials.basicUsername')}
-                    <input
-                      className="form-control"
-                      aria-label={t('credentials.basicUsername')}
-                      autoComplete="off"
-                      data-lpignore="true"
-                      data-1p-ignore="true"
-                      readOnly={!!credential || !!generateUsername}
-                      placeholder={
-                        generateUsername
-                          ? t('credentials.generatedUsernamePlaceholder')
-                          : undefined
-                      }
-                      {...form.register('username')}
-                    />
-                    <FieldError
-                      message={form.formState.errors.username?.message}
-                    />
-                    {generateUsername ? (
+                  {generateUsername ? (
+                    <div className="field">
+                      <span>{t('credentials.basicUsername')}</span>
+                      <div className="form-control flex items-center bg-slate-50 text-slate-500">
+                        {t('credentials.generatedUsernamePlaceholder')}
+                      </div>
                       <span className="text-xs font-normal leading-5 text-slate-500">
                         {t('credentials.generatedUsernameHint')}
                       </span>
-                    ) : null}
-                  </label>
+                    </div>
+                  ) : (
+                    <label className="field">
+                      {t('credentials.basicUsername')}
+                      <input
+                        className="form-control"
+                        aria-label={t('credentials.basicUsername')}
+                        autoComplete="off"
+                        data-lpignore="true"
+                        data-1p-ignore="true"
+                        readOnly={!!credential}
+                        {...form.register('username')}
+                      />
+                      <FieldError
+                        message={form.formState.errors.username?.message}
+                      />
+                    </label>
+                  )}
                 </div>
               </div>
               {credential ? (
