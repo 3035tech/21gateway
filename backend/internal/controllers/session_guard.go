@@ -45,12 +45,12 @@ func (c *SessionGuard) authorize(api huma.API, resource security.Resource, actio
 		if err == nil && resource != "" && !c.users.Allowed(user.Role, resource, action) {
 			err = apperrors.Wrap(apperrors.CodeForbidden, nil)
 		}
-		c.sessions.Put(ctx.Context(), sessionLastActivity, time.Now().Unix())
 		if err != nil {
 			public := HTTPError(err)
 			_ = huma.WriteErr(api, ctx, public.GetStatus(), "")
 			return
 		}
+		c.sessions.Put(ctx.Context(), sessionLastActivity, time.Now().Unix())
 		requestCtx := context.WithValue(ctx.Context(), userContextKey{}, user)
 		if user.Role != models.RoleAdmin {
 			requestCtx = security.WithCompanyScope(requestCtx, user.CompanyIDs)

@@ -71,8 +71,12 @@ func TestAdministrativeSessionAndPermissions(t *testing.T) {
 		router.ServeHTTP(w, r)
 		return w
 	}
-	if code := call("GET", "/admin/auth/me", "", nil).Code; code != 401 {
-		t.Fatal("anonymous access", code)
+	anonymous := call("GET", "/admin/auth/me", "", nil)
+	if anonymous.Code != 401 {
+		t.Fatal("anonymous access", anonymous.Code)
+	}
+	if cookies := anonymous.Result().Cookies(); len(cookies) != 0 {
+		t.Fatal("anonymous access created a session cookie")
 	}
 	if code := call("GET", "/admin/companies/by-ref/11111111-1111-4111-8111-111111111111", "", nil).Code; code != 401 {
 		t.Fatal("anonymous public reference lookup", code)
