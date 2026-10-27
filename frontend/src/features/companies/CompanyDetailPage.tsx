@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Building2, KeyRound, Pencil } from 'lucide-react'
+import { ArrowLeft, Building2, CheckCircle2, KeyRound, Pencil, ShieldCheck, TriangleAlert } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { DateCell } from '../../components/admin/DateCell'
@@ -90,27 +90,41 @@ export function CompanyDetailPage() {
               </div>
             </dl>
           </section>
-          <section className="rounded-2xl border border-purple-100 bg-purple-50 p-6">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h2 className="flex items-center gap-2 text-lg font-bold text-brand-purple">
-                  <KeyRound size={20} aria-hidden="true" />
-                  {t('companies.providerAccess')}
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-slate-700">
-                  {query.data.providerTokenConfigured
-                    ? t('companies.providerConfigured')
-                    : query.data.legacyProviderTokenFallback
-                      ? t('companies.providerLegacy')
-                      : t('companies.providerMissing')}
-                </p>
+          <section className={`rounded-2xl border p-6 ${query.data.providerTokenConfigured ? 'border-emerald-200 bg-emerald-50/70' : 'border-amber-200 bg-amber-50/70'}`}>
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="flex min-w-0 items-start gap-4">
+                <span className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${query.data.providerTokenConfigured ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                  <KeyRound size={21} aria-hidden="true" />
+                </span>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900">
+                    {t('companies.providerAccess')}
+                  </h2>
+                  <span className={`mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${query.data.providerTokenConfigured ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'}`}>
+                    {query.data.providerTokenConfigured ? <CheckCircle2 size={14} aria-hidden="true" /> : <TriangleAlert size={14} aria-hidden="true" />}
+                    {t(query.data.providerTokenConfigured ? 'companies.providerSaved' : 'companies.providerNotSaved')}
+                  </span>
+                  <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-700">
+                    {query.data.providerTokenConfigured
+                      ? t('companies.providerConfigured')
+                      : query.data.legacyProviderTokenFallback
+                        ? t('companies.providerLegacy')
+                        : t('companies.providerMissing')}
+                  </p>
+                  {query.data.providerTokenConfigured ? (
+                    <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-600">
+                      <ShieldCheck size={15} aria-hidden="true" />
+                      {t('companies.providerStoredHint')}
+                    </p>
+                  ) : null}
+                </div>
               </div>
               {canEdit ? (
                 <button
-                  className="button-secondary"
+                  className="button-secondary shrink-0"
                   onClick={() => setEditing(true)}
                 >
-                  {t('companies.providerManage')}
+                  {t(query.data.providerTokenConfigured ? 'companies.providerReplace' : 'companies.providerManage')}
                 </button>
               ) : null}
             </div>
