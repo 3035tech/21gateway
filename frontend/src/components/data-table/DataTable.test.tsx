@@ -1,17 +1,23 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { DataTable } from './DataTable'
 import { useListState } from './useListState'
 
-function Harness({ error }: { error?: string }) {
+function Harness({
+  error,
+  empty = false,
+}: {
+  error?: string
+  empty?: boolean
+}) {
   const state = useListState()
   return (
     <>
       <DataTable
         columns={[{ accessorKey: 'name', header: 'Nome' }]}
-        data={[{ id: 'company-1', name: 'Empresa de teste' }]}
-        total={75}
+        data={empty ? [] : [{ id: 'company-1', name: 'Empresa de teste' }]}
+        total={empty ? 0 : 75}
         getRowId={(row) => row.id}
         error={error}
         {...state}
@@ -79,5 +85,13 @@ describe('DataTable server query controls', () => {
     expect(
       screen.getByText('Resultados indisponíveis. Tente atualizar a consulta.'),
     ).toBeInTheDocument()
+  })
+  it('keeps the empty state outside the horizontally scrolling table', () => {
+    render(<Harness empty />)
+    const region = screen.getByRole('region', { name: /resultados/i })
+    expect(
+      within(region).queryByText(/Nenhum resultado encontrado/),
+    ).not.toBeInTheDocument()
+    expect(screen.getByText(/Nenhum resultado encontrado/)).toBeVisible()
   })
 })

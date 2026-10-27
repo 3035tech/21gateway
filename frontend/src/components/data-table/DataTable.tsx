@@ -125,149 +125,139 @@ export function DataTable<T>({
       >
         <ArrowLeftRight size={15} aria-hidden="true" /> {t('table.scrollHint')}
       </p>
-      <div
-        className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm"
-        role="region"
-        aria-label={t('table.regionLabel', { caption: tableCaption })}
-        tabIndex={0}
-      >
-        <table className="data-grid w-full min-w-max border-collapse text-left text-sm">
-          <caption className="sr-only">{tableCaption}</caption>
-          <thead className="border-b border-slate-200 bg-slate-50 text-slate-700">
-            {table.getHeaderGroups().map((group) => (
-              <tr key={group.id}>
-                {group.headers.map((header) => {
-                  const direction = header.column.getIsSorted()
-                  return (
-                    <th
-                      key={header.id}
-                      scope="col"
-                      aria-sort={
-                        direction === 'asc'
-                          ? 'ascending'
-                          : direction === 'desc'
-                            ? 'descending'
-                            : 'none'
-                      }
-                      className={`whitespace-nowrap px-5 py-3 font-semibold ${header.column.id === 'actions' ? 'text-center' : ''}`}
-                    >
-                      {header.isPlaceholder ? null : header.column.getCanSort() ? (
-                        <button
-                          type="button"
-                          onClick={header.column.getToggleSortingHandler()}
-                          className="button-sort"
-                        >
-                          {flexRender(
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div
+          className="overflow-x-auto"
+          role="region"
+          aria-label={t('table.regionLabel', { caption: tableCaption })}
+          tabIndex={0}
+        >
+          <table className="data-grid w-full min-w-max border-collapse text-left text-sm">
+            <caption className="sr-only">{tableCaption}</caption>
+            <thead className="border-b border-slate-200 bg-slate-50 text-slate-700">
+              {table.getHeaderGroups().map((group) => (
+                <tr key={group.id}>
+                  {group.headers.map((header) => {
+                    const direction = header.column.getIsSorted()
+                    return (
+                      <th
+                        key={header.id}
+                        scope="col"
+                        aria-sort={
+                          direction === 'asc'
+                            ? 'ascending'
+                            : direction === 'desc'
+                              ? 'descending'
+                              : 'none'
+                        }
+                        className={`whitespace-nowrap px-5 py-3 font-semibold ${header.column.id === 'actions' ? 'text-center' : ''}`}
+                      >
+                        {header.isPlaceholder ? null : header.column.getCanSort() ? (
+                          <button
+                            type="button"
+                            onClick={header.column.getToggleSortingHandler()}
+                            className="button-sort"
+                          >
+                            {flexRender(
+                              header.column.columnDef.header,
+                              header.getContext(),
+                            )}
+                            {direction === 'asc' ? (
+                              <ArrowUp
+                                size={15}
+                                aria-hidden="true"
+                                className="text-brand-purple"
+                              />
+                            ) : direction === 'desc' ? (
+                              <ArrowDown
+                                size={15}
+                                aria-hidden="true"
+                                className="text-brand-purple"
+                              />
+                            ) : (
+                              <ArrowUpDown
+                                size={15}
+                                aria-hidden="true"
+                                className="text-slate-400"
+                              />
+                            )}
+                          </button>
+                        ) : (
+                          flexRender(
                             header.column.columnDef.header,
                             header.getContext(),
-                          )}
-                          {direction === 'asc' ? (
-                            <ArrowUp
-                              size={15}
-                              aria-hidden="true"
-                              className="text-brand-purple"
-                            />
-                          ) : direction === 'desc' ? (
-                            <ArrowDown
-                              size={15}
-                              aria-hidden="true"
-                              className="text-brand-purple"
-                            />
-                          ) : (
-                            <ArrowUpDown
-                              size={15}
-                              aria-hidden="true"
-                              className="text-slate-400"
-                            />
-                          )}
-                        </button>
-                      ) : (
-                        flexRender(
-                          header.column.columnDef.header,
-                          header.getContext(),
-                        )
-                      )}
-                    </th>
-                  )
-                })}
-              </tr>
-            ))}
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr>
-                <td
-                  colSpan={table.getVisibleLeafColumns().length}
-                  className="px-6 py-12 text-center text-slate-500"
-                  role="status"
-                >
-                  <LoaderCircle
-                    size={24}
-                    aria-hidden="true"
-                    className="mx-auto mb-3 animate-spin text-brand-purple"
-                  />
-                  {t('table.loading')}
-                </td>
-              </tr>
-            ) : error ? (
-              <tr>
-                <td
-                  colSpan={table.getVisibleLeafColumns().length}
-                  className="px-6 py-12 text-center text-slate-500"
-                >
-                  <CloudOff
-                    size={28}
-                    aria-hidden="true"
-                    className="mx-auto mb-3 text-slate-400"
-                  />
-                  {t('table.unavailableHint')}
-                </td>
-              </tr>
-            ) : table.getRowModel().rows.length ? (
-              table.getRowModel().rows.map((row) => (
-                <tr
-                  key={row.id}
-                  className="border-t border-slate-100 hover:bg-slate-50"
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <td
-                      key={cell.id}
-                      className={`px-5 py-3.5 align-middle text-slate-700 ${cell.column.id === 'actions' ? 'text-center' : ''}`}
-                    >
-                      {cell.column.id === 'actions' ? (
-                        <div className="flex justify-center">
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext(),
-                          )}
-                        </div>
-                      ) : (
-                        flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext(),
-                        )
-                      )}
-                    </td>
-                  ))}
+                          )
+                        )}
+                      </th>
+                    )
+                  })}
                 </tr>
-              ))
+              ))}
+            </thead>
+            <tbody>
+              {!isLoading && !error
+                ? table.getRowModel().rows.map((row) => (
+                    <tr
+                      key={row.id}
+                      className="border-t border-slate-100 hover:bg-slate-50"
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <td
+                          key={cell.id}
+                          className={`px-5 py-3.5 align-middle text-slate-700 ${cell.column.id === 'actions' ? 'text-center' : ''}`}
+                        >
+                          {cell.column.id === 'actions' ? (
+                            <div className="flex justify-center">
+                              {flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext(),
+                              )}
+                            </div>
+                          ) : (
+                            flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext(),
+                            )
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  ))
+                : null}
+            </tbody>
+          </table>
+        </div>
+        {isLoading || error || !table.getRowModel().rows.length ? (
+          <div
+            className="px-6 py-12 text-center text-sm text-slate-500"
+            role={isLoading ? 'status' : undefined}
+          >
+            {isLoading ? (
+              <LoaderCircle
+                size={24}
+                aria-hidden="true"
+                className="mx-auto mb-3 animate-spin text-brand-purple"
+              />
+            ) : error ? (
+              <CloudOff
+                size={28}
+                aria-hidden="true"
+                className="mx-auto mb-3 text-slate-400"
+              />
             ) : (
-              <tr>
-                <td
-                  colSpan={table.getVisibleLeafColumns().length}
-                  className="px-6 py-12 text-center text-slate-500"
-                >
-                  <SearchX
-                    size={28}
-                    aria-hidden="true"
-                    className="mx-auto mb-3 text-slate-400"
-                  />
-                  {error ? t('table.unavailable') : t('table.empty')}
-                </td>
-              </tr>
+              <SearchX
+                size={28}
+                aria-hidden="true"
+                className="mx-auto mb-3 text-slate-400"
+              />
             )}
-          </tbody>
-        </table>
+            {isLoading
+              ? t('table.loading')
+              : error
+                ? t('table.unavailableHint')
+                : t('table.empty')}
+          </div>
+        ) : null}
       </div>
       <div className="flex flex-wrap items-center justify-between gap-4 px-1 text-sm text-slate-600">
         <label className="flex items-center gap-2">
