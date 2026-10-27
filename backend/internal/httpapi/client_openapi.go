@@ -12,7 +12,7 @@ func describeClientIntegration(spec *huma.OpenAPI) {
 	spec.Info.Title = "21 Mobile · API de integração SMS"
 	spec.Info.Description = clientIntegrationIntroduction
 	spec.Tags = []*huma.Tag{{Name: "SMS", Description: "Autenticação, envio e consultas disponíveis para integrações de clientes."}}
-	if basic := spec.Components.SecuritySchemes["legacyBasicAuth"]; basic != nil {
+	if basic := spec.Components.SecuritySchemes["basicAuth"]; basic != nil {
 		basic.Description = "Usuário e senha Basic Auth gerados e fornecidos pela 21 Mobile para a empresa. Envie sobre HTTPS; não use o token Zoug neste cabeçalho."
 	}
 
@@ -51,7 +51,7 @@ func describeClientIntegration(spec *huma.OpenAPI) {
 	if path := spec.Paths["/v1/consultmo"]; path != nil && path.Get != nil {
 		op := path.Get
 		op.Summary = "Consultar respostas SMS de um dia"
-		op.Description = "Informe `date` como **Unix timestamp em segundos** de qualquer instante do dia desejado em **America/Sao_Paulo**. A consulta cobre o dia inteiro, retorna respostas ligadas aos envios desta credencial e **não consome** os registros. `code: 5` indica respostas; `code: 6` e `list_mo: []` indicam ausência. `NO_RECORDS` é texto provisório. O campo `fromAdress` mantém a grafia do contrato legado. Se o volume ultrapassar o limite defensivo atual de 1000 registros, o gateway responde indisponibilidade em vez de devolver uma lista truncada. O ingresso MO real do fornecedor ainda depende de homologação.\n\nExemplo: `curl -u 'USUARIO:SENHA' 'https://SEU_HOST/v1/consultmo?date=1793134800'`."
+		op.Description = "Informe `date` como **Unix timestamp em segundos** de qualquer instante do dia desejado em **America/Sao_Paulo**. A consulta cobre o dia inteiro, retorna respostas ligadas aos envios desta credencial e **não consome** os registros. `code: 5` indica respostas; `code: 6` e `list_mo: []` indicam ausência. `NO_RECORDS` é texto provisório. Use a grafia publicada `fromAdress` exatamente assim. Se o volume ultrapassar o limite defensivo atual de 1000 registros, o gateway responde indisponibilidade em vez de devolver uma lista truncada. O ingresso MO real do fornecedor ainda depende de homologação.\n\nExemplo: `curl -u 'USUARIO:SENHA' 'https://SEU_HOST/v1/consultmo?date=1793134800'`."
 		setResponseExamples(op, "200", map[string]*huma.Example{
 			"comResposta":  {Summary: "Uma resposta recebida", Value: map[string]any{"status": "OK", "code": 5, "message": "REQUIRED_OK", "list_mo": []map[string]any{{"fromAdress": "5511987654321", "receivedDate": "2026-10-27 18:00:00-03", "unixReceivedDate": "1793134800", "msg": "Confirmo", "idMo": "45", "idMt": "123"}}}},
 			"semRespostas": {Summary: "Nenhuma resposta no dia", Value: map[string]any{"status": "OK", "code": 6, "message": "NO_RECORDS", "list_mo": []any{}}},

@@ -9,6 +9,7 @@ type CompanyView struct {
 	ProviderTokenConfigured     bool      `json:"providerTokenConfigured"`
 	LegacyProviderTokenFallback bool      `json:"legacyProviderTokenFallback"`
 	ID                          uint64    `json:"id"`
+	PublicRef                   string    `json:"publicRef" format:"uuid"`
 	Name                        string    `json:"name"`
 	Reference                   string    `json:"reference"`
 	Active                      bool      `json:"active"`
@@ -30,5 +31,5 @@ type CompanyOutput struct{ Body CompanyView }
 type CompaniesOutput struct{ Body Page[CompanyView] }
 
 func CompanyDTO(value models.Company) CompanyView {
-	return CompanyView{ProviderTokenConfigured: value.ProviderTokenEncrypted != "", LegacyProviderTokenFallback: value.ProviderTokenLegacyFallback, ID: value.ID, Name: value.Name, Reference: value.Reference, Active: value.Active, CreatedAt: value.CreatedAt}
+	return CompanyView{ProviderTokenConfigured: value.ProviderTokenEncrypted != "", LegacyProviderTokenFallback: value.ProviderTokenLegacyFallback, ID: value.ID, PublicRef: value.PublicRef, Name: value.Name, Reference: value.Reference, Active: value.Active, CreatedAt: value.CreatedAt}
 }

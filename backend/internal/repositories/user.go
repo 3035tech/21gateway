@@ -39,6 +39,14 @@ func (r *Users) User(ctx context.Context, id uint64) (models.SystemUser, error) 
 	}
 	return user, err
 }
+func (r *Users) UserByPublicRef(ctx context.Context, publicRef string) (models.SystemUser, error) {
+	var user models.SystemUser
+	err := r.db.WithContext(ctx).Where("public_ref = ? AND archived_at IS NULL", publicRef).First(&user).Error
+	if err == nil {
+		err = r.loadCompanyIDs(ctx, &user)
+	}
+	return user, err
+}
 func (r *Users) loadCompanyIDs(ctx context.Context, user *models.SystemUser) error {
 	return r.db.WithContext(ctx).Table("system_user_companies").Where("user_id = ?", user.ID).Order("company_id").Pluck("company_id", &user.CompanyIDs).Error
 }
@@ -98,7 +106,7 @@ func (r *Users) UserCount(ctx context.Context) (int64, error) {
 
 func (r *Users) Users(ctx context.Context, q dtos.ListQuery) (dtos.Page[models.SystemUser], error) {
 	result := dtos.Page[models.SystemUser]{Items: []models.SystemUser{}, Page: q.Page, PageSize: q.PageSize}
-	db := r.db.WithContext(ctx).Model(&models.SystemUser{}).Select("id,name,email,role,active,created_at").Where("archived_at IS NULL")
+	db := r.db.WithContext(ctx).Model(&models.SystemUser{}).Select("id,public_ref,name,email,role,active,created_at").Where("archived_at IS NULL")
 	if q.Search != "" {
 		db = db.Where("name ILIKE ? OR email ILIKE ?", searchTerm(q.Search), searchTerm(q.Search))
 	}

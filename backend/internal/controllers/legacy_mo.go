@@ -21,7 +21,7 @@ func NewLegacyMOController(service *services.LegacyMOService, auth *services.Aut
 }
 func (c *LegacyMOController) Register(api huma.API) {
 	c.guard.RegisterSecurity(api)
-	huma.Register(api, huma.Operation{OperationID: "queryLegacyMO", Method: http.MethodGet, Path: LegacyMOPath, Summary: "Consultar respostas recebidas em um dia", Description: "date é Unix em segundos e identifica o dia em America/Sao_Paulo. Consulta não consome eventos ou callbacks. Datas/erros ainda sujeitos à homologação do legado.", Tags: []string{"SMS"}, Security: []map[string][]string{{basicAuthScheme: {}}}, Middlewares: huma.Middlewares{c.guard.Authenticate(api)}, Errors: []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusUnprocessableEntity, http.StatusTooManyRequests, http.StatusServiceUnavailable}}, c.Query)
+	huma.Register(api, huma.Operation{OperationID: "getMOReplies", Method: http.MethodGet, Path: LegacyMOPath, Summary: "Consultar respostas recebidas em um dia", Description: "date é Unix em segundos e identifica o dia em America/Sao_Paulo. A consulta não consome respostas ou callbacks. Validar datas e erros com a equipe 21 Mobile durante a homologação.", Tags: []string{"SMS"}, Security: []map[string][]string{{basicAuthScheme: {}}}, Middlewares: huma.Middlewares{c.guard.Authenticate(api)}, Errors: []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusUnprocessableEntity, http.StatusTooManyRequests, http.StatusServiceUnavailable}}, c.Query)
 }
 func (c *LegacyMOController) Query(ctx context.Context, input *dtos.LegacyMOQueryInput) (*dtos.LegacyMOOutput, error) {
 	credential, ok := services.CredentialFromContext(ctx)

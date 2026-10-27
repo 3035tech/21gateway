@@ -24,6 +24,11 @@ func (r *Companies) CompanyView(ctx context.Context, id uint64) (models.Company,
 	err := scopedCompanies(r.db.WithContext(ctx), ctx, "id").Where("id = ? AND archived_at IS NULL", id).First(&company).Error
 	return company, err
 }
+func (r *Companies) CompanyViewByPublicRef(ctx context.Context, publicRef string) (models.Company, error) {
+	var company models.Company
+	err := scopedCompanies(r.db.WithContext(ctx), ctx, "id").Where("public_ref = ? AND archived_at IS NULL", publicRef).First(&company).Error
+	return company, err
+}
 func (r *Companies) Companies(ctx context.Context, q dtos.ListQuery) (dtos.Page[models.Company], error) {
 	result := dtos.Page[models.Company]{Items: []models.Company{}, Page: q.Page, PageSize: q.PageSize}
 	db := r.db.WithContext(ctx).Model(&models.Company{}).Where("archived_at IS NULL")

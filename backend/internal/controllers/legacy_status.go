@@ -21,7 +21,7 @@ func NewLegacyStatusController(service *services.LegacyStatusService, auth *serv
 }
 func (c *LegacyStatusController) Register(api huma.API) {
 	c.guard.RegisterSecurity(api)
-	huma.Register(api, huma.Operation{OperationID: "consumeLegacySMSStatuses", Method: http.MethodGet, Path: LegacyStatusPath, Summary: "Consulta até 100 estados ainda não consultados", Description: "Somente mensagens com correlationId e estado de entrega recebido. Consulta consome o estado antes da resposta; não confirma compatibilidade integral do legado.", Tags: []string{"SMS"}, Security: []map[string][]string{{basicAuthScheme: {}}}, Middlewares: huma.Middlewares{c.guard.Authenticate(api)}, Errors: []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusTooManyRequests, http.StatusServiceUnavailable}}, c.Consume)
+	huma.Register(api, huma.Operation{OperationID: "getSMSDeliveryStatuses", Method: http.MethodGet, Path: LegacyStatusPath, Summary: "Consultar estados de entrega", Description: "Retorna até 100 estados de entrega ainda não consultados para mensagens com correlationId. A leitura consome os registros retornados; repetições da consulta não os devolvem novamente.", Tags: []string{"SMS"}, Security: []map[string][]string{{basicAuthScheme: {}}}, Middlewares: huma.Middlewares{c.guard.Authenticate(api)}, Errors: []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusTooManyRequests, http.StatusServiceUnavailable}}, c.Consume)
 }
 func (c *LegacyStatusController) Consume(ctx context.Context, _ *struct{}) (*dtos.LegacyStatusOutput, error) {
 	credential, ok := services.CredentialFromContext(ctx)

@@ -19,6 +19,13 @@ func NewUserController(service *services.UserService, guard *SessionGuard) *User
 	return &UserController{SessionGuard: guard, service: service}
 }
 func (c *UserController) Register(api huma.API) {
+	huma.Register(api, c.operation(api, "getUserByPublicRef", http.MethodGet, "/users/by-ref/{publicRef}", "Consultar usuário pelo endereço público", security.ResourceUsers, security.ActionRead), func(ctx context.Context, input *dtos.PublicRefInput) (*dtos.UserOutput, error) {
+		value, err := c.service.UserByPublicRef(ctx, input.PublicRef)
+		if err != nil {
+			return nil, HTTPError(err)
+		}
+		return &dtos.UserOutput{Body: value}, nil
+	})
 	huma.Register(api, c.operation(api, "getUser", http.MethodGet, "/users/{id}", "Consultar usuário", security.ResourceUsers, security.ActionRead), func(ctx context.Context, input *dtos.IDInput) (*dtos.UserOutput, error) {
 		value, err := c.service.User(ctx, input.ID)
 		if err != nil {

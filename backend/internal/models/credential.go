@@ -24,6 +24,7 @@ type APICredential struct {
 	ArchivedAt       *time.Time
 	ExpiresAt        *time.Time
 	ID               uint64 `gorm:"primaryKey"`
+	PublicRef        string `gorm:"type:uuid;default:gen_random_uuid()"`
 	Username         string
 	PasswordHash     string
 	Active           bool

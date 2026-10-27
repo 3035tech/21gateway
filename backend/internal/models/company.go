@@ -6,6 +6,7 @@ import (
 
 type Company struct {
 	ID                          uint64 `gorm:"primaryKey"`
+	PublicRef                   string `gorm:"type:uuid;default:gen_random_uuid()"`
 	Name                        string
 	Reference                   string
 	ProviderTokenEncrypted      string

@@ -7,6 +7,7 @@ import (
 
 type UserView struct {
 	ID         uint64      `json:"id"`
+	PublicRef  string      `json:"publicRef" format:"uuid"`
 	Name       string      `json:"name"`
 	Email      string      `json:"email"`
 	Role       models.Role `json:"role" enum:"admin,operator,viewer"`
@@ -36,5 +37,5 @@ type ChangeOwnPasswordBody struct {
 type ChangeOwnPasswordInput struct{ Body ChangeOwnPasswordBody }
 
 func UserDTO(value models.SystemUser) UserView {
-	return UserView{ID: value.ID, Name: value.Name, Email: value.Email, Role: value.Role, Active: value.Active, CreatedAt: value.CreatedAt, CompanyIDs: append([]uint64{}, value.CompanyIDs...)}
+	return UserView{ID: value.ID, PublicRef: value.PublicRef, Name: value.Name, Email: value.Email, Role: value.Role, Active: value.Active, CreatedAt: value.CreatedAt, CompanyIDs: append([]uint64{}, value.CompanyIDs...)}
 }

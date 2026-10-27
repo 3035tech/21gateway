@@ -42,6 +42,10 @@ func (s *UserService) User(ctx context.Context, id uint64) (dtos.UserView, error
 	value, err := s.repository.User(ctx, id)
 	return dtos.UserDTO(value), dbError(err)
 }
+func (s *UserService) UserByPublicRef(ctx context.Context, publicRef string) (dtos.UserView, error) {
+	value, err := s.repository.UserByPublicRef(ctx, publicRef)
+	return dtos.UserDTO(value), dbError(err)
+}
 func (s *UserService) Login(ctx context.Context, email, password string) (models.SystemUser, error) {
 	return s.LoginWithFactor(ctx, email, password, "")
 }

@@ -14,6 +14,7 @@ type CredentialView struct {
 	LegacyAccountID         string   `json:"legacyAccountId"`
 
 	ID               uint64     `json:"id"`
+	PublicRef        string     `json:"publicRef" format:"uuid"`
 	CompanyID        *uint64    `json:"companyId"`
 	CompanyName      string     `json:"companyName"`
 	Username         string     `json:"username"`
@@ -61,5 +62,5 @@ func CredentialDTO(value models.APICredential) CredentialView {
 	if allowedIPs == nil {
 		allowedIPs = []string{}
 	}
-	return CredentialView{ProviderTokenConfigured: value.CompanyProviderTokenEncrypted != "" || (value.CompanyProviderTokenLegacyFallback && value.ProviderTokenEncrypted != ""), WhitelistEnabled: value.WhitelistEnabled, AllowedIPs: allowedIPs, MOCallbackURL: value.MOCallbackURL, MOCallbacksEnabled: value.MOCallbacksEnabled, LegacyAccountID: value.LegacyAccountID, ID: value.ID, CompanyID: value.CompanyID, CompanyName: value.CompanyName, Username: value.Username, Active: value.Active, CallbackURL: value.CallbackURL, CallbacksEnabled: value.CallbacksEnabled, CreatedAt: value.CreatedAt, ExpiresAt: value.ExpiresAt}
+	return CredentialView{ProviderTokenConfigured: value.CompanyProviderTokenEncrypted != "" || (value.CompanyProviderTokenLegacyFallback && value.ProviderTokenEncrypted != ""), WhitelistEnabled: value.WhitelistEnabled, AllowedIPs: allowedIPs, MOCallbackURL: value.MOCallbackURL, MOCallbacksEnabled: value.MOCallbacksEnabled, LegacyAccountID: value.LegacyAccountID, ID: value.ID, PublicRef: value.PublicRef, CompanyID: value.CompanyID, CompanyName: value.CompanyName, Username: value.Username, Active: value.Active, CallbackURL: value.CallbackURL, CallbacksEnabled: value.CallbacksEnabled, CreatedAt: value.CreatedAt, ExpiresAt: value.ExpiresAt}
 }

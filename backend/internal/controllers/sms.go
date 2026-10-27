@@ -13,7 +13,7 @@ import (
 
 const (
 	LegacySendPath     = "/v1/send"
-	basicAuthScheme    = "legacyBasicAuth"
+	basicAuthScheme    = "basicAuth"
 	basicAuthChallenge = `Basic realm="21 Mobile API", charset="UTF-8"`
 )
 
@@ -33,7 +33,7 @@ func (c *SMSController) Register(api huma.API) {
 		OperationID: "sendSMS",
 		Method:      http.MethodPost,
 		Path:        LegacySendPath,
-		Summary:     "Envio imediato de SMS pelo contrato legado",
+		Summary:     "Enviar SMS",
 		Description: "Aceita de 1 a 200 itens em sms, com resultado individual e ordem preservada. Texto encaminhado sem diacríticos e emojis, limitado a 160 caracteres na entrada. Aceite não confirma entrega. scheduledDate futuro pode ser aceito na fila local quando o scheduler estiver habilitado; OK confirma aceite, não envio ou entrega.",
 		Tags:        []string{"SMS"},
 		// Preserve NOK per-item responses while Huma still handles JSON decoding and schema documentation.

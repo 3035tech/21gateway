@@ -40,6 +40,7 @@ func TestPublicOpenAPIOnlyShowsClientIntegration(t *testing.T) {
 		Paths      map[string]json.RawMessage `json:"paths"`
 		Components struct {
 			SecuritySchemes map[string]json.RawMessage `json:"securitySchemes"`
+			Schemas         map[string]json.RawMessage `json:"schemas"`
 		} `json:"components"`
 	}
 	if err := json.Unmarshal(w.Body.Bytes(), &document); err != nil {
@@ -54,8 +55,27 @@ func TestPublicOpenAPIOnlyShowsClientIntegration(t *testing.T) {
 			t.Fatalf("non-integration path in public OpenAPI: %s", path)
 		}
 	}
-	if len(document.Components.SecuritySchemes) != 1 || document.Components.SecuritySchemes["legacyBasicAuth"] == nil {
+	if len(document.Components.SecuritySchemes) != 1 || document.Components.SecuritySchemes["basicAuth"] == nil {
 		t.Fatalf("unexpected public security schemes: %v", document.Components.SecuritySchemes)
+	}
+	if !strings.Contains(string(document.Components.SecuritySchemes["basicAuth"]), "gerados e fornecidos pela 21 Mobile") {
+		t.Fatal("Basic Auth guidance missing from security scheme")
+	}
+	for name := range document.Components.Schemas {
+		if strings.Contains(name, "Legacy") {
+			t.Fatalf("internal schema name leaked into client documentation: %s", name)
+		}
+	}
+	for _, name := range []string{"SMSSendRequest", "SMSRequestMessage", "SMSSendResult", "SMSDeliveryStatusResponse", "MORepliesResponse"} {
+		if document.Components.Schemas[name] == nil {
+			t.Fatalf("client-facing schema name missing: %s", name)
+		}
+	}
+	if document.Components.Schemas["CompanyView"] != nil {
+		t.Fatal("administrative company schema leaked into client documentation")
+	}
+	if strings.Contains(w.Body.String(), "Legacy") {
+		t.Fatal("internal compatibility name leaked into public OpenAPI")
 	}
 	if !strings.Contains(document.Info.Description, "21 Mobile gera e entrega") {
 		t.Fatal("credential issuance guidance missing from public introduction")

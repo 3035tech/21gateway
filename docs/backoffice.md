@@ -2,6 +2,8 @@
 
 Consulta direta de credenciais e usuários: `GET /admin/credentials/{id}` e `GET /admin/users/{id}` retornam DTOs sem senha/token em claro. Sessão e permissão de leitura são obrigatórias; credenciais respeitam o escopo de empresa. A interface usa URLs próprias para abrir o detalhe a partir da empresa.
 
+Os links novos do painel para empresas, usuários e credenciais usam `publicRef` UUID estável, sem o ID sequencial do banco. A API administrativa oferece `GET /admin/{companies|users|credentials}/by-ref/{publicRef}` com as mesmas permissões e escopo. Links antigos com número são convertidos no navegador após consulta. Os IDs numéricos permanecem apenas como chaves relacionais e nos contratos administrativos legados durante a transição; a alteração não afeta os IDs públicos de mensagens da API V1.
+
 No cadastro da credencial, “Acesso do cliente · Basic Auth” define o username e a senha que autenticam `/v1`. O username pode ser gerado ou digitado; a senha pode ser gerada, digitada manualmente ou preservada na migração. O backend guarda somente hash e usa esses campos em `Authorization: Basic`, com validade, estado da credencial/empresa e whitelist. Ao editar, a senha existente não é exibida; a troca é uma ação separada. O token Zoug é outra credencial, para autenticação do gateway perante o fornecedor.
 
 Atualização de 27/10/2026: o token Zoug é cadastrado na ficha da empresa e compartilhado por suas várias credenciais Basic Auth. O gateway gera usuário/senha da API 21, mas apenas recebe o token emitido pela Zoug. A migração 020 preserva tokens antigos por credencial em fallback controlado até configurar o token único da empresa.

@@ -34,6 +34,12 @@ func TestPostgresBackofficeAndOutbox(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if _, err := uuid.Parse(admin.PublicRef); err != nil {
+		t.Fatal("admin public reference missing", err)
+	}
+	if found, err := users.UserByPublicRef(ctx, admin.PublicRef); err != nil || found.ID != admin.ID {
+		t.Fatal("admin public reference lookup", err)
+	}
 	companies := NewCompanyService(repositories.NewCompanies(isolated))
 	company, err := companies.SaveCompany(ctx, admin.ID, 0, dtos.CompanyBody{Name: "Example", Reference: "REF", Active: true})
 	if err != nil {
@@ -41,6 +47,12 @@ func TestPostgresBackofficeAndOutbox(t *testing.T) {
 	}
 	if company.LegacyProviderTokenFallback {
 		t.Fatal("new company inherited legacy provider fallback")
+	}
+	if _, err := uuid.Parse(company.PublicRef); err != nil {
+		t.Fatal("company public reference missing", err)
+	}
+	if found, err := companies.CompanyByPublicRef(ctx, company.PublicRef); err != nil || found.ID != company.ID {
+		t.Fatal("company public reference lookup", err)
 	}
 	_, err = users.SaveUser(ctx, admin.ID, admin.ID, dtos.UserBody{Name: admin.Name, Email: admin.Email, Role: models.RoleViewer, Active: true, CompanyIDs: []uint64{company.ID}})
 	assertCode(t, err, apperrors.CodeLastAdmin)
@@ -55,6 +67,12 @@ func TestPostgresBackofficeAndOutbox(t *testing.T) {
 	}
 	if secret.Password == "" {
 		t.Fatal("one-time password missing")
+	}
+	if _, err := uuid.Parse(secret.Credential.PublicRef); err != nil {
+		t.Fatal("credential public reference missing", err)
+	}
+	if found, err := credentials.CredentialByPublicRef(ctx, secret.Credential.PublicRef); err != nil || found.ID != secret.Credential.ID {
+		t.Fatal("credential public reference lookup", err)
 	}
 	list := dtos.ListQuery{Page: 1, PageSize: 10, Direction: dtos.SortAscending}
 	if values, err := credentials.Credentials(ctx, list); err != nil || values.Total != 1 {

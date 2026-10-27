@@ -33,6 +33,10 @@ func (s *CredentialService) Credential(ctx context.Context, id uint64) (dtos.Cre
 	value, err := s.repository.CredentialView(ctx, id)
 	return dtos.CredentialDTO(value), dbError(err)
 }
+func (s *CredentialService) CredentialByPublicRef(ctx context.Context, publicRef string) (dtos.CredentialView, error) {
+	value, err := s.repository.CredentialViewByPublicRef(ctx, publicRef)
+	return dtos.CredentialDTO(value), dbError(err)
+}
 func ValidateCallbackURL(raw string) bool {
 	if raw == "" {
 		return true

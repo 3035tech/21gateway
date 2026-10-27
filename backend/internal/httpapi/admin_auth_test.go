@@ -74,6 +74,9 @@ func TestAdministrativeSessionAndPermissions(t *testing.T) {
 	if code := call("GET", "/admin/auth/me", "", nil).Code; code != 401 {
 		t.Fatal("anonymous access", code)
 	}
+	if code := call("GET", "/admin/companies/by-ref/11111111-1111-4111-8111-111111111111", "", nil).Code; code != 401 {
+		t.Fatal("anonymous public reference lookup", code)
+	}
 	seed := call("GET", "/admin/test/seed", "", nil).Result().Cookies()[0]
 	login := call("POST", "/admin/auth/login", `{"email":"viewer@example.test","password":"anything"}`, seed)
 	if login.Code != 200 {
