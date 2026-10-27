@@ -30,6 +30,7 @@ type SQSAPI interface {
 	ReceiveMessage(context.Context, *sqs.ReceiveMessageInput, ...func(*sqs.Options)) (*sqs.ReceiveMessageOutput, error)
 	DeleteMessage(context.Context, *sqs.DeleteMessageInput, ...func(*sqs.Options)) (*sqs.DeleteMessageOutput, error)
 	ChangeMessageVisibility(context.Context, *sqs.ChangeMessageVisibilityInput, ...func(*sqs.Options)) (*sqs.ChangeMessageVisibilityOutput, error)
+	GetQueueAttributes(context.Context, *sqs.GetQueueAttributesInput, ...func(*sqs.Options)) (*sqs.GetQueueAttributesOutput, error)
 }
 type Client struct {
 	api   SQSAPI
@@ -85,6 +86,12 @@ func (c *Client) Ack(ctx context.Context, delivery Delivery) error {
 }
 func (c *Client) Defer(ctx context.Context, delivery Delivery) error {
 	_, err := c.api.ChangeMessageVisibility(ctx, &sqs.ChangeMessageVisibilityInput{QueueUrl: aws.String(c.url), ReceiptHandle: aws.String(delivery.Receipt), VisibilityTimeout: DeferredSeconds})
+	return err
+}
+
+// Probe verifies that the configured queue is reachable with the worker identity.
+func (c *Client) Probe(ctx context.Context) error {
+	_, err := c.api.GetQueueAttributes(ctx, &sqs.GetQueueAttributesInput{QueueUrl: aws.String(c.url)})
 	return err
 }
 func ParseReference(body string) (string, error) {

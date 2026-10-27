@@ -3,6 +3,8 @@
 > Escopo respondido em 14/10/2026: consulte docs/scope-answers.md. Este documento descreve o código existente; token por cliente, whitelist, MO e compatibilidade V1 completa ainda exigem ajustes. Painel solicitado pela 21 é focado em credenciais/configurações com perfil administrativo único. Não confundir recursos extras implementados com requisitos confirmados.
 ## Painel real
 
+Feedback das ações reais usa aviso compartilhado de sucesso ou falha, com texto traduzido, anúncio acessível e fechamento automático. Cadastros, edição, arquivamento, reenvio de convite, callback e teste de SMS usam o mesmo padrão. No teste de SMS, aceite do fornecedor e resultado incerto são avisados separadamente da entrega final; detalhes e erro permanecem na tela da ação.
+
 Login, visão geral, empresas, usuários internos, credenciais externas, envios, callbacks e auditoria conectados à API administrativa. Campos e permissões em docs/backoffice.md. Usuários/auditoria acessíveis somente a administradores; operação de cadastros/credenciais/callbacks disponível a operadores e administradores; consulta não permite alterações.
 
 Empresas e usuários: formulários próprios, status ativo/bloqueado e confirmação de arquivamento. Usuários escolhem Consulta, Operador ou Administrador por opções com ícone e resumo das permissões, com Consulta como sugestão inicial. Administradores têm acesso global; para os demais, o formulário exige uma ou mais empresas. O convite por e-mail permite definir a própria senha, que o admin não digita no cadastro/edição. A prévia usa o mesmo seletor de perfil. Credenciais têm empresa, username, status e configuração de callback; criação/rotação exibe a senha uma vez. Arquivar preserva histórico.

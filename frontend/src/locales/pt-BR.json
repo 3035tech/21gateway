@@ -52,6 +52,22 @@
     "target": "Destino",
     "apiUsername": "Usuário da API"
   },
+  "feedback": {
+    "dismiss": "Fechar aviso",
+    "saved": "Alterações salvas.",
+    "created": "Cadastro criado.",
+    "updated": "Cadastro atualizado.",
+    "archived": "Cadastro arquivado.",
+    "retryScheduled": "Nova tentativa de callback agendada.",
+    "rotated": "Credencial atualizada. Guarde a nova senha exibida.",
+    "inviteSent": "Convite enviado por e-mail.",
+    "sendAccepted": "Envio aceito pelo fornecedor. Acompanhe a entrega.",
+    "sendUncertain": "Resultado do envio incerto. Consulte o histórico antes de tentar novamente.",
+    "sendRejected": "Envio rejeitado pelo fornecedor. Confira os detalhes.",
+    "passwordChanged": "Senha alterada. Entre novamente com a nova senha.",
+    "mfaEnabled": "Autenticação em duas etapas ativada. Guarde os códigos de recuperação.",
+    "mfaDisabled": "Autenticação em duas etapas desativada."
+  },
   "table": {
     "caption": "Resultados da consulta",
     "searchPlaceholder": "Buscar nos resultados",

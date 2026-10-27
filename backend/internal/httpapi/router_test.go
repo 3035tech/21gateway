@@ -59,3 +59,43 @@ func TestReadinessErrorIsStandardizedAndPrivate(t *testing.T) {
 		t.Fatal("internal details leaked")
 	}
 }
+
+func TestDependencyDiagnosticsReportEnabledAndDisabledChecks(t *testing.T) {
+	router := New(nil, false, func(context.Context) error { return nil }, Dependencies{
+		SMTPProbe: func(context.Context) error { return errors.New("password=private-secret") },
+	})
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/health/dependencies", nil))
+	if response.Code != http.StatusServiceUnavailable {
+		t.Fatalf("unexpected status: %d", response.Code)
+	}
+	var report dtos.DependenciesResponse
+	if err := json.Unmarshal(response.Body.Bytes(), &report); err != nil {
+		t.Fatal(err)
+	}
+	if report.Status != dtos.HealthStatusDegraded || report.Database != dtos.DependencyOK || report.SMTP != dtos.DependencyUnavailable || report.SQS != dtos.DependencyDisabled {
+		t.Fatalf("unexpected report: %+v", report)
+	}
+	if strings.Contains(response.Body.String(), "private-secret") {
+		t.Fatal("dependency diagnostic leaked internal error")
+	}
+}
+
+func TestDependencyDiagnosticsHealthy(t *testing.T) {
+	router := New(nil, false, func(context.Context) error { return nil }, Dependencies{
+		SMTPProbe: func(context.Context) error { return nil },
+		SQSProbe:  func(context.Context) error { return nil },
+	})
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/health/dependencies", nil))
+	if response.Code != http.StatusOK {
+		t.Fatalf("unexpected status: %d", response.Code)
+	}
+	var report dtos.DependenciesResponse
+	if err := json.Unmarshal(response.Body.Bytes(), &report); err != nil {
+		t.Fatal(err)
+	}
+	if report.Status != dtos.HealthStatusOK || report.Database != dtos.DependencyOK || report.SMTP != dtos.DependencyOK || report.SQS != dtos.DependencyOK {
+		t.Fatalf("unexpected report: %+v", report)
+	}
+}

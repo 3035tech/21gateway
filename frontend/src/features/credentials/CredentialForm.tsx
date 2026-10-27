@@ -89,11 +89,15 @@ export function CredentialForm({
       legacyAccountId: credential?.legacyAccountId ?? '',
     },
   })
-  const mutation = useAdminMutation<CredentialBody>(async (body) => {
-    const result = await saveCredential(credential?.id, body)
-    if (result.password || (!credential && body.generateUsername))
-      onSecret(result.credential.username, result.password)
-  }, onClose)
+  const mutation = useAdminMutation<CredentialBody>(
+    async (body) => {
+      const result = await saveCredential(credential?.id, body)
+      if (result.password || (!credential && body.generateUsername))
+        onSecret(result.credential.username, result.password)
+    },
+    onClose,
+    credential ? 'feedback.updated' : 'feedback.created',
+  )
 
   const [generateUsername, restrictIPs, active, formCompanyId] = useWatch({
     control: form.control,

@@ -27,6 +27,7 @@ export function CompanyForm({
   const mutation = useAdminMutation<CompanyBody>(
     (body) => saveCompany(company?.id, body),
     onClose,
+    company ? 'feedback.updated' : 'feedback.created',
   )
   const clearProviderToken = useWatch({
     control: form.control,

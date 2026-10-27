@@ -19,7 +19,11 @@ export function CompaniesPage() {
   const canCreate = user?.role === 'admin'
   const [editor, setEditor] = useState<Company | null | undefined>()
   const [archive, setArchive] = useState<Company | null>(null)
-  const mutation = useAdminMutation(archiveCompany, () => setArchive(null))
+  const mutation = useAdminMutation(
+    archiveCompany,
+    () => setArchive(null),
+    'feedback.archived',
+  )
   const columns: ColumnDef<Company>[] = [
     { accessorKey: 'id', header: 'ID' },
     {

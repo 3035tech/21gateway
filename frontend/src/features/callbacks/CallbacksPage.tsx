@@ -20,7 +20,11 @@ export function CallbacksPage() {
   const writable = useUser()?.role !== 'viewer'
   const [retry, setRetry] = useState<Callback | null>(null)
   const [viewing, setViewing] = useState<Callback | null>(null)
-  const mutation = useAdminMutation(retryCallback, () => setRetry(null))
+  const mutation = useAdminMutation(
+    retryCallback,
+    () => setRetry(null),
+    'feedback.retryScheduled',
+  )
   const columns: ColumnDef<Callback>[] = [
     { accessorKey: 'id', header: 'ID' },
     { accessorKey: 'attemptId', header: t('common.sending') },

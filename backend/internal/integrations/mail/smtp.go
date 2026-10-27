@@ -20,6 +20,34 @@ type SMTP struct {
 	AppURL                               *url.URL
 }
 
+// Probe checks the same encrypted authentication path used for delivery without sending mail.
+func (s *SMTP) Probe(ctx context.Context) error {
+	conn, err := (&net.Dialer{Timeout: dialTimeout}).DialContext(ctx, "tcp", net.JoinHostPort(s.Host, s.Port))
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	deadline := time.Now().Add(sendTimeout)
+	if bound, ok := ctx.Deadline(); ok && bound.Before(deadline) {
+		deadline = bound
+	}
+	if err := conn.SetDeadline(deadline); err != nil {
+		return err
+	}
+	client, err := smtp.NewClient(conn, s.Host)
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+	if err := client.StartTLS(&tls.Config{ServerName: s.Host, MinVersion: tls.VersionTLS12}); err != nil {
+		return err
+	}
+	if err := client.Auth(smtp.PlainAuth("", s.Username, s.Password, s.Host)); err != nil {
+		return err
+	}
+	return client.Quit()
+}
+
 func (s *SMTP) SendPasswordReset(ctx context.Context, to, token string) error {
 	return s.send(ctx, to, token, "Recuperar acesso", "Redefina sua senha", "Recebemos um pedido para redefinir a senha da sua conta administrativa.")
 }

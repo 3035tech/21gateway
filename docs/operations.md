@@ -53,7 +53,7 @@ Nunca reutilizar ID existente com outro material. Binário antigo não lê v2; r
 
 ## Diagnóstico e alertas
 
-/healthz verifica processo; /readyz verifica banco. GET /internal/operations é opt-in com OPERATIONS_ENABLED=true e Bearer OPERATIONS_TOKEN próprio (mínimo 32 bytes). Desativado por padrão; manter rota em rede operacional/HTTPS no deployment. Não reutilizar senha de cliente ou token do fornecedor.
+/healthz verifica processo; /readyz verifica banco. GET /health/dependencies executa verificações limitadas de PostgreSQL, autenticação SMTP via STARTTLS sem enviar e-mail e acesso à fila SQS quando habilitada. Retorna apenas `ok`, `unavailable` ou `disabled` por dependência, sem hosts, credenciais ou erros internos; status geral `degraded` e HTTP 503 se alguma dependência configurada falhar. SMTP/SQS desabilitados são `disabled`. O resultado é armazenado por 30 segundos para limitar conexões e custo. Não usar esta rota como liveness/readiness do Kubernetes, pois depende de serviços externos. Com SQS ativo, a role precisa de `sqs:GetQueueAttributes` na fila configurada. GET /internal/operations é opt-in com OPERATIONS_ENABLED=true e Bearer OPERATIONS_TOKEN próprio (mínimo 32 bytes). Desativado por padrão; manter rota em rede operacional/HTTPS no deployment. Não reutilizar senha de cliente ou token do fornecedor.
 
 Retorna pending, processing, leases expirados, falhas na última hora, data do job pendente mais antigo, eventos não associados/data mais antiga e instante da observação, separados DLR/MO. Sem URLs, telefones, payloads, chaves ou hashes. Timeout cinco segundos; índices parciais para filas e falhas recentes. Snapshot não é transação consistente entre todas as consultas nem histórico de séries temporais.
 

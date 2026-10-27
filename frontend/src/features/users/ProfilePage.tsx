@@ -15,6 +15,7 @@ import { systemPasswordLimits } from './api'
 import { errorMessage, formatDate, roleLabels } from '../../lib/admin'
 import { MFASettings } from './MFASettings'
 import { useTranslation } from 'react-i18next'
+import { useFeedback } from '../../components/admin/feedbackContext'
 
 const schema = z
   .object({
@@ -43,6 +44,7 @@ type FormValues = z.infer<typeof schema>
 
 export function ProfilePage() {
   const { t } = useTranslation()
+  const feedback = useFeedback()
   const user = useUser()
   const client = useQueryClient()
   const [changed, setChanged] = useState(false)
@@ -58,7 +60,9 @@ export function ProfilePage() {
       setChanged(true)
       client.removeQueries({ queryKey: ['admin'] })
       client.setQueryData(['session'], null)
+      feedback.success(t('feedback.passwordChanged'))
     },
+    onError: (error) => feedback.error(errorMessage(error)),
   })
   if (!user) return null
   return (

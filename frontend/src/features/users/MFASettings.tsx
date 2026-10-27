@@ -6,9 +6,11 @@ import { beginMFA, confirmMFA, disableMFA, mfaStatus } from '../auth/api'
 import { MfaCodeInput } from '../auth/MfaCodeInput'
 import { errorMessage } from '../../lib/admin'
 import { useTranslation } from 'react-i18next'
+import { useFeedback } from '../../components/admin/feedbackContext'
 
 export function MFASettings() {
   const { t } = useTranslation()
+  const feedback = useFeedback()
   const client = useQueryClient()
   const status = useQuery({ queryKey: ['admin', 'mfa'], queryFn: mfaStatus })
   const [password, setPassword] = useState('')
@@ -21,6 +23,7 @@ export function MFASettings() {
   const begin = useMutation({
     mutationFn: () => beginMFA(password),
     onSuccess: setSetup,
+    onError: (error) => feedback.error(errorMessage(error)),
   })
   const confirm = useMutation({
     mutationFn: (value: string) => confirmMFA(value),
@@ -30,7 +33,9 @@ export function MFASettings() {
       setPassword('')
       setCode('')
       client.setQueryData(['admin', 'mfa'], { enabled: true })
+      feedback.success(t('feedback.mfaEnabled'))
     },
+    onError: (error) => feedback.error(errorMessage(error)),
   })
   const disable = useMutation({
     mutationFn: (value: string) => disableMFA(password, value),
@@ -38,7 +43,9 @@ export function MFASettings() {
       setPassword('')
       setCode('')
       client.setQueryData(['admin', 'mfa'], { enabled: false })
+      feedback.success(t('feedback.mfaDisabled'))
     },
+    onError: (error) => feedback.error(errorMessage(error)),
   })
   return (
     <section

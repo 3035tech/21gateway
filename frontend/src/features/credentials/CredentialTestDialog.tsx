@@ -7,6 +7,7 @@ import { api } from '../../lib/api'
 import { listMessages, sendTestSMS } from '../messages/api'
 import type { Credential } from './api'
 import { useTranslation } from 'react-i18next'
+import { useFeedback } from '../../components/admin/feedbackContext'
 
 export function CredentialTestDialog({
   credential,
@@ -16,6 +17,7 @@ export function CredentialTestDialog({
   onClose: () => void
 }) {
   const { t } = useTranslation()
+  const feedback = useFeedback()
   const [destination, setDestination] = useState('')
   const [confirmed, setConfirmed] = useState(false)
   const [delivery, setDelivery] = useState<string | null>(null)
@@ -25,7 +27,18 @@ export function CredentialTestDialog({
   ).toString()
   const send = useMutation({
     mutationFn: () => sendTestSMS(credential.id, destination),
-    onSuccess: () => setDelivery(null),
+    onSuccess: (result) => {
+      setDelivery(null)
+      if (result.submissionState === 'accepted')
+        feedback.success(t('feedback.sendAccepted'))
+      else if (result.submissionState === 'unknown')
+        feedback.error(t('feedback.sendUncertain'))
+      else feedback.error(t('feedback.sendRejected'))
+    },
+    onError: (error) =>
+      feedback.error(
+        errorMessage(error) + ' ' + t('credentialTest.uncertainHint'),
+      ),
   })
   const checkDelivery = useMutation({
     mutationFn: async () => {

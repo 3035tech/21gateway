@@ -118,7 +118,8 @@
                 "sqs:SendMessage",
                 "sqs:ReceiveMessage",
                 "sqs:DeleteMessage",
-                "sqs:ChangeMessageVisibility"
+                "sqs:ChangeMessageVisibility",
+                "sqs:GetQueueAttributes"
               ],
               "Resource": {
                 "Fn::GetAtt": [

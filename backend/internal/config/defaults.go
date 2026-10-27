@@ -7,6 +7,8 @@ const (
 	StartupTimeout             = 5 * time.Second
 	ShutdownTimeout            = 10 * time.Second
 	ReadinessTimeout           = 2 * time.Second
+	DependencyCheckTimeout     = 5 * time.Second
+	DependencyCheckCacheTTL    = 30 * time.Second
 	ReadHeaderTimeout          = 5 * time.Second
 	ReadTimeout                = 15 * time.Second
 	WriteTimeout               = 30 * time.Second

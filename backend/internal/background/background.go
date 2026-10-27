@@ -94,3 +94,10 @@ func (w *Workers) Close() {
 		w.sender.Close()
 	}
 }
+
+func (w *Workers) QueueProbe() func(context.Context) error {
+	if w.queue == nil {
+		return nil
+	}
+	return w.queue.Probe
+}

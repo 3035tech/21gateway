@@ -7,6 +7,7 @@ import { Listing } from '../../components/admin/Listing'
 import { StatusBadge } from '../../components/admin/StatusBadge'
 import { Confirmation } from '../../components/admin/Confirmation'
 import { useAdminMutation } from '../../components/admin/useAdminMutation'
+import { useFeedback } from '../../components/admin/feedbackContext'
 import { useUser } from '../auth/context'
 import { errorMessage, roleLabels } from '../../lib/admin'
 import { listUsers, getUser, archiveUser, resendInvitation } from './api'
@@ -19,6 +20,7 @@ export function UsersPage({
   companyName,
 }: { companyId?: number; companyName?: string } = {}) {
   const { t } = useTranslation()
+  const feedback = useFeedback()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const fromCompany = searchParams.get('fromCompany')
@@ -36,11 +38,19 @@ export function UsersPage({
   const [editor, setEditor] = useState<SystemUser | null | undefined>()
   const [viewing, setViewing] = useState<SystemUser | null>(null)
   const [archive, setArchive] = useState<SystemUser | null>(null)
-  const mutation = useAdminMutation(archiveUser, () => setArchive(null))
+  const mutation = useAdminMutation(
+    archiveUser,
+    () => setArchive(null),
+    'feedback.archived',
+  )
   const [inviteSent, setInviteSent] = useState(false)
   const resend = useMutation({
     mutationFn: resendInvitation,
-    onSuccess: () => setInviteSent(true),
+    onSuccess: () => {
+      setInviteSent(true)
+      feedback.success(t('feedback.inviteSent'))
+    },
+    onError: (error) => feedback.error(errorMessage(error)),
   })
   const columns: ColumnDef<SystemUser>[] = [
     { accessorKey: 'id', header: 'ID' },

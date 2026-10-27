@@ -52,6 +52,22 @@
     "target": "Destination",
     "apiUsername": "API username"
   },
+  "feedback": {
+    "dismiss": "Dismiss notice",
+    "saved": "Changes saved.",
+    "created": "Record created.",
+    "updated": "Record updated.",
+    "archived": "Record archived.",
+    "retryScheduled": "Callback retry scheduled.",
+    "rotated": "Credential updated. Save the new password shown.",
+    "inviteSent": "Invitation sent by email.",
+    "sendAccepted": "Provider accepted the message. Track delivery separately.",
+    "sendUncertain": "Sending result is uncertain. Check history before trying again.",
+    "sendRejected": "Provider rejected the message. Check the details.",
+    "passwordChanged": "Password changed. Sign in again with the new password.",
+    "mfaEnabled": "Two-factor authentication enabled. Save the recovery codes.",
+    "mfaDisabled": "Two-factor authentication disabled."
+  },
   "table": {
     "caption": "Search results",
     "searchPlaceholder": "Search results",

@@ -8,6 +8,8 @@ import { CompanyAccessPicker } from './CompanyAccessPicker'
 import { Dialog } from '../../components/admin/Dialog'
 import { FormFooter, FieldError } from '../../components/admin/FormFooter'
 import { useTranslation } from 'react-i18next'
+import { useFeedback } from '../../components/admin/feedbackContext'
+import { errorMessage } from '../../lib/admin'
 import { useEffect, useState } from 'react'
 import { useQueries, useQuery } from '@tanstack/react-query'
 import { getCompany, listCompanies } from '../companies/api'
@@ -21,6 +23,7 @@ export function UserForm({
   onClose: () => void
 }) {
   const { t } = useTranslation()
+  const feedback = useFeedback()
   const client = useQueryClient()
   const [companySearch, setCompanySearch] = useState('')
   const [debouncedCompanySearch, setDebouncedCompanySearch] = useState('')
@@ -80,8 +83,10 @@ export function UserForm({
       await client.invalidateQueries({ queryKey: ['admin'] })
       await client.invalidateQueries({ queryKey: ['session'] })
       onClose()
+      feedback.success(t(user ? 'feedback.updated' : 'feedback.inviteSent'))
     },
-    onError: () => {
+    onError: (error) => {
+      feedback.error(errorMessage(error))
       if (!user) void client.invalidateQueries({ queryKey: ['admin'] })
     },
   })

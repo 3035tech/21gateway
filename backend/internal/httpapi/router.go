@@ -17,6 +17,8 @@ import (
 )
 
 type Dependencies struct {
+	SMTPProbe              func(context.Context) error
+	SQSProbe               func(context.Context) error
 	Operations             *services.OperationsService
 	OperationsEnabled      bool
 	OperationsToken        string
@@ -112,7 +114,7 @@ func New(origins []string, docsEnabled bool, ping func(context.Context) error, d
 	if dependencies.Operations != nil && dependencies.OperationsEnabled {
 		controllers.NewOperationsController(dependencies.Operations).Register(api, dependencies.OperationsToken)
 	}
-	controllers.NewHealthController(services.NewHealthService(ping)).Register(api)
+	controllers.NewHealthController(services.NewHealthService(ping).WithDependencies(dependencies.SMTPProbe, dependencies.SQSProbe)).Register(api)
 	if dependencies.SMS != nil && dependencies.Auth != nil {
 		controllers.NewSMSController(dependencies.SMS, dependencies.Auth).Register(api)
 	}

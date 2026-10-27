@@ -86,6 +86,7 @@ export function CredentialsPage({
       } else await archiveCredential(value.credential.id)
     },
     () => setAction(null),
+    (value) => (value.rotate ? 'feedback.rotated' : 'feedback.archived'),
   )
   const columns: ColumnDef<Credential>[] = [
     { accessorKey: 'id', header: 'ID' },

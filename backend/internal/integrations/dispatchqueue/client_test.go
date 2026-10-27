@@ -21,6 +21,7 @@ type fakeSQS struct {
 	received *sqs.ReceiveMessageInput
 	deleted  *sqs.DeleteMessageInput
 	deferred *sqs.ChangeMessageVisibilityInput
+	probed   *sqs.GetQueueAttributesInput
 }
 
 func (f *fakeSQS) SendMessage(_ context.Context, in *sqs.SendMessageInput, _ ...func(*sqs.Options)) (*sqs.SendMessageOutput, error) {
@@ -38,6 +39,20 @@ func (f *fakeSQS) DeleteMessage(_ context.Context, in *sqs.DeleteMessageInput, _
 func (f *fakeSQS) ChangeMessageVisibility(_ context.Context, in *sqs.ChangeMessageVisibilityInput, _ ...func(*sqs.Options)) (*sqs.ChangeMessageVisibilityOutput, error) {
 	f.deferred = in
 	return &sqs.ChangeMessageVisibilityOutput{}, nil
+}
+func (f *fakeSQS) GetQueueAttributes(_ context.Context, in *sqs.GetQueueAttributesInput, _ ...func(*sqs.Options)) (*sqs.GetQueueAttributesOutput, error) {
+	f.probed = in
+	return &sqs.GetQueueAttributesOutput{}, nil
+}
+
+func TestQueueProbeUsesConfiguredQueue(t *testing.T) {
+	api := &fakeSQS{}
+	if err := NewWithAPI(api, testURL).Probe(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if api.probed == nil || aws.ToString(api.probed.QueueUrl) != testURL {
+		t.Fatal("probe did not inspect the configured queue")
+	}
 }
 func TestSQSReferenceOnlyAndBoundedReceive(t *testing.T) {
 	api := &fakeSQS{}
