@@ -340,7 +340,7 @@
   "credentials": {
     "editTitle": "Editar credencial",
     "newTitle": "Nova credencial da API",
-    "formDescription": "Configure o acesso do cliente, o envio de mensagens e os destinos das notificações.",
+    "formDescription": "Selecione a empresa, defina o usuário e a senha da Basic Auth e depois ajuste notificações e IPs, se necessário.",
     "formSections": "Seções da credencial",
     "tabs": {
       "access": "Acesso",
@@ -420,11 +420,13 @@
     "username": "Usuário",
     "savedPassword": "Já guardei a senha",
     "generateUsername": "Gerar usuário Basic Auth aleatório",
-    "basicAuthHint": "Escolha a empresa e o usuário que o cliente usará para chamar a API. A senha é definida abaixo.",
+    "basicAuthHint": "Esta credencial pertence à empresa escolhida. Informe o usuário e a senha que o cliente usará na autenticação HTTP Basic da API.",
+    "basicUsername": "Usuário Basic Auth",
     "generatedUsernamePlaceholder": "Gerado ao salvar",
     "passwordStoredHint": "A senha Basic Auth já está definida e não pode ser exibida novamente. Para substituí-la, use Trocar senha da API na listagem e atualize a integração do cliente.",
     "generatedUsernameHint": "Um usuário único será gerado e exibido após salvar.",
     "passwordSetup": "Senha Basic Auth da API",
+    "passwordStorageHint": "A senha é usada para criar um hash Argon2id. O valor original não é salvo no banco e não poderá ser consultado depois.",
     "passwordMode": {
       "generated": "Gerar senha forte",
       "manual": "Definir manualmente",
@@ -435,7 +437,7 @@
       "manual": "Escolha uma senha para esta integração.",
       "legacy": "Para clientes que já usam uma senha da API."
     },
-    "manualPassword": "Senha manual",
+    "manualPassword": "Digite a senha Basic Auth",
     "manualPasswordHint": "Use pelo menos 15 caracteres. A senha não será exibida após salvar.",
     "expiresAt": "Válida até",
     "expiryHint": "Opcional. Sem data, a credencial não expira. Horário no fuso do navegador.",

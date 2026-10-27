@@ -163,13 +163,25 @@ it('uses the selected company when creating an operator credential', async () =>
     expect(
       screen.queryByRole('combobox', { name: 'Empresa' }),
     ).not.toBeInTheDocument()
-    await userEvent
-      .setup()
-      .click(screen.getByRole('button', { name: 'Criar credencial' }))
+    const user = userEvent.setup()
+    await user.type(
+      screen.getByRole('textbox', { name: 'Usuário Basic Auth' }),
+      'aurora-api',
+    )
+    await user.type(
+      screen.getByLabelText(/Digite a senha Basic Auth/),
+      'senha-longa-para-aurora',
+    )
+    await user.click(screen.getByRole('button', { name: 'Criar credencial' }))
     await waitFor(() =>
       expect(post).toHaveBeenCalledWith(
         '/admin/credentials',
-        expect.objectContaining({ companyId: 7 }),
+        expect.objectContaining({
+          companyId: 7,
+          username: 'aurora-api',
+          manualPassword: 'senha-longa-para-aurora',
+          generateUsername: false,
+        }),
       ),
     )
   } finally {

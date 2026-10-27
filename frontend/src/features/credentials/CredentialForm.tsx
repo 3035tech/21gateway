@@ -54,7 +54,7 @@ export function CredentialForm({
   } | null>(null)
   const [passwordMode, setPasswordMode] = useState<
     'generated' | 'manual' | 'legacy'
-  >('generated')
+  >(credential ? 'generated' : 'manual')
   const [activeTab, setActiveTab] = useState<CredentialTab>('access')
   const [ipDraftValid, setIpDraftValid] = useState(true)
   const companies = useQuery({
@@ -82,8 +82,8 @@ export function CredentialForm({
     resolver: zodResolver(credentialFormSchema),
     defaultValues: {
       companyId: selectedCompanyId ?? 0,
-      generateUsername: !credential,
-      passwordMode: 'generated',
+      generateUsername: false,
+      passwordMode: credential ? 'generated' : 'manual',
       username: credential?.username ?? '',
       active: credential?.active ?? true,
       callbackUrl: credential?.callbackUrl ?? '',
@@ -397,7 +397,7 @@ export function CredentialForm({
                 </div>
                 <div className="space-y-4">
                   <label className="field">
-                    {t('common.apiUsername')}
+                    {t('credentials.basicUsername')}
                     <input
                       className="form-control"
                       autoComplete="off"
@@ -445,6 +445,9 @@ export function CredentialForm({
                     <legend className="mb-3 text-base font-bold text-slate-900">
                       {t('credentials.passwordSetup')}
                     </legend>
+                    <p className="mb-4 text-xs leading-5 text-slate-600">
+                      {t('credentials.passwordStorageHint')}
+                    </p>
                     <div className="grid gap-3 sm:grid-cols-3">
                       {(['generated', 'manual', 'legacy'] as const).map(
                         (mode) => (
