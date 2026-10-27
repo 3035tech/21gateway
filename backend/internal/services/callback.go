@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/21mobile/sms-gateway/internal/dtos"
 	apperrors "github.com/21mobile/sms-gateway/internal/errors"
+	"github.com/21mobile/sms-gateway/internal/integrations/whitelabel"
 	"github.com/21mobile/sms-gateway/internal/models"
 	"github.com/21mobile/sms-gateway/internal/repositories"
 	"github.com/google/uuid"
@@ -15,6 +16,16 @@ type CallbackService struct{ repository *repositories.Callbacks }
 
 func NewCallbackService(repo *repositories.Callbacks) *CallbackService {
 	return &CallbackService{repository: repo}
+}
+
+// AcceptWhiteLabelDelivery is the inactive adapter entry point. The external
+// route must not be exposed until webhook authentication is confirmed.
+func (s *CallbackService) AcceptWhiteLabelDelivery(ctx context.Context, payload []byte) error {
+	input, err := whitelabel.NormalizeDeliveryCallback(payload)
+	if err != nil {
+		return apperrors.Wrap(apperrors.CodeInvalidRequest, err)
+	}
+	return s.Accept(ctx, input)
 }
 func (s *CallbackService) Accept(ctx context.Context, input dtos.DeliveryInput) error {
 	id, err := uuid.Parse(input.Body.ProviderMessageID)

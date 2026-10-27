@@ -66,7 +66,7 @@ Envios mostram submissão e entrega separadas. Sem DLR, a entrega aparece como s
 
 Migration 003 adiciona eventos de entrega e outbox durável. `cmd/worker` reconcilia callbacks antecipados e entrega notificações GET com `idSms`, `correlationId`, `status`, conforme manual legado. O cabeçalho `X-21Mobile-Event-ID` oferece um identificador estável para deduplicação no cliente.
 
-O recebimento real do white label continua pendente: payload, autenticação e mapeamento de status não foram fornecidos. `POST /internal/dlr` é um contrato interno normalizado, disponível somente com `CALLBACK_INGRESS_ENABLED=true` e Bearer `CALLBACK_INGRESS_TOKEN` de pelo menos 32 bytes. NÃO é uma implementação presumida do contrato do fornecedor. O envio SMS permanece com callback_level NONE até homologar o adaptador.
+O documento Zoug de callback agora define payloads dos tipos 1/2/3. O adaptador inativo em [zoug-callback.md](zoug-callback.md) valida os três e traduz apenas status DLR inequívocos; autenticação externa, vínculo MO e alguns status continuam pendentes. `POST /internal/dlr` permanece um contrato interno normalizado, disponível somente com `CALLBACK_INGRESS_ENABLED=true` e Bearer `CALLBACK_INGRESS_TOKEN` de pelo menos 32 bytes. Não é a rota do fornecedor. O envio SMS permanece com callback_level NONE até homologar o ingresso externo.
 
 Contrato interno: `eventKey` (identificador estável, até 200 caracteres), `providerMessageId` (UUID), `status` (enum legado) e `occurredAt` (RFC3339). Aceite retorna 204 após persistência. Repetir mesmo evento é idempotente; reutilizar a chave com outros dados retorna 409. Horário é normalizado para microssegundos. Eventos antecipados ficam persistidos até o UUID do envio ser associado.
 
