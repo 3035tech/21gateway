@@ -105,6 +105,7 @@ export function CompanyForm({
           pending={mutation.isPending}
           error={mutation.error}
           onCancel={onClose}
+          submitLabel={company ? t('common.save') : t('companies.create')}
         />
       </form>
     </Dialog>

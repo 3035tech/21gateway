@@ -31,6 +31,7 @@ import { initialRows, sections } from './data'
 import { useTranslation } from 'react-i18next'
 import { LanguageSwitcher } from '../../components/admin/LanguageSwitcher'
 import { Dialog } from '../../components/admin/Dialog'
+import { useFeedback } from '../../components/admin/feedbackContext'
 import { AppSelect } from '../../components/admin/AppSelect'
 import { RolePicker } from '../users/RolePicker'
 import { CompanyAccessPicker } from '../users/CompanyAccessPicker'
@@ -519,6 +520,7 @@ function Listing({
   )
   const [status, setStatus] = useState('')
   const [editing, setEditing] = useState<DemoRow | null>(null)
+  const [formError, setFormError] = useState('')
   const [companySearch, setCompanySearch] = useState('')
   const [companyPage, setCompanyPage] = useState(1)
   const [demoPasswordMode, setDemoPasswordMode] = useState<
@@ -536,7 +538,7 @@ function Listing({
     () => rows.find((row) => row.id === recordId) ?? null,
   )
   const [archiving, setArchiving] = useState<DemoRow | null>(null)
-  const [notice, setNotice] = useState('')
+  const feedback = useFeedback()
   const matchingCompanies = companies
     .filter((company) => company.status === 'active')
     .filter((company) =>
@@ -627,6 +629,7 @@ function Listing({
               onClick={() => {
                 setDemoProviderToken('')
                 setDemoClearProviderToken(false)
+                setFormError('')
                 setEditing(row.original)
               }}
             >
@@ -647,7 +650,7 @@ function Listing({
             className="table-action"
             onClick={() => {
               onSave({ ...row.original, status: 'pending' })
-              setNotice(t('demo.callbackRetried'))
+              feedback.success(t('demo.callbackRetried'))
             }}
           >
             {t('common.retry')}
@@ -674,6 +677,7 @@ function Listing({
               setDemoPassword('')
               setDemoProviderToken('')
               setDemoClearProviderToken(false)
+              setFormError('')
               setEditing({
                 id: '',
                 name: '',
@@ -699,14 +703,6 @@ function Listing({
           </button>
         ) : null}
       </div>
-      {notice ? (
-        <p
-          role="status"
-          className="mb-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800"
-        >
-          {notice}
-        </p>
-      ) : null}
       <DataTable
         columns={columns}
         data={filtered.slice(
@@ -902,7 +898,7 @@ function Listing({
               onClick={() => {
                 onArchive(archiving.id)
                 setArchiving(null)
-                setNotice(t('demo.archived'))
+                feedback.success(t('demo.archived'))
               }}
             >
               {t('common.archive')}
@@ -915,7 +911,10 @@ function Listing({
           title={t(
             `demo.${editing.id ? 'editEntity' : 'newEntity'}.${section}`,
           )}
-          onClose={() => setEditing(null)}
+          onClose={() => {
+            setEditing(null)
+            setFormError('')
+          }}
         >
           <p className="mt-1 text-sm text-slate-500">
             {section === 'usuarios' && !editing.id
@@ -924,8 +923,44 @@ function Listing({
           </p>
           <form
             className="mt-6 space-y-4"
+            noValidate
+            onInput={() => setFormError('')}
             onSubmit={(event) => {
               event.preventDefault()
+              if (!demoGenerateUsername && !editing.name.trim()) {
+                setFormError(t('validation.name'))
+                return
+              }
+              if (
+                section === 'usuarios' &&
+                !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editing.detail.trim())
+              ) {
+                setFormError(t('validation.email'))
+                return
+              }
+              if (section === 'credenciais' && !editing.company) {
+                setFormError(t('validation.selectCompany'))
+                return
+              }
+              if (section === 'credenciais' && editing.detail) {
+                let url: URL
+                try {
+                  url = new URL(editing.detail)
+                } catch {
+                  setFormError(t('validation.httpsUrl'))
+                  return
+                }
+                if (
+                  url.protocol !== 'https:' ||
+                  url.username ||
+                  url.password ||
+                  url.hash ||
+                  (url.port && url.port !== '443')
+                ) {
+                  setFormError(t('validation.httpsUrl'))
+                  return
+                }
+              }
               const username =
                 section === 'credenciais' && !editing.id && demoGenerateUsername
                   ? `gw_${crypto.randomUUID().replaceAll('-', '').slice(0, 12)}`
@@ -935,8 +970,19 @@ function Listing({
                 !editing.id &&
                 demoPasswordMode !== 'generated' &&
                 !demoPassword
-              )
+              ) {
+                setFormError(t('validation.manualPasswordRequired'))
                 return
+              }
+              if (
+                section === 'credenciais' &&
+                !editing.id &&
+                demoPasswordMode === 'manual' &&
+                Array.from(demoPassword.trim()).length < 15
+              ) {
+                setFormError(t('validation.passwordMinimumTrimmed'))
+                return
+              }
               if (
                 section === 'credenciais' &&
                 !editing.id &&
@@ -961,9 +1007,10 @@ function Listing({
                 date: new Date().toLocaleString(i18n.language),
               })
               setEditing(null)
+              setFormError('')
               setDemoPassword('')
               setDemoProviderToken('')
-              setNotice(
+              feedback.success(
                 section === 'usuarios' && !editing.id
                   ? t('demo.invitationSimulated')
                   : t('demo.recordSaved'),
@@ -1245,11 +1292,19 @@ function Listing({
                 ]}
               />
             </label>
+            {formError ? (
+              <p role="alert" className="text-sm text-rose-700">
+                {formError}
+              </p>
+            ) : null}
             <div className="flex justify-end gap-3 border-t border-slate-100 pt-5">
               <button
                 className="button-secondary"
                 type="button"
-                onClick={() => setEditing(null)}
+                onClick={() => {
+                  setEditing(null)
+                  setFormError('')
+                }}
               >
                 {t('common.cancel')}
               </button>
@@ -1266,7 +1321,9 @@ function Listing({
                   ? t('demo.simulateInvitation')
                   : section === 'credenciais' && !editing.id
                     ? t('credentials.create')
-                    : t('common.save')}
+                    : section === 'empresas' && !editing.id
+                      ? t('companies.create')
+                      : t('common.save')}
               </button>
             </div>
           </form>

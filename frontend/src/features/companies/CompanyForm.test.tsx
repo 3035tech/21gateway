@@ -24,7 +24,7 @@ it('validates company name and persists the submitted body', async () => {
     </QueryClientProvider>,
   )
   const user = userEvent.setup()
-  await user.click(screen.getByRole('button', { name: 'Salvar alterações' }))
+  await user.click(screen.getByRole('button', { name: 'Criar empresa' }))
   expect(await screen.findByText('Informe o nome.')).toBeInTheDocument()
   expect(post).not.toHaveBeenCalled()
   await user.type(
@@ -32,7 +32,7 @@ it('validates company name and persists the submitted body', async () => {
     'Empresa teste',
   )
   await user.type(screen.getByLabelText('Referência'), 'CLI-001')
-  await user.click(screen.getByRole('button', { name: 'Salvar alterações' }))
+  await user.click(screen.getByRole('button', { name: 'Criar empresa' }))
   await vi.waitFor(() => expect(close).toHaveBeenCalled())
   expect(post).toHaveBeenCalledWith('/admin/companies', {
     name: 'Empresa teste',

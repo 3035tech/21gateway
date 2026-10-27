@@ -9,6 +9,14 @@ import type { Credential } from './api'
 import { useTranslation } from 'react-i18next'
 import { useFeedback } from '../../components/admin/feedbackContext'
 
+function formatMobileNumber(digits: string) {
+  if (!digits) return ''
+  if (digits.length <= 2) return `(${digits}`
+  const local = digits.slice(2)
+  if (local.length <= 5) return `(${digits.slice(0, 2)}) ${local}`
+  return `(${digits.slice(0, 2)}) ${local.slice(0, 5)}-${local.slice(5)}`
+}
+
 export function CredentialTestDialog({
   credential,
   onClose,
@@ -19,6 +27,8 @@ export function CredentialTestDialog({
   const { t } = useTranslation()
   const feedback = useFeedback()
   const [destination, setDestination] = useState('')
+  const [useStandardMessage, setUseStandardMessage] = useState(true)
+  const [customMessage, setCustomMessage] = useState('')
   const [confirmed, setConfirmed] = useState(false)
   const [delivery, setDelivery] = useState<string | null>(null)
   const checkURL = new URL(
@@ -26,7 +36,12 @@ export function CredentialTestDialog({
     api.defaults.baseURL ?? window.location.origin,
   ).toString()
   const send = useMutation({
-    mutationFn: () => sendTestSMS(credential.id, destination),
+    mutationFn: () =>
+      sendTestSMS(
+        credential.id,
+        destination,
+        useStandardMessage ? undefined : customMessage,
+      ),
     onSuccess: (result) => {
       setDelivery(null)
       if (result.submissionState === 'accepted')
@@ -96,15 +111,54 @@ export function CredentialTestDialog({
             {t('credentialTest.testNumber')}
             <input
               className="form-control mt-2 w-full max-w-xs"
-              inputMode="numeric"
+              type="tel"
+              inputMode="tel"
               autoComplete="off"
-              maxLength={11}
-              value={destination}
-              onChange={(event) => setDestination(event.target.value)}
+              maxLength={15}
+              value={formatMobileNumber(destination)}
+              onChange={(event) =>
+                setDestination(
+                  event.target.value.replace(/\D/g, '').slice(0, 11),
+                )
+              }
               disabled={busy || !!send.data}
-              placeholder="11999999999"
+              placeholder="(11) 99999-9999"
             />
           </label>
+          <label className="mt-4 flex items-start gap-3 text-sm leading-6">
+            <input
+              type="checkbox"
+              className="mt-1 size-4 accent-brand-purple"
+              checked={useStandardMessage}
+              onChange={(event) => setUseStandardMessage(event.target.checked)}
+              disabled={busy || !!send.data}
+            />
+            {t('credentialTest.useStandardMessage')}
+          </label>
+          {useStandardMessage ? (
+            <p className="mt-2 rounded-lg bg-purple-50 p-3 text-sm text-slate-700">
+              {t('credentialTest.standardMessagePreview', {
+                company: credential.companyName,
+              })}
+            </p>
+          ) : (
+            <label className="mt-4 block text-sm font-semibold">
+              {t('credentialTest.messageText')}
+              <textarea
+                className="form-control mt-2 min-h-28 w-full resize-y"
+                rows={4}
+                maxLength={160}
+                value={customMessage}
+                onChange={(event) => setCustomMessage(event.target.value)}
+                disabled={busy || !!send.data}
+              />
+              <span className="mt-1 block text-xs font-normal text-slate-500">
+                {t('credentialTest.messageLength', {
+                  count: Array.from(customMessage).length,
+                })}
+              </span>
+            </label>
+          )}
           <label className="mt-4 flex items-start gap-3 text-sm leading-6">
             <input
               type="checkbox"
@@ -153,6 +207,9 @@ export function CredentialTestDialog({
               disabled={
                 !confirmed ||
                 !/^\d{11}$/.test(destination) ||
+                (!useStandardMessage &&
+                  (!customMessage.trim() ||
+                    Array.from(customMessage).length > 160)) ||
                 busy ||
                 !credential.active
               }

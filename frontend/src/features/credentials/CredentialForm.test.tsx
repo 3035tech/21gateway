@@ -56,18 +56,46 @@ it('preserves callbacks, hidden IP values and the existing token when editing', 
     const close = vi.fn()
     renderEditor(close)
     const user = userEvent.setup()
+    await user.click(screen.getByRole('tab', { name: 'Notificações' }))
+    expect(
+      screen.getByRole('textbox', { name: 'URL de status (DLR)' }),
+    ).toHaveValue(credential.callbackUrl)
+    await user.click(screen.getByRole('tab', { name: 'IPs autorizados' }))
     await user.click(
       screen.getByRole('checkbox', { name: 'Permitir apenas IPs autorizados' }),
     )
     expect(
-      screen.queryByRole('textbox', { name: /IPs ou redes autorizadas/ }),
+      screen.queryByRole('textbox', { name: 'Adicionar IP ou rede' }),
     ).not.toBeInTheDocument()
     await user.click(
       screen.getByRole('checkbox', { name: 'Permitir apenas IPs autorizados' }),
     )
     expect(
-      screen.getByRole('textbox', { name: /IPs ou redes autorizadas/ }),
-    ).toHaveValue('203.0.113.10\n198.51.100.0/24')
+      screen.getByRole('region', { name: 'IPs individuais' }),
+    ).toHaveTextContent('203.0.113.10')
+    expect(
+      screen.getByRole('region', { name: 'Redes CIDR' }),
+    ).toHaveTextContent('198.51.100.0/24')
+    await user.type(
+      screen.getByRole('textbox', { name: 'Adicionar IP ou rede' }),
+      '999.1.1.1{Enter}',
+    )
+    expect(screen.getByRole('alert')).toHaveTextContent('IP ou rede inválida')
+    await user.click(screen.getByRole('button', { name: 'Salvar alterações' }))
+    expect(put).not.toHaveBeenCalled()
+    await user.clear(
+      screen.getByRole('textbox', { name: 'Adicionar IP ou rede' }),
+    )
+    await user.type(
+      screen.getByRole('textbox', { name: 'Adicionar IP ou rede' }),
+      '192.0.2.1, 192.0.2.0/24{Enter}',
+    )
+    expect(
+      screen.getByRole('region', { name: 'IPs individuais' }),
+    ).toHaveTextContent('192.0.2.1')
+    expect(
+      screen.getByRole('region', { name: 'Redes CIDR' }),
+    ).toHaveTextContent('192.0.2.0/24')
     await user.click(screen.getByRole('button', { name: 'Salvar alterações' }))
     await waitFor(() => expect(close).toHaveBeenCalled())
     expect(put).toHaveBeenCalledWith(
@@ -76,7 +104,7 @@ it('preserves callbacks, hidden IP values and the existing token when editing', 
         companyId: 1,
         providerToken: undefined,
         clearProviderToken: false,
-        allowedIPs: credential.allowedIPs,
+        allowedIPs: [...credential.allowedIPs, '192.0.2.1', '192.0.2.0/24'],
         callbackUrl: credential.callbackUrl,
         callbacksEnabled: true,
         moCallbackUrl: credential.moCallbackUrl,

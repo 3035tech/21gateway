@@ -34,7 +34,7 @@ export function FeedbackProvider({ children }: PropsWithChildren) {
         <div
           key={notice.id}
           role={notice.kind === 'error' ? 'alert' : 'status'}
-          className={`fixed bottom-5 right-5 z-[100] flex max-w-sm items-start gap-3 rounded-xl border bg-white p-4 text-sm font-semibold shadow-xl ${notice.kind === 'error' ? 'border-rose-200 text-rose-800' : 'border-emerald-200 text-emerald-900'}`}
+          className={`fixed bottom-4 left-4 right-4 z-[100] flex items-start gap-3 rounded-xl border bg-white p-4 text-sm font-semibold shadow-xl sm:bottom-5 sm:left-auto sm:right-5 sm:max-w-sm ${notice.kind === 'error' ? 'border-rose-200 text-rose-800' : 'border-emerald-200 text-emerald-900'}`}
         >
           {notice.kind === 'error' ? (
             <CircleAlert size={20} aria-hidden="true" />

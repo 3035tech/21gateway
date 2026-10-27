@@ -57,6 +57,9 @@ it('requires authorized destination confirmation and sends once', async () => {
       screen.getByRole('textbox', { name: /Número de teste/ }),
       '11987654321',
     )
+    expect(
+      screen.getByRole('textbox', { name: /Número de teste/ }),
+    ).toHaveValue('(11) 98765-4321')
     expect(send).toBeDisabled()
     await user.click(
       screen.getByRole('checkbox', { name: /Confirmo que este número/ }),
@@ -75,6 +78,52 @@ it('requires authorized destination confirmation and sends once', async () => {
       screen.queryByRole('button', { name: 'Enviar um SMS de teste' }),
     ).not.toBeInTheDocument()
     expect(screen.getByText('ID do envio: 42')).toBeInTheDocument()
+  } finally {
+    post.mockRestore()
+  }
+})
+
+it('sends a custom message to the masked mobile number', async () => {
+  const post = vi.spyOn(api, 'post').mockResolvedValue({
+    data: {
+      submissionState: 'accepted',
+      idSms: '43',
+      correlationId: 'test-124',
+    },
+  })
+  try {
+    const client = new QueryClient({
+      defaultOptions: { mutations: { retry: false } },
+    })
+    render(
+      <QueryClientProvider client={client}>
+        <CredentialTestDialog credential={credential} onClose={vi.fn()} />
+      </QueryClientProvider>,
+    )
+    const user = userEvent.setup()
+    await user.type(
+      screen.getByRole('textbox', { name: /Número de teste/ }),
+      '11987654321',
+    )
+    await user.click(
+      screen.getByRole('checkbox', { name: 'Usar mensagem padrão de teste' }),
+    )
+    const send = screen.getByRole('button', { name: 'Enviar um SMS de teste' })
+    expect(send).toBeDisabled()
+    await user.type(
+      screen.getByRole('textbox', { name: /Mensagem de teste/ }),
+      'Teste livre do token',
+    )
+    await user.click(
+      screen.getByRole('checkbox', { name: /Confirmo que este número/ }),
+    )
+    await user.click(send)
+    await waitFor(() => expect(post).toHaveBeenCalledTimes(1))
+    expect(post).toHaveBeenCalledWith(
+      '/admin/credentials/21/test-send',
+      { destination: '11987654321', messageText: 'Teste livre do token' },
+      { timeout: 20_000 },
+    )
   } finally {
     post.mockRestore()
   }

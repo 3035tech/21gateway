@@ -37,6 +37,7 @@ type TestSendInput struct {
 	ID   uint64 `path:"id" minimum:"1"`
 	Body struct {
 		Destination string `json:"destination" pattern:"^[0-9]{11}$"`
+		MessageText string `json:"messageText,omitempty" maxLength:"160"`
 	}
 }
 

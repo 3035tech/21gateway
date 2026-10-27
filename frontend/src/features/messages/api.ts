@@ -34,10 +34,14 @@ const testSendResultSchema = z.object({
   failureCode: z.string().optional(),
 })
 export type TestSendResult = z.infer<typeof testSendResultSchema>
-export async function sendTestSMS(credentialId: number, destination: string) {
+export async function sendTestSMS(
+  credentialId: number,
+  destination: string,
+  messageText?: string,
+) {
   const response = await api.post<unknown>(
     `/admin/credentials/${credentialId}/test-send`,
-    { destination },
+    { destination, ...(messageText !== undefined ? { messageText } : {}) },
     { timeout: 20_000 },
   )
   return testSendResultSchema.parse(response.data)

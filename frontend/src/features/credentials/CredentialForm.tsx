@@ -14,6 +14,10 @@ import { useAdminMutation } from '../../components/admin/useAdminMutation'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { AppSelect } from '../../components/admin/AppSelect'
+import { AllowedIPsEditor } from './AllowedIPsEditor'
+
+type CredentialTab = 'access' | 'notifications' | 'ips'
+const credentialTabs: CredentialTab[] = ['access', 'notifications', 'ips']
 function localDateTime(value?: string | null) {
   if (!value) return ''
   const date = new Date(value)
@@ -45,6 +49,8 @@ export function CredentialForm({
   const [passwordMode, setPasswordMode] = useState<
     'generated' | 'manual' | 'legacy'
   >('generated')
+  const [activeTab, setActiveTab] = useState<CredentialTab>('access')
+  const [ipDraftValid, setIpDraftValid] = useState(true)
   const companies = useQuery({
     queryKey: ['admin', 'company-options', search, companyPage],
     enabled: !selectedCompanyId,
@@ -103,6 +109,27 @@ export function CredentialForm({
     control: form.control,
     name: ['generateUsername', 'whitelistEnabled', 'active', 'companyId'],
   })
+  const errors = form.formState.errors
+  const tabErrors: Record<CredentialTab, boolean> = {
+    access: !!(
+      errors.companyId ||
+      errors.username ||
+      errors.legacyAccountId ||
+      errors.legacyPassword ||
+      errors.manualPassword ||
+      errors.expiresAtText ||
+      errors.providerToken
+    ),
+    notifications: !!(errors.callbackUrl || errors.moCallbackUrl),
+    ips: !!errors.allowedIPsText,
+  }
+  function selectTab(tab: CredentialTab) {
+    setActiveTab(tab)
+    const dialog = document
+      .getElementById(`credential-tab-${tab}`)
+      ?.closest('dialog')
+    if (dialog) dialog.scrollTop = 0
+  }
   return (
     <Dialog
       title={
@@ -115,425 +142,538 @@ export function CredentialForm({
       <p className="mb-6 max-w-xl text-sm leading-6 text-slate-600">
         {t('credentials.formDescription')}
       </p>
-      <form onSubmit={form.handleSubmit((body) => mutation.mutate(body))}>
-        <fieldset disabled={mutation.isPending} className="min-w-0 space-y-7">
-          <CredentialSection
-            title={t('credentials.clientAccess')}
-            icon={Building2}
-          >
-            <p className="mb-4 text-sm leading-6 text-slate-600">
-              {t('credentials.basicAuthHint')}
-            </p>
-            <div className="grid gap-5 sm:grid-cols-2">
-              <div className="space-y-4">
-                {!selectedCompanyId ? (
-                  <label className="field">
-                    {t('credentials.searchCompany')}
-                    <input
-                      className="form-control"
-                      placeholder={t('credentials.companySearchPlaceholder')}
-                      value={search}
-                      onChange={(event) => {
-                        setSearch(event.target.value)
-                        setCompanyPage(1)
-                      }}
-                    />
-                  </label>
+      <form
+        noValidate
+        onSubmit={(event) => {
+          if (restrictIPs && !ipDraftValid) {
+            event.preventDefault()
+            selectTab('ips')
+            document.getElementById('allowed-ip-entry')?.focus()
+            return
+          }
+          void form.handleSubmit(
+            (body) => mutation.mutate(body),
+            (invalid) => {
+              const tab: CredentialTab =
+                invalid.companyId ||
+                invalid.username ||
+                invalid.legacyAccountId ||
+                invalid.legacyPassword ||
+                invalid.manualPassword ||
+                invalid.expiresAtText ||
+                invalid.providerToken
+                  ? 'access'
+                  : invalid.callbackUrl || invalid.moCallbackUrl
+                    ? 'notifications'
+                    : 'ips'
+              selectTab(tab)
+              document.getElementById(`credential-tab-${tab}`)?.focus()
+            },
+          )(event)
+        }}
+      >
+        <div
+          role="tablist"
+          aria-label={t('credentials.formSections')}
+          className="sticky top-0 z-10 mb-6 grid grid-cols-3 gap-1 border-b border-slate-200 bg-white pb-2"
+        >
+          {credentialTabs.map((tab) => {
+            const Icon =
+              tab === 'access'
+                ? Building2
+                : tab === 'notifications'
+                  ? Link2
+                  : ShieldCheck
+            return (
+              <button
+                key={tab}
+                id={`credential-tab-${tab}`}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === tab}
+                aria-controls={`credential-panel-${tab}`}
+                tabIndex={activeTab === tab ? 0 : -1}
+                disabled={mutation.isPending}
+                className={`flex min-w-0 items-center justify-center gap-2 rounded-lg border-b-2 px-2 py-3 text-xs font-semibold sm:text-sm ${activeTab === tab ? 'border-brand-purple bg-purple-50 text-brand-purple' : 'border-transparent text-slate-600 hover:bg-slate-50'}`}
+                onClick={() => selectTab(tab)}
+                onKeyDown={(event) => {
+                  if (
+                    !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(
+                      event.key,
+                    )
+                  )
+                    return
+                  event.preventDefault()
+                  const index = credentialTabs.indexOf(tab)
+                  const next =
+                    event.key === 'Home'
+                      ? 0
+                      : event.key === 'End'
+                        ? credentialTabs.length - 1
+                        : (index +
+                            (event.key === 'ArrowRight' ? 1 : -1) +
+                            credentialTabs.length) %
+                          credentialTabs.length
+                  const nextTab = credentialTabs[next]
+                  selectTab(nextTab)
+                  document.getElementById(`credential-tab-${nextTab}`)?.focus()
+                }}
+              >
+                <Icon size={16} aria-hidden="true" className="shrink-0" />
+                <span className="truncate">{t(`credentials.tabs.${tab}`)}</span>
+                {tabErrors[tab] ? (
+                  <span
+                    className="size-2 shrink-0 rounded-full bg-rose-600"
+                    aria-label={t('credentials.tabHasError')}
+                  />
                 ) : null}
-                {selectedCompanyId ? (
-                  <>
-                    <input
-                      type="hidden"
-                      value={selectedCompanyId}
-                      {...form.register('companyId', { valueAsNumber: true })}
-                    />
+              </button>
+            )
+          })}
+        </div>
+        <fieldset disabled={mutation.isPending} className="min-w-0">
+          <div
+            id="credential-panel-access"
+            role="tabpanel"
+            aria-labelledby="credential-tab-access"
+            hidden={activeTab !== 'access'}
+            className="space-y-7"
+          >
+            <CredentialSection
+              title={t('credentials.clientAccess')}
+              icon={Building2}
+            >
+              <p className="mb-4 text-sm leading-6 text-slate-600">
+                {t('credentials.basicAuthHint')}
+              </p>
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div className="space-y-4">
+                  {!selectedCompanyId ? (
                     <label className="field">
-                      {t('common.company')}
+                      {t('credentials.searchCompany')}
                       <input
                         className="form-control"
-                        readOnly
-                        value={
-                          credential?.companyName ??
-                          initialCompanyName ??
-                          fixedCompany.data?.name ??
-                          t('common.companyNumber', { id: selectedCompanyId })
-                        }
+                        placeholder={t('credentials.companySearchPlaceholder')}
+                        value={search}
+                        onChange={(event) => {
+                          setSearch(event.target.value)
+                          setCompanyPage(1)
+                        }}
                       />
                     </label>
-                  </>
-                ) : (
-                  <div className="field">
-                    <span>{t('common.company')}</span>
-                    <Controller
-                      name="companyId"
-                      control={form.control}
-                      render={({ field }) => (
-                        <AppSelect
-                          value={field.value}
-                          label={t('common.company')}
-                          disabled={companies.isPending || companies.isError}
-                          onValueChange={(value) => {
-                            const id = Number(value)
-                            field.onChange(id)
-                            setSelectedCompany(
-                              companies.data?.items.find(
-                                (company) => company.id === id,
-                              ) ?? null,
-                            )
-                          }}
-                          options={[
-                            {
-                              value: 0,
-                              label: companies.isPending
-                                ? t('credentials.loadingCompanies')
-                                : t('credentials.selectCompany'),
-                            },
-                            ...[
-                              ...(selectedCompany ? [selectedCompany] : []),
-                              ...(companies.data?.items ?? []),
-                            ]
-                              .filter(
-                                (company, index, items) =>
-                                  items.findIndex(
-                                    (item) => item.id === company.id,
-                                  ) === index,
-                              )
-                              .map((company) => ({
-                                value: company.id,
-                                label: `${company.name}${company.active ? '' : t('credentials.blockedSuffix')}`,
-                              })),
-                          ]}
+                  ) : null}
+                  {selectedCompanyId ? (
+                    <>
+                      <input
+                        type="hidden"
+                        value={selectedCompanyId}
+                        {...form.register('companyId', { valueAsNumber: true })}
+                      />
+                      <label className="field">
+                        {t('common.company')}
+                        <input
+                          className="form-control"
+                          readOnly
+                          value={
+                            credential?.companyName ??
+                            initialCompanyName ??
+                            fixedCompany.data?.name ??
+                            t('common.companyNumber', { id: selectedCompanyId })
+                          }
                         />
-                      )}
+                      </label>
+                    </>
+                  ) : (
+                    <div className="field">
+                      <span>{t('common.company')}</span>
+                      <Controller
+                        name="companyId"
+                        control={form.control}
+                        render={({ field }) => (
+                          <AppSelect
+                            value={field.value}
+                            label={t('common.company')}
+                            disabled={companies.isPending || companies.isError}
+                            onValueChange={(value) => {
+                              const id = Number(value)
+                              field.onChange(id)
+                              setSelectedCompany(
+                                companies.data?.items.find(
+                                  (company) => company.id === id,
+                                ) ?? null,
+                              )
+                            }}
+                            options={[
+                              {
+                                value: 0,
+                                label: companies.isPending
+                                  ? t('credentials.loadingCompanies')
+                                  : t('credentials.selectCompany'),
+                              },
+                              ...[
+                                ...(selectedCompany ? [selectedCompany] : []),
+                                ...(companies.data?.items ?? []),
+                              ]
+                                .filter(
+                                  (company, index, items) =>
+                                    items.findIndex(
+                                      (item) => item.id === company.id,
+                                    ) === index,
+                                )
+                                .map((company) => ({
+                                  value: company.id,
+                                  label: `${company.name}${company.active ? '' : t('credentials.blockedSuffix')}`,
+                                })),
+                            ]}
+                          />
+                        )}
+                      />
+                      <FieldError
+                        message={form.formState.errors.companyId?.message}
+                      />
+                      {(companies.data?.total ?? 0) > 20 ? (
+                        <span className="flex items-center justify-between gap-2 text-xs font-normal text-slate-600">
+                          <button
+                            type="button"
+                            className="button-ghost min-h-9 px-2"
+                            disabled={companyPage <= 1 || companies.isFetching}
+                            onClick={() => setCompanyPage((page) => page - 1)}
+                          >
+                            {t('common.previous')}
+                          </button>
+                          {t('users.companyPage', {
+                            page: companyPage,
+                            pages: Math.ceil((companies.data?.total ?? 0) / 20),
+                          })}
+                          <button
+                            type="button"
+                            className="button-ghost min-h-9 px-2"
+                            disabled={
+                              companyPage * 20 >=
+                                (companies.data?.total ?? 0) ||
+                              companies.isFetching
+                            }
+                            onClick={() => setCompanyPage((page) => page + 1)}
+                          >
+                            {t('common.next')}
+                          </button>
+                        </span>
+                      ) : null}
+                    </div>
+                  )}
+                  {companies.isError ? (
+                    <p role="alert" className="text-xs text-rose-700">
+                      {t('credentials.companyLoadFailed')}{' '}
+                      <button
+                        className="rounded px-1 font-semibold text-brand-purple underline underline-offset-2 hover:bg-purple-50"
+                        type="button"
+                        onClick={() => void companies.refetch()}
+                      >
+                        {t('common.retry')}
+                      </button>
+                    </p>
+                  ) : null}
+                  <label className="field">
+                    {t('credentials.legacyId')}{' '}
+                    <span className="-mt-1 text-xs font-normal text-slate-500">
+                      {t('credentials.optional')}
+                    </span>
+                    <input
+                      className="form-control"
+                      readOnly={!!credential?.legacyAccountId}
+                      placeholder="2340 ou 2340_779"
+                      {...form.register('legacyAccountId')}
                     />
                     <FieldError
-                      message={form.formState.errors.companyId?.message}
+                      message={form.formState.errors.legacyAccountId?.message}
                     />
-                    {(companies.data?.total ?? 0) > 20 ? (
-                      <span className="flex items-center justify-between gap-2 text-xs font-normal text-slate-600">
-                        <button
-                          type="button"
-                          className="button-ghost min-h-9 px-2"
-                          disabled={companyPage <= 1 || companies.isFetching}
-                          onClick={() => setCompanyPage((page) => page - 1)}
-                        >
-                          {t('common.previous')}
-                        </button>
-                        {t('users.companyPage', {
-                          page: companyPage,
-                          pages: Math.ceil((companies.data?.total ?? 0) / 20),
-                        })}
-                        <button
-                          type="button"
-                          className="button-ghost min-h-9 px-2"
-                          disabled={
-                            companyPage * 20 >= (companies.data?.total ?? 0) ||
-                            companies.isFetching
-                          }
-                          onClick={() => setCompanyPage((page) => page + 1)}
-                        >
-                          {t('common.next')}
-                        </button>
+                  </label>
+                </div>
+                <div className="space-y-4">
+                  <label className="field">
+                    {t('common.apiUsername')}
+                    <input
+                      className="form-control"
+                      autoComplete="off"
+                      readOnly={!!credential || !!generateUsername}
+                      placeholder={
+                        generateUsername
+                          ? t('credentials.generatedUsernamePlaceholder')
+                          : undefined
+                      }
+                      {...form.register('username')}
+                    />
+                    <FieldError
+                      message={form.formState.errors.username?.message}
+                    />
+                    {generateUsername ? (
+                      <span className="text-xs font-normal leading-5 text-slate-500">
+                        {t('credentials.generatedUsernameHint')}
                       </span>
                     ) : null}
-                  </div>
-                )}
-                {companies.isError ? (
-                  <p role="alert" className="text-xs text-rose-700">
-                    {t('credentials.companyLoadFailed')}{' '}
-                    <button
-                      className="rounded px-1 font-semibold text-brand-purple underline underline-offset-2 hover:bg-purple-50"
-                      type="button"
-                      onClick={() => void companies.refetch()}
-                    >
-                      {t('common.retry')}
-                    </button>
-                  </p>
-                ) : null}
+                  </label>
+                  {!credential ? (
+                    <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
+                      <input
+                        className="size-4 accent-brand-purple"
+                        type="checkbox"
+                        {...form.register('generateUsername')}
+                      />
+                      {t('credentials.generateUsername')}
+                    </label>
+                  ) : null}
+                </div>
               </div>
-              <div className="space-y-4">
-                {!credential ? (
-                  <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
+              {credential ? (
+                <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-sm font-semibold text-slate-900">
+                    {t('credentials.passwordSetup')}
+                  </p>
+                  <p className="mt-1 text-sm leading-6 text-slate-600">
+                    {t('credentials.passwordStoredHint')}
+                  </p>
+                </div>
+              ) : (
+                <div className="mt-5 space-y-4 border-t border-slate-100 pt-4">
+                  <fieldset className="space-y-2">
+                    <legend className="text-sm font-semibold">
+                      {t('credentials.passwordSetup')}
+                    </legend>
+                    {(['generated', 'manual', 'legacy'] as const).map(
+                      (mode) => (
+                        <label
+                          key={mode}
+                          className="flex min-h-10 items-center gap-3 text-sm"
+                        >
+                          <input
+                            type="radio"
+                            className="size-4 accent-brand-purple"
+                            name="credential-password-mode"
+                            value={mode}
+                            checked={passwordMode === mode}
+                            onChange={() => {
+                              setPasswordMode(mode)
+                              form.setValue('passwordMode', mode)
+                              form.setValue(
+                                'preserveLegacyPassword',
+                                mode === 'legacy',
+                              )
+                              form.setValue('legacyPassword', '')
+                              form.setValue('manualPassword', '')
+                            }}
+                          />
+                          {t(`credentials.passwordMode.${mode}`)}
+                        </label>
+                      ),
+                    )}
+                  </fieldset>
+                  {passwordMode === 'legacy' ? (
+                    <label className="field max-w-sm">
+                      {t('credentials.currentApiPassword')}
+                      <input
+                        type="password"
+                        autoComplete="new-password"
+                        className="form-control"
+                        {...form.register('legacyPassword')}
+                      />
+                      <FieldError
+                        message={form.formState.errors.legacyPassword?.message}
+                      />
+                      <span className="text-xs font-normal leading-5 text-slate-500">
+                        {t('credentials.preservePasswordHint')}
+                      </span>
+                    </label>
+                  ) : passwordMode === 'manual' ? (
+                    <label className="field max-w-sm">
+                      {t('credentials.manualPassword')}
+                      <input
+                        type="password"
+                        autoComplete="new-password"
+                        className="form-control"
+                        {...form.register('manualPassword')}
+                      />
+                      <FieldError
+                        message={form.formState.errors.manualPassword?.message}
+                      />
+                      <span className="text-xs font-normal leading-5 text-slate-500">
+                        {t('credentials.manualPasswordHint')}
+                      </span>
+                    </label>
+                  ) : (
+                    <p className="text-xs leading-5 text-slate-500">
+                      {t('credentials.newPasswordHint')}
+                    </p>
+                  )}
+                </div>
+              )}
+              <label className="mt-4 flex min-h-11 items-center gap-3 text-sm font-medium">
+                <input
+                  className="size-4 accent-brand-purple"
+                  type="checkbox"
+                  {...form.register('active')}
+                />
+                {t('credentials.active')}
+              </label>
+              {!active ? (
+                <p
+                  role="status"
+                  className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900"
+                >
+                  {t('credentials.inactiveHint')}
+                </p>
+              ) : null}
+              <label className="field mt-4 max-w-sm">
+                {t('credentials.expiresAt')}
+                <input
+                  type="datetime-local"
+                  className="form-control"
+                  {...form.register('expiresAtText')}
+                />
+                <FieldError
+                  message={form.formState.errors.expiresAtText?.message}
+                />
+                <span className="text-xs font-normal leading-5 text-slate-500">
+                  {t('credentials.expiryHint')}
+                </span>
+              </label>
+            </CredentialSection>
+            <CredentialSection
+              title={t('credentials.providerSection')}
+              icon={KeyRound}
+            >
+              <p className="text-sm leading-6 text-slate-600">
+                {t('credentials.providerAtCompany')}
+              </p>
+              {(selectedCompanyId ?? formCompanyId) > 0 ? (
+                <Link
+                  to={`/empresas/${selectedCompanyId ?? formCompanyId}`}
+                  className="button-ghost mt-3 inline-flex"
+                >
+                  {t('credentials.openCompanyProvider')}
+                </Link>
+              ) : null}
+            </CredentialSection>
+          </div>
+          <div
+            id="credential-panel-notifications"
+            role="tabpanel"
+            aria-labelledby="credential-tab-notifications"
+            hidden={activeTab !== 'notifications'}
+          >
+            <CredentialSection
+              title={t('credentials.notificationsSection')}
+              icon={Link2}
+            >
+              <p className="mb-4 text-sm leading-6 text-slate-600">
+                {t('credentials.notificationsHint')}
+              </p>
+              <div className="grid gap-5 sm:grid-cols-2">
+                <fieldset className="min-w-0 rounded-xl border border-slate-200 p-4">
+                  <legend className="px-1 text-sm font-semibold">
+                    {t('credentials.dlrTitle')}
+                  </legend>
+                  <label className="flex min-h-11 items-center gap-3 text-sm">
                     <input
                       className="size-4 accent-brand-purple"
                       type="checkbox"
-                      {...form.register('generateUsername')}
+                      {...form.register('callbacksEnabled')}
                     />
-                    {t('credentials.generateUsername')}
+                    {t('credentials.forwardStatus')}
                   </label>
-                ) : null}
-                <label className="field">
-                  {t('common.apiUsername')}
-                  <input
-                    className="form-control"
-                    autoComplete="off"
-                    readOnly={!!credential || !!generateUsername}
-                    placeholder={
-                      generateUsername
-                        ? t('credentials.generatedUsernamePlaceholder')
-                        : undefined
-                    }
-                    {...form.register('username')}
-                  />
-                  <FieldError
-                    message={form.formState.errors.username?.message}
-                  />
-                  {generateUsername ? (
-                    <span className="text-xs font-normal leading-5 text-slate-500">
-                      {t('credentials.generatedUsernameHint')}
-                    </span>
-                  ) : null}
-                </label>
-                <label className="field">
-                  {t('credentials.legacyId')}{' '}
-                  <span className="-mt-1 text-xs font-normal text-slate-500">
-                    {t('credentials.optional')}
-                  </span>
-                  <input
-                    className="form-control"
-                    readOnly={!!credential?.legacyAccountId}
-                    placeholder="2340 ou 2340_779"
-                    {...form.register('legacyAccountId')}
-                  />
-                  <FieldError
-                    message={form.formState.errors.legacyAccountId?.message}
-                  />
-                </label>
-              </div>
-            </div>
-            {credential ? (
-              <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <p className="text-sm font-semibold text-slate-900">
-                  {t('credentials.passwordSetup')}
-                </p>
-                <p className="mt-1 text-sm leading-6 text-slate-600">
-                  {t('credentials.passwordStoredHint')}
-                </p>
-              </div>
-            ) : (
-              <div className="mt-5 space-y-4 border-t border-slate-100 pt-4">
-                <fieldset className="space-y-2">
-                  <legend className="text-sm font-semibold">
-                    {t('credentials.passwordSetup')}
-                  </legend>
-                  {(['generated', 'manual', 'legacy'] as const).map((mode) => (
-                    <label
-                      key={mode}
-                      className="flex min-h-10 items-center gap-3 text-sm"
-                    >
-                      <input
-                        type="radio"
-                        className="size-4 accent-brand-purple"
-                        name="credential-password-mode"
-                        value={mode}
-                        checked={passwordMode === mode}
-                        onChange={() => {
-                          setPasswordMode(mode)
-                          form.setValue('passwordMode', mode)
-                          form.setValue(
-                            'preserveLegacyPassword',
-                            mode === 'legacy',
-                          )
-                          form.setValue('legacyPassword', '')
-                          form.setValue('manualPassword', '')
-                        }}
-                      />
-                      {t(`credentials.passwordMode.${mode}`)}
-                    </label>
-                  ))}
-                </fieldset>
-                {passwordMode === 'legacy' ? (
-                  <label className="field max-w-sm">
-                    {t('credentials.currentApiPassword')}
+                  <label className="field mt-2">
+                    {t('credentials.dlrUrl')}
                     <input
-                      type="password"
-                      autoComplete="new-password"
-                      className="form-control"
-                      {...form.register('legacyPassword')}
+                      className="form-control w-full"
+                      type="url"
+                      autoComplete="off"
+                      placeholder="https://cliente.com.br/status"
+                      {...form.register('callbackUrl')}
                     />
                     <FieldError
-                      message={form.formState.errors.legacyPassword?.message}
+                      message={form.formState.errors.callbackUrl?.message}
                     />
-                    <span className="text-xs font-normal leading-5 text-slate-500">
-                      {t('credentials.preservePasswordHint')}
-                    </span>
                   </label>
-                ) : passwordMode === 'manual' ? (
-                  <label className="field max-w-sm">
-                    {t('credentials.manualPassword')}
-                    <input
-                      type="password"
-                      autoComplete="new-password"
-                      className="form-control"
-                      {...form.register('manualPassword')}
-                    />
-                    <FieldError
-                      message={form.formState.errors.manualPassword?.message}
-                    />
-                    <span className="text-xs font-normal leading-5 text-slate-500">
-                      {t('credentials.manualPasswordHint')}
-                    </span>
-                  </label>
-                ) : (
-                  <p className="text-xs leading-5 text-slate-500">
-                    {t('credentials.newPasswordHint')}
+                  <p className="mt-3 text-xs leading-5 text-slate-500">
+                    {t('credentials.dlrHint')}
                   </p>
-                )}
+                </fieldset>
+                <fieldset className="min-w-0 rounded-xl border border-slate-200 p-4">
+                  <legend className="px-1 text-sm font-semibold">
+                    {t('credentials.moTitle')}
+                  </legend>
+                  <label className="flex min-h-11 items-center gap-3 text-sm">
+                    <input
+                      className="size-4 accent-brand-purple"
+                      type="checkbox"
+                      {...form.register('moCallbacksEnabled')}
+                    />
+                    {t('credentials.forwardReplies')}
+                  </label>
+                  <label className="field mt-2">
+                    {t('credentials.moUrl')}
+                    <input
+                      className="form-control w-full"
+                      type="url"
+                      autoComplete="off"
+                      placeholder="https://cliente.com.br/respostas"
+                      {...form.register('moCallbackUrl')}
+                    />
+                    <FieldError
+                      message={form.formState.errors.moCallbackUrl?.message}
+                    />
+                  </label>
+                  <p className="mt-3 text-xs leading-5 text-slate-500">
+                    {t('credentials.moHint')}
+                  </p>
+                </fieldset>
               </div>
-            )}
-            <label className="mt-4 flex min-h-11 items-center gap-3 text-sm font-medium">
-              <input
-                className="size-4 accent-brand-purple"
-                type="checkbox"
-                {...form.register('active')}
-              />
-              {t('credentials.active')}
-            </label>
-            {!active ? (
-              <p
-                role="status"
-                className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900"
-              >
-                {t('credentials.inactiveHint')}
+              <p className="mt-4 text-xs leading-5 text-slate-500">
+                {t('credentials.httpsHint')}
               </p>
-            ) : null}
-            <label className="field mt-4 max-w-sm">
-              {t('credentials.expiresAt')}
-              <input
-                type="datetime-local"
-                className="form-control"
-                {...form.register('expiresAtText')}
-              />
-              <FieldError
-                message={form.formState.errors.expiresAtText?.message}
-              />
-              <span className="text-xs font-normal leading-5 text-slate-500">
-                {t('credentials.expiryHint')}
-              </span>
-            </label>
-          </CredentialSection>
-          <CredentialSection
-            title={t('credentials.providerSection')}
-            icon={KeyRound}
+            </CredentialSection>
+          </div>
+          <div
+            id="credential-panel-ips"
+            role="tabpanel"
+            aria-labelledby="credential-tab-ips"
+            hidden={activeTab !== 'ips'}
           >
-            <p className="text-sm leading-6 text-slate-600">
-              {t('credentials.providerAtCompany')}
-            </p>
-            {(selectedCompanyId ?? formCompanyId) > 0 ? (
-              <Link
-                to={`/empresas/${selectedCompanyId ?? formCompanyId}`}
-                className="button-ghost mt-3 inline-flex"
-              >
-                {t('credentials.openCompanyProvider')}
-              </Link>
-            ) : null}
-          </CredentialSection>
-          <CredentialSection
-            title={t('credentials.notificationsSection')}
-            icon={Link2}
-          >
-            <p className="mb-4 text-sm leading-6 text-slate-600">
-              {t('credentials.notificationsHint')}
-            </p>
-            <div className="grid gap-5 sm:grid-cols-2">
-              <fieldset className="min-w-0 rounded-xl border border-slate-200 p-4">
-                <legend className="px-1 text-sm font-semibold">
-                  {t('credentials.dlrTitle')}
-                </legend>
-                <label className="flex min-h-11 items-center gap-3 text-sm">
-                  <input
-                    className="size-4 accent-brand-purple"
-                    type="checkbox"
-                    {...form.register('callbacksEnabled')}
-                  />
-                  {t('credentials.forwardStatus')}
-                </label>
-                <label className="field mt-2">
-                  {t('credentials.dlrUrl')}
-                  <input
-                    className="form-control w-full"
-                    type="url"
-                    autoComplete="off"
-                    placeholder="https://cliente.com.br/status"
-                    {...form.register('callbackUrl')}
-                  />
-                  <FieldError
-                    message={form.formState.errors.callbackUrl?.message}
-                  />
-                </label>
-                <p className="mt-3 text-xs leading-5 text-slate-500">
-                  {t('credentials.dlrHint')}
-                </p>
-              </fieldset>
-              <fieldset className="min-w-0 rounded-xl border border-slate-200 p-4">
-                <legend className="px-1 text-sm font-semibold">
-                  {t('credentials.moTitle')}
-                </legend>
-                <label className="flex min-h-11 items-center gap-3 text-sm">
-                  <input
-                    className="size-4 accent-brand-purple"
-                    type="checkbox"
-                    {...form.register('moCallbacksEnabled')}
-                  />
-                  {t('credentials.forwardReplies')}
-                </label>
-                <label className="field mt-2">
-                  {t('credentials.moUrl')}
-                  <input
-                    className="form-control w-full"
-                    type="url"
-                    autoComplete="off"
-                    placeholder="https://cliente.com.br/respostas"
-                    {...form.register('moCallbackUrl')}
-                  />
-                  <FieldError
-                    message={form.formState.errors.moCallbackUrl?.message}
-                  />
-                </label>
-                <p className="mt-3 text-xs leading-5 text-slate-500">
-                  {t('credentials.moHint')}
-                </p>
-              </fieldset>
-            </div>
-            <p className="mt-4 text-xs leading-5 text-slate-500">
-              {t('credentials.httpsHint')}
-            </p>
-          </CredentialSection>
-          <CredentialSection
-            title={t('credentials.accessRestriction')}
-            icon={ShieldCheck}
-          >
-            <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
-              <input
-                className="size-4 accent-brand-purple"
-                type="checkbox"
-                {...form.register('whitelistEnabled')}
-              />
-              {t('credentials.whitelistEnabled')}
-            </label>
-            {restrictIPs ? (
-              <label className="field mt-3">
-                {t('credentials.allowedIps')}
-                <textarea
-                  rows={3}
-                  spellCheck={false}
-                  className="form-control font-mono"
-                  placeholder={'203.0.113.10\n198.51.100.0/24'}
-                  {...form.register('allowedIPsText')}
+            <CredentialSection
+              title={t('credentials.accessRestriction')}
+              icon={ShieldCheck}
+            >
+              <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
+                <input
+                  className="size-4 accent-brand-purple"
+                  type="checkbox"
+                  {...form.register('whitelistEnabled')}
                 />
-                <FieldError
-                  message={form.formState.errors.allowedIPsText?.message}
-                />
-                <span className="text-xs font-normal leading-5 text-slate-500">
-                  {t('credentials.ipHint')}
-                </span>
+                {t('credentials.whitelistEnabled')}
               </label>
-            ) : (
-              <p className="mt-2 text-xs leading-5 text-slate-500">
-                {t('credentials.noIpHint')}
-              </p>
-            )}
-          </CredentialSection>
+              {restrictIPs ? (
+                <div className="mt-4">
+                  <Controller
+                    name="allowedIPsText"
+                    control={form.control}
+                    render={({ field }) => (
+                      <AllowedIPsEditor
+                        value={field.value ?? ''}
+                        onChange={field.onChange}
+                        onValidityChange={setIpDraftValid}
+                      />
+                    )}
+                  />
+                  <FieldError
+                    message={form.formState.errors.allowedIPsText?.message}
+                  />
+                </div>
+              ) : (
+                <p className="mt-2 text-xs leading-5 text-slate-500">
+                  {t('credentials.noIpHint')}
+                </p>
+              )}
+            </CredentialSection>
+          </div>
         </fieldset>
         <div className="sticky -bottom-6 z-10 mt-7 bg-white pb-1 pt-3">
           <FormFooter
