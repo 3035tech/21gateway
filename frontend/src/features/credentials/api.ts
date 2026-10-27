@@ -10,6 +10,7 @@ export const credentialSchema = z.object({
   moCallbacksEnabled: z.boolean(),
   legacyAccountId: z.string(),
   id: z.number(),
+  publicRef: z.uuid(),
   companyId: z.number().nullable(),
   companyName: z.string(),
   username: z.string(),
@@ -149,6 +150,14 @@ export const listCredentials = (params: ListParams, signal?: AbortSignal) =>
 export async function getCredential(id: number, signal?: AbortSignal) {
   return credentialSchema.parse(
     (await api.get(`/admin/credentials/${id}`, { signal })).data,
+  )
+}
+export async function getCredentialByPublicRef(
+  publicRef: string,
+  signal?: AbortSignal,
+) {
+  return credentialSchema.parse(
+    (await api.get(`/admin/credentials/by-ref/${publicRef}`, { signal })).data,
   )
 }
 export async function saveCredential(

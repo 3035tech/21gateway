@@ -17,6 +17,7 @@ beforeAll(() => {
 
 const credential: Credential = {
   id: 21,
+  publicRef: '11111111-1111-4111-8111-111111111111',
   companyId: 2,
   companyName: 'Cliente exemplo',
   username: 'client-test',

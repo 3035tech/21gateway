@@ -1,5 +1,5 @@
 import { DateCell } from '../../components/admin/DateCell'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useCompanyView } from '../companies/CompanyViewContext'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
@@ -13,6 +13,7 @@ import { useUser } from '../auth/context'
 import {
   listCredentials,
   getCredential,
+  getCredentialByPublicRef,
   archiveCredential,
   rotateCredential,
 } from './api'
@@ -23,24 +24,55 @@ import { useTranslation } from 'react-i18next'
 import { RecordDetailsDialog } from '../../components/admin/RecordDetailsDialog'
 import { errorMessage } from '../../lib/admin'
 import { Check, Copy } from 'lucide-react'
+import { useCompanyReturnRef } from '../companies/useCompanyReturnRef'
+import { isPublicRef } from '../../lib/publicRef'
 export function CredentialsPage({
   companyId,
+  companyRef,
   companyName,
-}: { companyId?: number; companyName?: string } = {}) {
+}: { companyId?: number; companyRef?: string; companyName?: string } = {}) {
   const selectedCompanyId = useCompanyView()
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const fromCompany = searchParams.get('fromCompany')
+  const { publicRef: returnCompanyRef, ready: companyRefReady } =
+    useCompanyReturnRef(fromCompany)
   const { recordId } = useParams()
-  const linkedRecordId = Number(recordId)
+  const legacyId = /^\d+$/.test(recordId ?? '') ? Number(recordId) : null
   const validRecordId =
-    !!recordId && Number.isSafeInteger(linkedRecordId) && linkedRecordId > 0
+    legacyId === null
+      ? isPublicRef(recordId)
+      : Number.isSafeInteger(legacyId) && legacyId > 0
   const linkedRecord = useQuery({
-    queryKey: ['admin', 'credential', linkedRecordId],
-    queryFn: ({ signal }) => getCredential(linkedRecordId, signal),
+    queryKey: ['admin', 'credential', recordId],
+    queryFn: ({ signal }) =>
+      legacyId !== null
+        ? getCredential(legacyId, signal)
+        : getCredentialByPublicRef(recordId!, signal),
     enabled: validRecordId,
   })
+  useEffect(() => {
+    const publicRef =
+      legacyId !== null ? linkedRecord.data?.publicRef : recordId
+    if (
+      publicRef &&
+      companyRefReady &&
+      (legacyId !== null || fromCompany !== returnCompanyRef)
+    )
+      navigate(
+        `/credenciais/${publicRef}${returnCompanyRef ? `?fromCompany=${returnCompanyRef}` : ''}`,
+        { replace: true },
+      )
+  }, [
+    legacyId,
+    linkedRecord.data,
+    navigate,
+    recordId,
+    fromCompany,
+    returnCompanyRef,
+    companyRefReady,
+  ])
   const role = useUser()?.role
   const writable = role !== 'viewer'
   const canTest = role === 'admin'
@@ -57,9 +89,14 @@ export function CredentialsPage({
     username: string
     password: string
   } | null>(null)
-  const [copiedSecret, setCopiedSecret] = useState<'username' | 'password' | 'both' | null>(null)
+  const [copiedSecret, setCopiedSecret] = useState<
+    'username' | 'password' | 'both' | null
+  >(null)
   const [copyFailed, setCopyFailed] = useState(false)
-  async function copySecret(value: string, part: 'username' | 'password' | 'both') {
+  async function copySecret(
+    value: string,
+    part: 'username' | 'password' | 'both',
+  ) {
     try {
       await navigator.clipboard.writeText(value)
       setCopiedSecret(part)
@@ -106,7 +143,6 @@ export function CredentialsPage({
     (value) => (value.rotate ? 'feedback.rotated' : 'feedback.archived'),
   )
   const columns: ColumnDef<Credential>[] = [
-    { accessorKey: 'id', header: 'ID' },
     {
       accessorKey: 'username',
       header: t('common.apiUsername'),
@@ -114,7 +150,7 @@ export function CredentialsPage({
         companyId ? (
           <Link
             className="font-semibold text-brand-purple underline-offset-2 hover:underline"
-            to={`/credenciais/${row.original.id}?fromCompany=${companyId}`}
+            to={`/credenciais/${row.original.publicRef}${companyRef ? `?fromCompany=${companyRef}` : ''}`}
           >
             {row.original.username}
           </Link>
@@ -316,11 +352,12 @@ export function CredentialsPage({
             if (viewing) setViewing(null)
             else
               navigate(
-                fromCompany ? `/empresas/${fromCompany}` : '/credenciais',
+                returnCompanyRef
+                  ? `/empresas/${returnCompanyRef}`
+                  : '/credenciais',
               )
           }}
           fields={[
-            { label: 'ID', value: activeViewing.credential.id },
             {
               label: t('common.company'),
               value: activeViewing.credential.companyName,
@@ -413,36 +450,87 @@ export function CredentialsPage({
               : t('credentials.usernameHint')}
           </p>
           <div className="field">
-            <label htmlFor="credential-secret-username">{t('credentials.username')}</label>
+            <label htmlFor="credential-secret-username">
+              {t('credentials.username')}
+            </label>
             <div className="flex gap-2">
-              <input id="credential-secret-username" readOnly className="form-control min-w-0 flex-1" value={secret.username} />
-              <button type="button" className="button-secondary shrink-0" onClick={() => copySecret(secret.username, 'username')} aria-label={t('credentials.copyUsername')}>
-                {copiedSecret === 'username' ? <Check size={17} aria-hidden="true" /> : <Copy size={17} aria-hidden="true" />}
+              <input
+                id="credential-secret-username"
+                readOnly
+                className="form-control min-w-0 flex-1"
+                value={secret.username}
+              />
+              <button
+                type="button"
+                className="button-secondary shrink-0"
+                onClick={() => copySecret(secret.username, 'username')}
+                aria-label={t('credentials.copyUsername')}
+              >
+                {copiedSecret === 'username' ? (
+                  <Check size={17} aria-hidden="true" />
+                ) : (
+                  <Copy size={17} aria-hidden="true" />
+                )}
               </button>
             </div>
           </div>
           {secret.password ? (
             <div className="field mt-4">
-              <label htmlFor="credential-secret-password">{t('auth.password')}</label>
+              <label htmlFor="credential-secret-password">
+                {t('auth.password')}
+              </label>
               <div className="flex gap-2">
-                <input id="credential-secret-password" readOnly autoComplete="off" className="form-control min-w-0 flex-1 font-mono" value={secret.password} />
-                <button type="button" className="button-secondary shrink-0" onClick={() => copySecret(secret.password, 'password')} aria-label={t('credentials.copyPassword')}>
-                  {copiedSecret === 'password' ? <Check size={17} aria-hidden="true" /> : <Copy size={17} aria-hidden="true" />}
+                <input
+                  id="credential-secret-password"
+                  readOnly
+                  autoComplete="off"
+                  className="form-control min-w-0 flex-1 font-mono"
+                  value={secret.password}
+                />
+                <button
+                  type="button"
+                  className="button-secondary shrink-0"
+                  onClick={() => copySecret(secret.password, 'password')}
+                  aria-label={t('credentials.copyPassword')}
+                >
+                  {copiedSecret === 'password' ? (
+                    <Check size={17} aria-hidden="true" />
+                  ) : (
+                    <Copy size={17} aria-hidden="true" />
+                  )}
                 </button>
               </div>
             </div>
           ) : null}
           {secret.password ? (
-            <button type="button" className="button-secondary mt-4 w-full" onClick={() => copySecret(`${t('credentials.username')}: ${secret.username}\n${t('auth.password')}: ${secret.password}`, 'both')}>
-              {copiedSecret === 'both' ? <Check size={17} aria-hidden="true" /> : <Copy size={17} aria-hidden="true" />}
-              {t(copiedSecret === 'both' ? 'credentials.copiedAccess' : 'credentials.copyAccess')}
+            <button
+              type="button"
+              className="button-secondary mt-4 w-full"
+              onClick={() =>
+                copySecret(
+                  `${t('credentials.username')}: ${secret.username}\n${t('auth.password')}: ${secret.password}`,
+                  'both',
+                )
+              }
+            >
+              {copiedSecret === 'both' ? (
+                <Check size={17} aria-hidden="true" />
+              ) : (
+                <Copy size={17} aria-hidden="true" />
+              )}
+              {t(
+                copiedSecret === 'both'
+                  ? 'credentials.copiedAccess'
+                  : 'credentials.copyAccess',
+              )}
             </button>
           ) : null}
-          {copyFailed ? <p role="alert" className="mt-3 text-sm text-rose-700">{t('credentials.copyFailed')}</p> : null}
-          <button
-            className="button-primary mt-6 w-full"
-            onClick={closeSecret}
-          >
+          {copyFailed ? (
+            <p role="alert" className="mt-3 text-sm text-rose-700">
+              {t('credentials.copyFailed')}
+            </p>
+          ) : null}
+          <button className="button-primary mt-6 w-full" onClick={closeSecret}>
             {t('credentials.savedCredential')}
           </button>
         </Dialog>

@@ -3,6 +3,7 @@ import { isAxiosError } from 'axios'
 import { api } from '../../lib/api'
 export const roles = ['admin', 'operator', 'viewer'] as const
 export const userSchema = z.object({
+  publicRef: z.uuid(),
   id: z.number(),
   name: z.string(),
   email: z.string(),

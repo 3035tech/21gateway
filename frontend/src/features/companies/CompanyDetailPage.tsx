@@ -1,7 +1,15 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Building2, CheckCircle2, KeyRound, Pencil, ShieldCheck, TriangleAlert } from 'lucide-react'
-import { Link, useParams } from 'react-router-dom'
+import {
+  ArrowLeft,
+  Building2,
+  CheckCircle2,
+  KeyRound,
+  Pencil,
+  ShieldCheck,
+  TriangleAlert,
+} from 'lucide-react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { DateCell } from '../../components/admin/DateCell'
 import { StatusBadge } from '../../components/admin/StatusBadge'
@@ -9,23 +17,35 @@ import { errorMessage } from '../../lib/admin'
 import { useUser } from '../auth/context'
 import { CredentialsPage } from '../credentials/CredentialsPage'
 import { CompanyForm } from './CompanyForm'
-import { getCompany } from './api'
+import { getCompany, getCompanyByPublicRef } from './api'
 import { UsersPage } from '../users/UsersPage'
+import { isPublicRef } from '../../lib/publicRef'
 
 export function CompanyDetailPage() {
   const { t } = useTranslation()
   const { id } = useParams()
-  const companyId = Number(id)
+  const navigate = useNavigate()
+  const legacyId = /^\d+$/.test(id ?? '') ? Number(id) : null
+  const validCompanyRef =
+    legacyId !== null
+      ? Number.isSafeInteger(legacyId) && legacyId > 0
+      : isPublicRef(id)
   const [editing, setEditing] = useState(false)
   const canEdit = useUser()?.role !== 'viewer'
   const canViewUsers = useUser()?.role === 'admin'
   const query = useQuery({
-    queryKey: ['admin', 'company', companyId],
-    queryFn: ({ signal }) => getCompany(companyId, signal),
-    enabled: Number.isSafeInteger(companyId) && companyId > 0,
+    queryKey: ['admin', 'company', id],
+    queryFn: ({ signal }) =>
+      legacyId !== null
+        ? getCompany(legacyId, signal)
+        : getCompanyByPublicRef(id!, signal),
+    enabled: validCompanyRef,
   })
-  if (!Number.isSafeInteger(companyId) || companyId < 1)
-    return <p role="alert">{t('app.notFoundTitle')}</p>
+  useEffect(() => {
+    if (legacyId !== null && query.data)
+      navigate(`/empresas/${query.data.publicRef}`, { replace: true })
+  }, [legacyId, navigate, query.data])
+  if (!validCompanyRef) return <p role="alert">{t('app.notFoundTitle')}</p>
   return (
     <div className="space-y-8">
       <Link
@@ -90,19 +110,33 @@ export function CompanyDetailPage() {
               </div>
             </dl>
           </section>
-          <section className={`rounded-2xl border p-6 ${query.data.providerTokenConfigured ? 'border-emerald-200 bg-emerald-50/70' : 'border-amber-200 bg-amber-50/70'}`}>
+          <section
+            className={`rounded-2xl border p-6 ${query.data.providerTokenConfigured ? 'border-emerald-200 bg-emerald-50/70' : 'border-amber-200 bg-amber-50/70'}`}
+          >
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="flex min-w-0 items-start gap-4">
-                <span className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${query.data.providerTokenConfigured ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                <span
+                  className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${query.data.providerTokenConfigured ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}
+                >
                   <KeyRound size={21} aria-hidden="true" />
                 </span>
                 <div>
                   <h2 className="text-lg font-bold text-slate-900">
                     {t('companies.providerAccess')}
                   </h2>
-                  <span className={`mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${query.data.providerTokenConfigured ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'}`}>
-                    {query.data.providerTokenConfigured ? <CheckCircle2 size={14} aria-hidden="true" /> : <TriangleAlert size={14} aria-hidden="true" />}
-                    {t(query.data.providerTokenConfigured ? 'companies.providerSaved' : 'companies.providerNotSaved')}
+                  <span
+                    className={`mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${query.data.providerTokenConfigured ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'}`}
+                  >
+                    {query.data.providerTokenConfigured ? (
+                      <CheckCircle2 size={14} aria-hidden="true" />
+                    ) : (
+                      <TriangleAlert size={14} aria-hidden="true" />
+                    )}
+                    {t(
+                      query.data.providerTokenConfigured
+                        ? 'companies.providerSaved'
+                        : 'companies.providerNotSaved',
+                    )}
                   </span>
                   <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-700">
                     {query.data.providerTokenConfigured
@@ -124,7 +158,11 @@ export function CompanyDetailPage() {
                   className="button-secondary shrink-0"
                   onClick={() => setEditing(true)}
                 >
-                  {t(query.data.providerTokenConfigured ? 'companies.providerReplace' : 'companies.providerManage')}
+                  {t(
+                    query.data.providerTokenConfigured
+                      ? 'companies.providerReplace'
+                      : 'companies.providerManage',
+                  )}
                 </button>
               ) : null}
             </div>
@@ -137,13 +175,18 @@ export function CompanyDetailPage() {
               </span>
             </div>
             <CredentialsPage
-              companyId={companyId}
+              companyId={query.data.id}
+              companyRef={query.data.publicRef}
               companyName={query.data.name}
             />
           </section>
           {canViewUsers ? (
             <section aria-label={t('users.companyUsersTitle')}>
-              <UsersPage companyId={companyId} companyName={query.data.name} />
+              <UsersPage
+                companyId={query.data.id}
+                companyRef={query.data.publicRef}
+                companyName={query.data.name}
+              />
             </section>
           ) : null}
           {editing ? (

@@ -25,14 +25,13 @@ export function CompaniesPage() {
     'feedback.archived',
   )
   const columns: ColumnDef<Company>[] = [
-    { accessorKey: 'id', header: 'ID' },
     {
       accessorKey: 'name',
       header: t('common.company'),
       cell: ({ row }) => (
         <Link
           className="inline-flex items-center gap-1 font-semibold text-brand-purple hover:underline"
-          to={`/empresas/${row.original.id}`}
+          to={`/empresas/${row.original.publicRef}`}
         >
           {row.original.name}
           <ArrowUpRight size={14} aria-hidden="true" />
@@ -59,7 +58,10 @@ export function CompaniesPage() {
     enableSorting: false,
     cell: ({ row }) => (
       <div className="flex gap-1">
-        <Link className="table-action" to={`/empresas/${row.original.id}`}>
+        <Link
+          className="table-action"
+          to={`/empresas/${row.original.publicRef}`}
+        >
           {t('common.view')}
         </Link>
         {writable ? (

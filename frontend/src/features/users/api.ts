@@ -38,6 +38,14 @@ export async function getUser(id: number, signal?: AbortSignal) {
     (await api.get(`/admin/users/${id}`, { signal })).data,
   )
 }
+export async function getUserByPublicRef(
+  publicRef: string,
+  signal?: AbortSignal,
+) {
+  return userSchema.parse(
+    (await api.get(`/admin/users/by-ref/${publicRef}`, { signal })).data,
+  )
+}
 export async function saveUser(id: number | undefined, body: UserBody) {
   if (id) await api.put(`/admin/users/${id}`, body)
   else await api.post('/admin/users/invite', body)

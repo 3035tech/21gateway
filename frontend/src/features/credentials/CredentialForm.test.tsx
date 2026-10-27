@@ -8,6 +8,7 @@ import { MemoryRouter } from 'react-router-dom'
 import type { Credential } from './api'
 const credential: Credential = {
   id: 1,
+  publicRef: '11111111-1111-4111-8111-111111111111',
   companyId: 1,
   companyName: 'Empresa exemplo',
   username: 'client',
@@ -22,6 +23,16 @@ const credential: Credential = {
   moCallbackUrl: 'https://client.example/mo',
   moCallbacksEnabled: true,
   legacyAccountId: '2340',
+}
+const company = {
+  id: 1,
+  publicRef: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  name: 'Empresa exemplo',
+  reference: 'example',
+  active: true,
+  createdAt: '2026-10-14T12:00:00Z',
+  providerTokenConfigured: true,
+  legacyProviderTokenFallback: false,
 }
 beforeAll(() => {
   HTMLDialogElement.prototype.showModal = function () {
@@ -51,7 +62,7 @@ it('preserves callbacks, hidden IP values and the existing token when editing', 
   const put = vi
     .spyOn(api, 'put')
     .mockResolvedValue({ data: { credential, password: '' } })
-  const get = vi.spyOn(api, 'get')
+  const get = vi.spyOn(api, 'get').mockResolvedValue({ data: company })
   try {
     const close = vi.fn()
     renderEditor(close)
@@ -111,22 +122,27 @@ it('preserves callbacks, hidden IP values and the existing token when editing', 
         moCallbacksEnabled: true,
       }),
     )
-    expect(get).not.toHaveBeenCalled()
+    expect(get).toHaveBeenCalledWith('/admin/companies/1', expect.anything())
   } finally {
     put.mockRestore()
     get.mockRestore()
   }
 })
 it('directs provider token management to the company and closes the dialog', async () => {
+  const get = vi.spyOn(api, 'get').mockResolvedValue({ data: company })
   const close = vi.fn()
-  renderEditor(close)
-  expect(screen.queryByLabelText('Novo token')).not.toBeInTheDocument()
-  const link = screen.getByRole('link', {
-    name: 'Gerenciar token na empresa',
-  })
-  expect(link).toHaveAttribute('href', '/empresas/1')
-  await userEvent.setup().click(link)
-  expect(close).toHaveBeenCalledOnce()
+  try {
+    renderEditor(close)
+    expect(screen.queryByLabelText('Novo token')).not.toBeInTheDocument()
+    const link = await screen.findByRole('link', {
+      name: 'Gerenciar token na empresa',
+    })
+    expect(link).toHaveAttribute('href', `/empresas/${company.publicRef}`)
+    await userEvent.setup().click(link)
+    expect(close).toHaveBeenCalledOnce()
+  } finally {
+    get.mockRestore()
+  }
 })
 
 it('uses the selected company when creating an operator credential', async () => {

@@ -30,13 +30,18 @@ export function AdminLayout({ children }: PropsWithChildren) {
     enabled: companyIds.length > 1,
     staleTime: 60_000,
     queryFn: async ({ signal }) => {
-      const names = new Map<number, string>()
+      const names = new Map<number, { name: string; publicRef: string }>()
       for (let page = 1; ; page++) {
         const result = await listCompanies(
           { page, pageSize: 100, search: '', sort: 'name', direction: 'asc' },
           signal,
         )
-        result.items.forEach((company) => names.set(company.id, company.name))
+        result.items.forEach((company) =>
+          names.set(company.id, {
+            name: company.name,
+            publicRef: company.publicRef,
+          }),
+        )
         if (page * 100 >= result.total || result.items.length === 0)
           return names
       }
@@ -68,7 +73,7 @@ export function AdminLayout({ children }: PropsWithChildren) {
                 options: companyIds.map((id) => ({
                   value: id,
                   label:
-                    companies.data?.get(id) ??
+                    companies.data?.get(id)?.name ??
                     t('common.companyNumber', { id }),
                 })),
                 onChange: (companyId) => {
@@ -76,9 +81,13 @@ export function AdminLayout({ children }: PropsWithChildren) {
                     userId: user.id,
                     companyId: Number(companyId),
                   })
-                  if (/^\/empresas\/\d+$/.test(location.pathname))
-                    navigate(`/empresas/${companyId}`)
-                  if (/^\/credenciais\/\d+$/.test(location.pathname))
+                  if (/^\/empresas\/[^/]+$/.test(location.pathname)) {
+                    const publicRef = companies.data?.get(
+                      Number(companyId),
+                    )?.publicRef
+                    navigate(publicRef ? `/empresas/${publicRef}` : '/empresas')
+                  }
+                  if (/^\/credenciais\/[^/]+$/.test(location.pathname))
                     navigate('/credenciais')
                 },
               }

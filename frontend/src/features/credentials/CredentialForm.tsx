@@ -49,6 +49,7 @@ export function CredentialForm({
   const [companyPage, setCompanyPage] = useState(1)
   const [selectedCompany, setSelectedCompany] = useState<{
     id: number
+    publicRef: string
     name: string
     active: boolean
   } | null>(null)
@@ -75,8 +76,7 @@ export function CredentialForm({
   })
   const fixedCompany = useQuery({
     queryKey: ['admin', 'company', selectedCompanyId],
-    enabled:
-      !!selectedCompanyId && !credential?.companyName && !initialCompanyName,
+    enabled: !!selectedCompanyId,
     queryFn: ({ signal }) => getCompany(selectedCompanyId!, signal),
   })
   const form = useForm<CredentialBody>({
@@ -116,6 +116,11 @@ export function CredentialForm({
     control: form.control,
     name: ['generateUsername', 'whitelistEnabled', 'active', 'companyId'],
   })
+  const companyPublicRef =
+    selectedCompany?.publicRef ??
+    fixedCompany.data?.publicRef ??
+    companies.data?.items.find((company) => company.id === formCompanyId)
+      ?.publicRef
   const errors = form.formState.errors
   const tabErrors: Record<CredentialTab, boolean> = {
     access: !!(
@@ -588,9 +593,9 @@ export function CredentialForm({
                   </p>
                 </div>
               </div>
-              {(selectedCompanyId ?? formCompanyId) > 0 ? (
+              {companyPublicRef ? (
                 <Link
-                  to={`/empresas/${selectedCompanyId ?? formCompanyId}`}
+                  to={`/empresas/${companyPublicRef}`}
                   onClick={onClose}
                   className="mt-4 inline-flex min-h-10 items-center gap-1 rounded-lg px-2 text-sm font-bold text-brand-purple underline-offset-4 hover:bg-white hover:underline"
                 >

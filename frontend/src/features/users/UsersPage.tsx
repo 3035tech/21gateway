@@ -1,5 +1,5 @@
 import { DateCell } from '../../components/admin/DateCell'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -10,29 +10,66 @@ import { useAdminMutation } from '../../components/admin/useAdminMutation'
 import { useFeedback } from '../../components/admin/feedbackContext'
 import { useUser } from '../auth/context'
 import { errorMessage, roleLabels } from '../../lib/admin'
-import { listUsers, getUser, archiveUser, resendInvitation } from './api'
+import {
+  listUsers,
+  getUser,
+  getUserByPublicRef,
+  archiveUser,
+  resendInvitation,
+} from './api'
 import type { SystemUser } from './api'
 import { UserForm } from './UserForm'
 import { useTranslation } from 'react-i18next'
 import { RecordDetailsDialog } from '../../components/admin/RecordDetailsDialog'
+import { useCompanyReturnRef } from '../companies/useCompanyReturnRef'
+import { isPublicRef } from '../../lib/publicRef'
 export function UsersPage({
   companyId,
+  companyRef,
   companyName,
-}: { companyId?: number; companyName?: string } = {}) {
+}: { companyId?: number; companyRef?: string; companyName?: string } = {}) {
   const { t } = useTranslation()
   const feedback = useFeedback()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const fromCompany = searchParams.get('fromCompany')
+  const { publicRef: returnCompanyRef, ready: companyRefReady } =
+    useCompanyReturnRef(fromCompany)
   const { recordId } = useParams()
-  const linkedRecordId = Number(recordId)
+  const legacyId = /^\d+$/.test(recordId ?? '') ? Number(recordId) : null
   const validRecordId =
-    !!recordId && Number.isSafeInteger(linkedRecordId) && linkedRecordId > 0
+    legacyId === null
+      ? isPublicRef(recordId)
+      : Number.isSafeInteger(legacyId) && legacyId > 0
   const linkedRecord = useQuery({
-    queryKey: ['admin', 'user', linkedRecordId],
-    queryFn: ({ signal }) => getUser(linkedRecordId, signal),
+    queryKey: ['admin', 'user', recordId],
+    queryFn: ({ signal }) =>
+      legacyId !== null
+        ? getUser(legacyId, signal)
+        : getUserByPublicRef(recordId!, signal),
     enabled: validRecordId,
   })
+  useEffect(() => {
+    const publicRef =
+      legacyId !== null ? linkedRecord.data?.publicRef : recordId
+    if (
+      publicRef &&
+      companyRefReady &&
+      (legacyId !== null || fromCompany !== returnCompanyRef)
+    )
+      navigate(
+        `/usuarios/${publicRef}${returnCompanyRef ? `?fromCompany=${returnCompanyRef}` : ''}`,
+        { replace: true },
+      )
+  }, [
+    legacyId,
+    linkedRecord.data,
+    navigate,
+    recordId,
+    fromCompany,
+    returnCompanyRef,
+    companyRefReady,
+  ])
   const user = useUser()
   const writable = user?.role === 'admin'
   const [editor, setEditor] = useState<SystemUser | null | undefined>()
@@ -53,7 +90,6 @@ export function UsersPage({
     onError: (error) => feedback.error(errorMessage(error)),
   })
   const columns: ColumnDef<SystemUser>[] = [
-    { accessorKey: 'id', header: 'ID' },
     {
       accessorKey: 'name',
       header: t('common.name'),
@@ -61,7 +97,7 @@ export function UsersPage({
         companyId ? (
           <Link
             className="font-semibold text-brand-purple underline-offset-2 hover:underline"
-            to={`/usuarios/${row.original.id}?fromCompany=${companyId}`}
+            to={`/usuarios/${row.original.publicRef}${companyRef ? `?fromCompany=${companyRef}` : ''}`}
           >
             {row.original.name}
           </Link>
@@ -196,10 +232,13 @@ export function UsersPage({
           onClose={() => {
             if (viewing) setViewing(null)
             else
-              navigate(fromCompany ? `/empresas/${fromCompany}` : '/usuarios')
+              navigate(
+                returnCompanyRef
+                  ? `/empresas/${returnCompanyRef}`
+                  : '/usuarios',
+              )
           }}
           fields={[
-            { label: 'ID', value: (viewing ?? linkedRecord.data)!.id },
             {
               label: t('common.name'),
               value: (viewing ?? linkedRecord.data)!.name,

@@ -6,6 +6,7 @@ export const companySchema = z.object({
   providerTokenConfigured: z.boolean(),
   legacyProviderTokenFallback: z.boolean(),
   id: z.number(),
+  publicRef: z.uuid(),
   name: z.string(),
   reference: z.string(),
   active: z.boolean(),
@@ -27,6 +28,15 @@ export const listCompanies = (params: ListParams, signal?: AbortSignal) =>
   list('companies', companySchema, params, signal)
 export async function getCompany(id: number, signal?: AbortSignal) {
   const response = await api.get(`/admin/companies/${id}`, { signal })
+  return companySchema.parse(response.data)
+}
+export async function getCompanyByPublicRef(
+  publicRef: string,
+  signal?: AbortSignal,
+) {
+  const response = await api.get(`/admin/companies/by-ref/${publicRef}`, {
+    signal,
+  })
   return companySchema.parse(response.data)
 }
 export async function saveCompany(id: number | undefined, body: CompanyBody) {

@@ -4,6 +4,7 @@ import { credentialFormSchema, saveCredential } from './api'
 it('preserves existing secrets when empty and converts the whitelist to an array', async () => {
   const dto = {
     id: 1,
+    publicRef: '11111111-1111-4111-8111-111111111111',
     companyId: 1,
     companyName: 'Example',
     username: 'client',
@@ -83,6 +84,7 @@ it('sends generated username, manual password and optional expiration explicitly
     data: {
       credential: {
         id: 2,
+        publicRef: '22222222-2222-4222-8222-222222222222',
         companyId: 1,
         companyName: 'Example',
         username: 'gw_generated',

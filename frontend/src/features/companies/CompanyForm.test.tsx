@@ -52,6 +52,7 @@ it('submits the provider-issued token on the company record', async () => {
       <CompanyForm
         company={{
           id: 4,
+          publicRef: '11111111-1111-4111-8111-111111111111',
           name: 'Empresa teste',
           reference: 'CLI-004',
           active: true,
