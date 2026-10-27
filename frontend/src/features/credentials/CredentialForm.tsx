@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useForm, useWatch } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { credentialFormSchema, saveCredential } from './api'
 import type { Credential, CredentialBody } from './api'
@@ -12,6 +12,8 @@ import type { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { useAdminMutation } from '../../components/admin/useAdminMutation'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
+import { AppSelect } from '../../components/admin/AppSelect'
 function localDateTime(value?: string | null) {
   if (!value) return ''
   const date = new Date(value)
@@ -75,14 +77,9 @@ export function CredentialForm({
       onSecret(result.credential.username, result.password)
   }, onClose)
 
-  const [generateUsername, removeToken, restrictIPs, active] = useWatch({
+  const [generateUsername, restrictIPs, active, formCompanyId] = useWatch({
     control: form.control,
-    name: [
-      'generateUsername',
-      'clearProviderToken',
-      'whitelistEnabled',
-      'active',
-    ],
+    name: ['generateUsername', 'whitelistEnabled', 'active', 'companyId'],
   })
   return (
     <Dialog
@@ -141,23 +138,32 @@ export function CredentialForm({
                 ) : (
                   <label className="field">
                     {t('common.company')}
-                    <select
-                      className="form-control"
-                      disabled={companies.isPending || companies.isError}
-                      {...form.register('companyId', { valueAsNumber: true })}
-                    >
-                      <option value={0}>
-                        {companies.isPending
-                          ? t('credentials.loadingCompanies')
-                          : t('credentials.selectCompany')}
-                      </option>
-                      {companies.data?.items.map((company) => (
-                        <option value={company.id} key={company.id}>
-                          {company.name}
-                          {company.active ? '' : t('credentials.blockedSuffix')}
-                        </option>
-                      ))}
-                    </select>
+                    <Controller
+                      name="companyId"
+                      control={form.control}
+                      render={({ field }) => (
+                        <AppSelect
+                          value={field.value}
+                          label={t('common.company')}
+                          disabled={companies.isPending || companies.isError}
+                          onValueChange={(value) =>
+                            field.onChange(Number(value))
+                          }
+                          options={[
+                            {
+                              value: 0,
+                              label: companies.isPending
+                                ? t('credentials.loadingCompanies')
+                                : t('credentials.selectCompany'),
+                            },
+                            ...(companies.data?.items.map((company) => ({
+                              value: company.id,
+                              label: `${company.name}${company.active ? '' : t('credentials.blockedSuffix')}`,
+                            })) ?? []),
+                          ]}
+                        />
+                      )}
+                    />
                     <FieldError
                       message={form.formState.errors.companyId?.message}
                     />
@@ -341,58 +347,16 @@ export function CredentialForm({
             title={t('credentials.providerSection')}
             icon={KeyRound}
           >
-            <p className="mb-4 text-sm leading-6 text-slate-600">
-              {credential?.providerTokenConfigured
-                ? t('credentials.tokenConfiguredHint')
-                : t('credentials.tokenMissingHint')}
+            <p className="text-sm leading-6 text-slate-600">
+              {t('credentials.providerAtCompany')}
             </p>
-            {!removeToken ? (
-              <label className="field">
-                {credential?.providerTokenConfigured
-                  ? t('credentials.newToken')
-                  : t('credentials.providerToken')}
-                <input
-                  type="password"
-                  autoComplete="new-password"
-                  className="form-control"
-                  {...form.register('providerToken')}
-                />
-                <FieldError
-                  message={form.formState.errors.providerToken?.message}
-                />
-              </label>
-            ) : null}
-            {credential?.providerTokenConfigured ? (
-              <div className="mt-3">
-                <label className="flex min-h-11 items-center gap-3 text-sm text-rose-800">
-                  <input
-                    className="size-4 accent-rose-700"
-                    type="checkbox"
-                    {...form.register('clearProviderToken')}
-                    onChange={(event) => {
-                      form.setValue(
-                        'clearProviderToken',
-                        event.target.checked,
-                        { shouldDirty: true, shouldValidate: true },
-                      )
-                      if (event.target.checked)
-                        form.setValue('providerToken', '', {
-                          shouldDirty: true,
-                          shouldValidate: true,
-                        })
-                    }}
-                  />
-                  {t('credentials.removeToken')}
-                </label>
-                {removeToken ? (
-                  <p
-                    role="status"
-                    className="rounded-lg bg-rose-50 px-3 py-2 text-xs leading-5 text-rose-800"
-                  >
-                    {t('credentials.removeTokenHint')}
-                  </p>
-                ) : null}
-              </div>
+            {(selectedCompanyId ?? formCompanyId) > 0 ? (
+              <Link
+                to={`/empresas/${selectedCompanyId ?? formCompanyId}`}
+                className="button-ghost mt-3 inline-flex"
+              >
+                {t('credentials.openCompanyProvider')}
+              </Link>
             ) : null}
           </CredentialSection>
           <CredentialSection

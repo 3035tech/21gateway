@@ -7,6 +7,7 @@ export type DemoRow = {
   status: string
   date: string
   companyAccess?: string[]
+  providerTokenConfigured?: boolean
 }
 export type Section =
   | 'empresas'
@@ -159,6 +160,7 @@ export const initialRows: Record<Section, DemoRow[]> = Object.fromEntries(
                 : [company]
               : [],
           status,
+          providerTokenConfigured: key === 'empresas' && i < companies.length,
           date:
             key === 'agendamentos'
               ? `${String(25 + Math.floor(i / 12)).padStart(2, '0')}/10/2026 ${String(9 + Math.floor(i / 12)).padStart(2, '0')}:${String(59 - (i % 60)).padStart(2, '0')}`

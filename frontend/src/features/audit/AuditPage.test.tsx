@@ -45,14 +45,10 @@ it('shows the current actor name and sends audit filters and sorting to the API'
     screen.getByRole('spinbutton', { name: 'ID do responsável' }),
     '3',
   )
-  await user.selectOptions(
-    screen.getByRole('combobox', { name: 'Ação' }),
-    'updated',
-  )
-  await user.selectOptions(
-    screen.getByRole('combobox', { name: 'Recurso' }),
-    'companies',
-  )
+  await user.click(screen.getByRole('combobox', { name: 'Ação' }))
+  await user.click(screen.getByRole('option', { name: 'Cadastro atualizado' }))
+  await user.click(screen.getByRole('combobox', { name: 'Recurso' }))
+  await user.click(screen.getByRole('option', { name: 'Empresas' }))
   await vi.waitFor(() =>
     expect(get).toHaveBeenLastCalledWith(
       '/admin/audit',

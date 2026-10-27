@@ -6,6 +6,8 @@ Versão final recebida em 15/10/2026: `docs/references/perguntas-migracao-respon
 
 ## Conclusão
 
+Confirmação adicional do usuário em 27/10/2026: cada empresa tem uma credencial/token white label Zoug e pode ter várias credenciais Basic Auth distintas para clientes acessarem a API 21. O token Zoug é fornecido pelo fornecedor; o gateway gera apenas as novas credenciais da API 21 quando solicitado. Implementação e transição em `docs/status.md` e `docs/account-settings.md`.
+
 O objetivo passa a ser preservar a API V1 utilizada pelos clientes sem mudança nas integrações. Não basta envio unitário. Manter os recursos existentes até comprovar por tráfego que algum recurso pode ser dispensado. A 21 pretende uma entrega funcional completa, não contratar etapas distintas de funcionalidades.
 
 A plataforma white label concentra gestão operacional e saldo. O painel novo é interno e focado em credenciais/configurações. A implementação atual é base parcial; não atende ainda ao escopo respondido.

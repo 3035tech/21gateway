@@ -39,10 +39,8 @@ describe('DataTable server query controls', () => {
     render(<Harness />)
     await user.click(screen.getByRole('button', { name: 'Próxima' }))
     expect(queryState().pagination).toEqual({ pageIndex: 1, pageSize: 25 })
-    await user.selectOptions(
-      screen.getByRole('combobox', { name: 'Itens por página' }),
-      '50',
-    )
+    await user.click(screen.getByRole('combobox', { name: 'Itens por página' }))
+    await user.click(screen.getByRole('option', { name: '50' }))
     expect(queryState().pagination).toEqual({ pageIndex: 0, pageSize: 50 })
   })
   it('changes sort direction by clicking the header and resets page', async () => {

@@ -31,6 +31,7 @@ import { initialRows, sections } from './data'
 import { useTranslation } from 'react-i18next'
 import { LanguageSwitcher } from '../../components/admin/LanguageSwitcher'
 import { Dialog } from '../../components/admin/Dialog'
+import { AppSelect } from '../../components/admin/AppSelect'
 import { RolePicker } from '../users/RolePicker'
 import type { DemoRow, Section } from './data'
 
@@ -373,6 +374,8 @@ function Listing({
     'generated' | 'manual' | 'legacy'
   >('generated')
   const [demoPassword, setDemoPassword] = useState('')
+  const [demoProviderToken, setDemoProviderToken] = useState('')
+  const [demoClearProviderToken, setDemoClearProviderToken] = useState(false)
   const [demoGenerateUsername, setDemoGenerateUsername] = useState(false)
   const [demoSecret, setDemoSecret] = useState<{
     username: string
@@ -462,7 +465,11 @@ function Listing({
           <>
             <button
               className="table-action gap-2"
-              onClick={() => setEditing(row.original)}
+              onClick={() => {
+                setDemoProviderToken('')
+                setDemoClearProviderToken(false)
+                setEditing(row.original)
+              }}
             >
               <Pencil size={15} aria-hidden="true" /> {t('common.edit')}
             </button>
@@ -504,6 +511,8 @@ function Listing({
               setDemoGenerateUsername(false)
               setDemoPasswordMode('generated')
               setDemoPassword('')
+              setDemoProviderToken('')
+              setDemoClearProviderToken(false)
               setEditing({
                 id: '',
                 name: '',
@@ -542,23 +551,24 @@ function Listing({
         filters={
           <label className="flex flex-col gap-1 text-sm font-semibold">
             {t('common.status')}
-            <select
-              className="form-control min-w-40"
+            <AppSelect
+              className="min-w-40"
               value={status}
-              onChange={(event) => {
-                setStatus(event.target.value)
+              label={t('common.status')}
+              onValueChange={(value) => {
+                setStatus(value)
                 state.onPaginationChange({ ...state.pagination, pageIndex: 0 })
               }}
-            >
-              <option value="">{t('demo.allStatuses')}</option>
-              {Array.from(new Set(rows.map((row) => row.status))).map(
-                (value) => (
-                  <option key={value} value={value}>
-                    {t(demoStatusKey(value))}
-                  </option>
+              options={[
+                { value: '', label: t('demo.allStatuses') },
+                ...Array.from(new Set(rows.map((row) => row.status))).map(
+                  (value) => ({
+                    value,
+                    label: t(demoStatusKey(value)),
+                  }),
                 ),
-              )}
-            </select>
+              ]}
+            />
           </label>
         }
       />
@@ -593,6 +603,18 @@ function Listing({
                     ],
                   ]),
               [t('common.status'), t(demoStatusKey(viewing.status))],
+              ...(section === 'empresas'
+                ? [
+                    [
+                      t('companies.providerAccess'),
+                      t(
+                        viewing.providerTokenConfigured
+                          ? 'companies.providerConfigured'
+                          : 'companies.providerMissing',
+                      ),
+                    ],
+                  ]
+                : []),
               [t('common.updatedAt'), viewing.date],
               ...(section === 'envios'
                 ? [
@@ -753,11 +775,20 @@ function Listing({
               onSave({
                 ...editing,
                 name: username,
+                providerTokenConfigured:
+                  section === 'empresas'
+                    ? demoClearProviderToken
+                      ? false
+                      : demoProviderToken
+                        ? true
+                        : editing.providerTokenConfigured
+                    : editing.providerTokenConfigured,
                 id: editing.id || `${section}-${crypto.randomUUID()}`,
                 date: new Date().toLocaleString(i18n.language),
               })
               setEditing(null)
               setDemoPassword('')
+              setDemoProviderToken('')
               setNotice(
                 section === 'usuarios' && !editing.id
                   ? t('demo.invitationSimulated')
@@ -768,18 +799,18 @@ function Listing({
             {section === 'credenciais' ? (
               <label className="flex flex-col gap-2 text-sm font-semibold">
                 {t('common.company')}
-                <select
-                  className="form-control"
+                <AppSelect
                   value={editing.company}
                   disabled={!!editing.id}
-                  onChange={(event) =>
-                    setEditing({ ...editing, company: event.target.value })
+                  label={t('common.company')}
+                  onValueChange={(value) =>
+                    setEditing({ ...editing, company: value })
                   }
-                >
-                  {initialRows.empresas.slice(0, 6).map((row) => (
-                    <option key={row.id}>{row.name}</option>
-                  ))}
-                </select>
+                  options={initialRows.empresas.slice(0, 6).map((row) => ({
+                    value: row.name,
+                    label: row.name,
+                  }))}
+                />
               </label>
             ) : null}
             {section === 'credenciais' ? (
@@ -840,6 +871,47 @@ function Listing({
                   }
                 />
               </label>
+            ) : null}
+            {section === 'empresas' ? (
+              <div className="space-y-3 rounded-xl border border-purple-100 bg-purple-50 p-4">
+                <h3 className="font-bold text-brand-purple">
+                  {t('companies.providerAccess')}
+                </h3>
+                <p className="text-xs leading-5 text-slate-600">
+                  {t(
+                    editing.providerTokenConfigured
+                      ? 'companies.providerConfigured'
+                      : 'companies.providerMissing',
+                  )}
+                </p>
+                {!demoClearProviderToken ? (
+                  <label className="field">
+                    {t('companies.providerToken')}
+                    <input
+                      type="password"
+                      autoComplete="new-password"
+                      className="form-control"
+                      value={demoProviderToken}
+                      onChange={(event) =>
+                        setDemoProviderToken(event.target.value)
+                      }
+                    />
+                  </label>
+                ) : null}
+                {editing.providerTokenConfigured ? (
+                  <label className="flex min-h-11 items-center gap-2 text-sm text-rose-800">
+                    <input
+                      type="checkbox"
+                      checked={demoClearProviderToken}
+                      onChange={(event) => {
+                        setDemoClearProviderToken(event.target.checked)
+                        if (event.target.checked) setDemoProviderToken('')
+                      }}
+                    />
+                    {t('companies.providerRemove')}
+                  </label>
+                ) : null}
+              </div>
             ) : null}
             {section === 'credenciais' ? (
               editing.id ? (
@@ -984,16 +1056,17 @@ function Listing({
             ) : null}
             <label className="flex flex-col gap-2 text-sm font-semibold">
               {t('common.status')}
-              <select
-                className="form-control"
+              <AppSelect
                 value={editing.status}
-                onChange={(event) =>
-                  setEditing({ ...editing, status: event.target.value })
+                label={t('common.status')}
+                onValueChange={(value) =>
+                  setEditing({ ...editing, status: value })
                 }
-              >
-                <option value="active">{t('status.active')}</option>
-                <option value="blocked">{t('status.blocked')}</option>
-              </select>
+                options={[
+                  { value: 'active', label: t('status.active') },
+                  { value: 'blocked', label: t('status.blocked') },
+                ]}
+              />
             </label>
             <div className="flex justify-end gap-3 border-t border-slate-100 pt-5">
               <button

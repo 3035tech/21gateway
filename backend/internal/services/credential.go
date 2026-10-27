@@ -41,6 +41,9 @@ func ValidateCallbackURL(raw string) bool {
 	return err == nil && parsed.Scheme == "https" && parsed.Hostname() != "" && parsed.User == nil && parsed.Fragment == "" && (parsed.Port() == "" || parsed.Port() == "443")
 }
 func (s *CredentialService) SaveCredential(ctx context.Context, actor, id uint64, body dtos.CredentialBody) (dtos.CredentialSecret, error) {
+	if body.ProviderToken != nil || body.ClearProviderToken {
+		return dtos.CredentialSecret{}, apperrors.Wrap(apperrors.CodeInvalidRequest, nil)
+	}
 	var result models.APICredential
 	secret := ""
 	username := body.Username
@@ -103,6 +106,8 @@ func (s *CredentialService) SaveCredential(ctx context.Context, actor, id uint64
 		}
 		result.CompanyID = &body.CompanyID
 		result.CompanyName = company.Name
+		result.CompanyProviderTokenEncrypted = company.ProviderTokenEncrypted
+		result.CompanyProviderTokenLegacyFallback = company.ProviderTokenLegacyFallback
 		result.Active = body.Active
 		result.CallbackURL = body.CallbackURL
 		result.CallbacksEnabled = body.CallbacksEnabled
@@ -165,19 +170,6 @@ func (s *CredentialService) Archive(ctx context.Context, actor, id uint64) error
 }
 
 func (s *CredentialService) applySettings(result *models.APICredential, body dtos.CredentialBody) error {
-	if body.ProviderToken != nil && body.ClearProviderToken {
-		return apperrors.Wrap(apperrors.CodeInvalidRequest, nil)
-	}
-	if body.ProviderToken != nil {
-		encrypted, err := s.vault.Encrypt(result.Username, *body.ProviderToken)
-		if err != nil {
-			return err
-		}
-		result.ProviderTokenEncrypted = encrypted
-	}
-	if body.ClearProviderToken {
-		result.ProviderTokenEncrypted = ""
-	}
 	if body.WhitelistEnabled != nil {
 		result.WhitelistEnabled = *body.WhitelistEnabled
 	}

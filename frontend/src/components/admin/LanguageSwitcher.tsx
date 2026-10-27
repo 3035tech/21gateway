@@ -1,6 +1,7 @@
 import { Languages } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { Language } from '../../lib/i18n'
+import { AppSelect } from './AppSelect'
 
 export function LanguageSwitcher() {
   const { t, i18n } = useTranslation()
@@ -8,17 +9,16 @@ export function LanguageSwitcher() {
     <label className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-slate-700">
       <Languages size={17} aria-hidden="true" />
       <span className="sr-only">{t('language.label')}</span>
-      <select
-        className="form-control min-h-9 border-slate-200 bg-white py-1 text-xs font-semibold"
+      <AppSelect
+        className="min-h-9 border-slate-200 py-1 text-xs"
         value={i18n.language}
-        aria-label={t('language.label')}
-        onChange={(event) =>
-          void i18n.changeLanguage(event.target.value as Language)
-        }
-      >
-        <option value="pt-BR">{t('language.portuguese')}</option>
-        <option value="en-US">{t('language.english')}</option>
-      </select>
+        label={t('language.label')}
+        onValueChange={(value) => void i18n.changeLanguage(value as Language)}
+        options={[
+          { value: 'pt-BR', label: t('language.portuguese') },
+          { value: 'en-US', label: t('language.english') },
+        ]}
+      />
     </label>
   )
 }

@@ -10,6 +10,15 @@ import (
 type Maintenance struct{ db *gorm.DB }
 
 func NewMaintenance(db *gorm.DB) *Maintenance { return &Maintenance{db: db} }
+func (r *Maintenance) CompanyCiphertexts(ctx context.Context, after uint64, limit int) ([]models.CompanyCiphertext, error) {
+	rows := []models.CompanyCiphertext{}
+	err := r.db.WithContext(ctx).Table("companies").Select("id,provider_token_encrypted").Where("id > ? AND provider_token_encrypted <> ''", after).Order("id").Limit(limit).Scan(&rows).Error
+	return rows, err
+}
+func (r *Maintenance) ReplaceCompanyCiphertext(ctx context.Context, id uint64, old, next string) (bool, error) {
+	result := r.db.WithContext(ctx).Table("companies").Where("id = ? AND provider_token_encrypted = ?", id, old).Update("provider_token_encrypted", next)
+	return result.RowsAffected == 1, result.Error
+}
 func (r *Maintenance) CredentialCiphertexts(ctx context.Context, after uint64, limit int) ([]models.CredentialCiphertext, error) {
 	rows := []models.CredentialCiphertext{}
 	err := r.db.WithContext(ctx).Table("api_credentials").Select("id,username,provider_token_encrypted").Where("id > ? AND provider_token_encrypted <> ''", after).Order("id").Limit(limit).Scan(&rows).Error

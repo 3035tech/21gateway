@@ -11,6 +11,7 @@ import (
 )
 
 type maintenanceMemory struct {
+	company    models.CompanyCiphertext
 	credential models.CredentialCiphertext
 	mo         models.MOCiphertext
 	writes     int
@@ -18,6 +19,21 @@ type maintenanceMemory struct {
 	cutoff     time.Time
 	applied    bool
 	purges     int
+}
+
+func (r *maintenanceMemory) CompanyCiphertexts(_ context.Context, after uint64, _ int) ([]models.CompanyCiphertext, error) {
+	if r.company.ID == 0 || after >= r.company.ID {
+		return nil, nil
+	}
+	return []models.CompanyCiphertext{r.company}, nil
+}
+func (r *maintenanceMemory) ReplaceCompanyCiphertext(_ context.Context, _ uint64, old, next string) (bool, error) {
+	if r.conflict || r.company.ProviderTokenEncrypted != old {
+		return false, nil
+	}
+	r.company.ProviderTokenEncrypted = next
+	r.writes++
+	return true, nil
 }
 
 func (r *maintenanceMemory) CredentialCiphertexts(_ context.Context, after uint64, _ int) ([]models.CredentialCiphertext, error) {
@@ -88,6 +104,22 @@ func TestMaintenanceRotationDryRunAndResumption(t *testing.T) {
 	result, err = service.Rotate(context.Background(), true)
 	if err != nil || result.Conflicts != 1 || repo.credential.ProviderTokenEncrypted != token {
 		t.Fatal("concurrent edit overwritten", err, result)
+	}
+}
+
+func TestMaintenanceRotatesCompanyToken(t *testing.T) {
+	old := base64.StdEncoding.EncodeToString([]byte(strings.Repeat("o", 32)))
+	next := base64.StdEncoding.EncodeToString([]byte(strings.Repeat("n", 32)))
+	previous, _ := security.NewTokenVault(old)
+	encrypted, _ := previous.Encrypt("company:42", "provider-secret")
+	vault, _ := security.NewTokenVaultWithKeys(old, "next", map[string]string{"next": next})
+	repo := &maintenanceMemory{company: models.CompanyCiphertext{ID: 42, ProviderTokenEncrypted: encrypted}}
+	result, err := NewMaintenanceService(repo, vault, nil).Rotate(context.Background(), true)
+	if err != nil || result.Changed != 1 {
+		t.Fatal(result, err)
+	}
+	if plain, err := vault.Decrypt("company:42", repo.company.ProviderTokenEncrypted); err != nil || plain != "provider-secret" {
+		t.Fatal("company token rotation failed", err)
 	}
 }
 func TestRetentionUsesConfirmed90DaysAndDryRun(t *testing.T) {

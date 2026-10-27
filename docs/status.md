@@ -1,5 +1,13 @@
 # Estado da implementação
 
+## Token Zoug por empresa — 27/10/2026
+
+Uma empresa agora pode ter várias credenciais Basic Auth da API 21 e um token Zoug compartilhado. O token fornecido pela Zoug é cadastrado/substituído/removido na ficha da empresa; o gateway não o gera. Migração 020 cria os campos cifrados da empresa e habilita fallback temporário nas empresas já existentes para preservar tokens individuais, inclusive durante a troca de binários. O envio imediato, teste e scheduler priorizam o token da empresa; remover o token desabilita o fallback e bloqueia novos envios. Os valores antigos permanecem cifrados para rollback, sem retorno em DTOs. Rotação de chave inclui tokens da empresa. Antes do deployment, aplicar migração 020 e planejar a configuração por empresa; não voltar para imagem antiga após usar tokens centralizados sem restaurar os tokens individuais de forma controlada.
+
+## Controles de interface — 27/10/2026
+
+Selects HTML nativos removidos do frontend e substituídos por um componente compartilhado com menu personalizado e suporte a teclado/foco. Filtros, paginação, idioma, formulários reais e prévia usam o mesmo controle. Checkboxes e rádios visíveis receberam aparência própria da marca; campos de texto e botões seguem os estilos compartilhados. O menu foi conferido no Chrome dentro e fora do diálogo. Nenhum contrato HTTP, regra SMS ou migration foi alterado.
+
 ## Polimento da interface — 27/10/2026
 
 Na prévia, o cadastro de credenciais agora apresenta primeiro a empresa, identifica os campos HTTP Basic Auth, permite gerar o username e usa o diálogo compartilhado com foco e fechamento por Escape. Os controles de seleção seguem a cor da marca. No painel real, a empresa fixa aparece como campo somente leitura ao editar ou criar a partir dela. Links diretos para usuários e credenciais mostram carregamento e erro de consulta; IDs inválidos recebem estado de registro não encontrado. Nenhum contrato ou regra de autenticação foi alterado.

@@ -8,6 +8,7 @@ import { useListState } from '../data-table/useListState'
 import type { ListParams, Page } from '../../lib/admin'
 import { errorMessage } from '../../lib/admin'
 import { useTranslation } from 'react-i18next'
+import { AppSelect } from './AppSelect'
 type Props<T extends { id: number }> = {
   title: string
   description: string
@@ -103,24 +104,24 @@ export function Listing<T extends { id: number }>({
             {filterName ? (
               <label className="flex flex-col gap-1 text-sm font-semibold">
                 {t('common.status')}
-                <select
-                  className="form-control"
+                <AppSelect
                   value={filter}
-                  onChange={(e) => {
-                    setFilter(e.target.value)
+                  label={t('common.status')}
+                  onValueChange={(value) => {
+                    setFilter(value)
                     state.onPaginationChange({
                       ...state.pagination,
                       pageIndex: 0,
                     })
                   }}
-                >
-                  <option value="">{t('common.all')}</option>
-                  {filterOptions?.map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
+                  options={[
+                    { value: '', label: t('common.all') },
+                    ...(filterOptions?.map(([value, label]) => ({
+                      value,
+                      label,
+                    })) ?? []),
+                  ]}
+                />
               </label>
             ) : null}
             {!fixedCompanyId &&

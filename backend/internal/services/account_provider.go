@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	apperrors "github.com/21mobile/sms-gateway/internal/errors"
 	"github.com/21mobile/sms-gateway/internal/integrations/whitelabel"
 	"github.com/21mobile/sms-gateway/internal/security"
@@ -23,7 +24,15 @@ func (p *AccountSMSProvider) Prepare(ctx context.Context) (SMSProvider, error) {
 	if !ok {
 		return nil, apperrors.Wrap(apperrors.CodeUnauthorized, nil)
 	}
-	token, err := p.vault.Decrypt(credential.Username, credential.ProviderTokenEncrypted)
+	associatedData := credential.Username
+	encrypted := credential.ProviderTokenEncrypted
+	if credential.CompanyProviderTokenEncrypted != "" && credential.CompanyID != nil {
+		associatedData = fmt.Sprintf("company:%d", *credential.CompanyID)
+		encrypted = credential.CompanyProviderTokenEncrypted
+	} else if credential.CompanyID != nil && !credential.CompanyProviderTokenLegacyFallback {
+		encrypted = ""
+	}
+	token, err := p.vault.Decrypt(associatedData, encrypted)
 	if err != nil {
 		return nil, err
 	}

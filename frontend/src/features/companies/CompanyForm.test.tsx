@@ -41,3 +41,39 @@ it('validates company name and persists the submitted body', async () => {
   })
   post.mockRestore()
 })
+
+it('submits the provider-issued token on the company record', async () => {
+  const put = vi.spyOn(api, 'put').mockResolvedValue({ data: {} })
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  })
+  render(
+    <QueryClientProvider client={client}>
+      <CompanyForm
+        company={{
+          id: 4,
+          name: 'Empresa teste',
+          reference: 'CLI-004',
+          active: true,
+          createdAt: '2026-10-27T10:00:00Z',
+          providerTokenConfigured: false,
+          legacyProviderTokenFallback: false,
+        }}
+        onClose={vi.fn()}
+      />
+    </QueryClientProvider>,
+  )
+  const user = userEvent.setup()
+  await user.type(
+    screen.getByLabelText(/^Token fornecido pela Zoug/),
+    'provider-test-token',
+  )
+  await user.click(screen.getByRole('button', { name: 'Salvar alterações' }))
+  await vi.waitFor(() =>
+    expect(put).toHaveBeenCalledWith(
+      '/admin/companies/4',
+      expect.objectContaining({ providerToken: 'provider-test-token' }),
+    ),
+  )
+  put.mockRestore()
+})

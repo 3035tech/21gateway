@@ -1,4 +1,4 @@
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { companyFormSchema, saveCompany } from './api'
 import type { Company, CompanyBody } from './api'
@@ -17,6 +17,8 @@ export function CompanyForm({
   const form = useForm<CompanyBody>({
     resolver: zodResolver(companyFormSchema),
     defaultValues: {
+      providerToken: '',
+      clearProviderToken: false,
       name: company?.name ?? '',
       reference: company?.reference ?? '',
       active: company?.active ?? true,
@@ -26,6 +28,10 @@ export function CompanyForm({
     (body) => saveCompany(company?.id, body),
     onClose,
   )
+  const clearProviderToken = useWatch({
+    control: form.control,
+    name: 'clearProviderToken',
+  })
   return (
     <Dialog
       title={company ? t('companies.editTitle') : t('companies.new')}
@@ -50,6 +56,50 @@ export function CompanyForm({
           <input type="checkbox" {...form.register('active')} />
           {t('companies.active')}
         </label>
+        <div className="rounded-xl border border-purple-100 bg-purple-50 p-4">
+          <h3 className="font-bold text-brand-purple">
+            {t('companies.providerAccess')}
+          </h3>
+          <p className="mt-1 text-sm leading-5 text-slate-600">
+            {company?.providerTokenConfigured
+              ? t('companies.providerConfigured')
+              : company?.legacyProviderTokenFallback
+                ? t('companies.providerLegacy')
+                : t('companies.providerMissing')}
+          </p>
+        </div>
+        {!clearProviderToken ? (
+          <label className="field">
+            {company?.providerTokenConfigured
+              ? t('companies.providerReplace')
+              : t('companies.providerToken')}
+            <input
+              type="password"
+              autoComplete="new-password"
+              className="form-control"
+              {...form.register('providerToken')}
+            />
+            <span className="text-xs font-normal text-slate-500">
+              {t('companies.providerIssuedHint')}
+            </span>
+            <FieldError
+              message={form.formState.errors.providerToken?.message}
+            />
+          </label>
+        ) : null}
+        {company?.providerTokenConfigured ? (
+          <label className="flex min-h-11 items-center gap-2 text-sm text-rose-800">
+            <input
+              type="checkbox"
+              {...form.register('clearProviderToken', {
+                onChange: (event) => {
+                  if (event.target.checked) form.setValue('providerToken', '')
+                },
+              })}
+            />
+            {t('companies.providerRemove')}
+          </label>
+        ) : null}
         <FormFooter
           pending={mutation.isPending}
           error={mutation.error}

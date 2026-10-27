@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"github.com/21mobile/sms-gateway/internal/config"
 	apperrors "github.com/21mobile/sms-gateway/internal/errors"
 	"github.com/21mobile/sms-gateway/internal/models"
@@ -13,9 +14,11 @@ const MaintenanceBatchSize = 100
 const MaximumRetentionDays = config.MaximumMORetentionDays
 
 type MaintenanceRepository interface {
+	CompanyCiphertexts(context.Context, uint64, int) ([]models.CompanyCiphertext, error)
 	CredentialCiphertexts(context.Context, uint64, int) ([]models.CredentialCiphertext, error)
 	MOCiphertexts(context.Context, uint64, int) ([]models.MOCiphertext, error)
 	ReplaceCredentialCiphertext(context.Context, uint64, string, string) (bool, error)
+	ReplaceCompanyCiphertext(context.Context, uint64, string, string) (bool, error)
 	ReplaceMOCiphertext(context.Context, uint64, string, string) (bool, error)
 	PurgeMO(context.Context, time.Time, int, bool) (int64, error)
 }
@@ -34,6 +37,45 @@ func (s *MaintenanceService) Rotate(ctx context.Context, apply bool) (models.Rot
 		return result, apperrors.Wrap(apperrors.CodeConfigurationInvalid, nil)
 	}
 	if s.tokens.Enabled() {
+		var companyAfter uint64
+		for {
+			rows, err := s.repo.CompanyCiphertexts(ctx, companyAfter, MaintenanceBatchSize)
+			if err != nil {
+				return result, dbError(err)
+			}
+			if len(rows) == 0 {
+				break
+			}
+			for _, row := range rows {
+				companyAfter = row.ID
+				result.Scanned++
+				associatedData := fmt.Sprintf("company:%d", row.ID)
+				plain, err := s.tokens.Decrypt(associatedData, row.ProviderTokenEncrypted)
+				if err != nil {
+					return result, err
+				}
+				if s.tokens.Current(row.ProviderTokenEncrypted) {
+					continue
+				}
+				result.Eligible++
+				if !apply {
+					continue
+				}
+				next, err := s.tokens.Encrypt(associatedData, plain)
+				if err != nil {
+					return result, err
+				}
+				changed, err := s.repo.ReplaceCompanyCiphertext(ctx, row.ID, row.ProviderTokenEncrypted, next)
+				if err != nil {
+					return result, dbError(err)
+				}
+				if changed {
+					result.Changed++
+				} else {
+					result.Conflicts++
+				}
+			}
+		}
 		var after uint64
 		for {
 			rows, err := s.repo.CredentialCiphertexts(ctx, after, MaintenanceBatchSize)

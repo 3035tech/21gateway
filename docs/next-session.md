@@ -2,7 +2,11 @@
 
 Atualização de 27/10/2026: aplicar migrações 018 (vínculos usuário/empresa) e 019 (histórico SMS cifrado) antes da imagem nova. Configurar chave independente `SMS_HISTORY_CONTENT_KEY` em segredo de produção; a API falha ao iniciar sem ela. O conteúdo novo fica visível somente no detalhe administrativo por até 90 dias; histórico antigo não contém texto. O worker integrado expurga em lotes. Confirmar coleta/backup de chaves e política de acesso antes do deployment; nenhum SMS real foi enviado.
 
+Atualização posterior: aplicar também migração 020 para token Zoug único por empresa. O painel cadastra esse token na ficha da empresa; cada empresa pode ter várias credenciais Basic Auth de API. Tokens individuais antigos são preservados em fallback somente até cadastrar ou remover explicitamente o token da empresa. Para rollback do binário depois de usar o token centralizado, recriptografar e restaurar tokens individuais antes; não pressupor que a imagem antiga leia `companies.provider_token_encrypted`. Sem SMS real ou deploy.
+
 Polimento posterior de interface: formulário de credencial da prévia alinhado ao fluxo real de Basic Auth, geração fictícia de username/senha e diálogo compartilhado; empresa fixa em campo somente leitura no painel real; links diretos para usuário/credencial com estados de carregamento e erro. Sem migração ou alteração de contrato.
+
+Controles posteriores: selects substituídos em todo o frontend por menu compartilhado personalizado, inclusive dentro de diálogo nativo; checkboxes e rádios visíveis com estilo da marca. Sem alteração de backend ou migração.
 
 ## Estado atual
 

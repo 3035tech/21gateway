@@ -5,6 +5,10 @@ type CredentialCiphertext struct {
 	Username               string
 	ProviderTokenEncrypted string
 }
+type CompanyCiphertext struct {
+	ID                     uint64
+	ProviderTokenEncrypted string
+}
 type MOCiphertext struct {
 	ID               uint64
 	CredentialID     uint64

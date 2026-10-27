@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"github.com/21mobile/sms-gateway/internal/dtos"
 	apperrors "github.com/21mobile/sms-gateway/internal/errors"
 	"github.com/21mobile/sms-gateway/internal/models"
@@ -11,10 +12,16 @@ import (
 	"time"
 )
 
-type CompanyService struct{ repository *repositories.Companies }
+type CompanyService struct {
+	repository *repositories.Companies
+	vault      *security.TokenVault
+}
 
 func NewCompanyService(repo *repositories.Companies) *CompanyService {
 	return &CompanyService{repository: repo}
+}
+func NewCompanyServiceWithVault(repo *repositories.Companies, vault *security.TokenVault) *CompanyService {
+	return &CompanyService{repository: repo, vault: vault}
 }
 func (s *CompanyService) Companies(ctx context.Context, q dtos.ListQuery) (dtos.Page[dtos.CompanyView], error) {
 	values, err := s.repository.Companies(ctx, q)
@@ -30,6 +37,9 @@ func (s *CompanyService) SaveCompany(ctx context.Context, actor, id uint64, body
 		return dtos.CompanyView{}, apperrors.Wrap(apperrors.CodeForbidden, nil)
 	}
 	if strings.TrimSpace(body.Name) == "" {
+		return dtos.CompanyView{}, apperrors.Wrap(apperrors.CodeInvalidRequest, nil)
+	}
+	if body.ProviderToken != nil && body.ClearProviderToken {
 		return dtos.CompanyView{}, apperrors.Wrap(apperrors.CodeInvalidRequest, nil)
 	}
 	err := s.repository.Transaction(ctx, func(repo *repositories.Companies) error {
@@ -53,6 +63,25 @@ func (s *CompanyService) SaveCompany(ctx context.Context, actor, id uint64, body
 		}
 		if err != nil {
 			return err
+		}
+		if body.ProviderToken != nil {
+			if s.vault == nil {
+				return apperrors.Wrap(apperrors.CodeServiceUnavailable, nil)
+			}
+			result.ProviderTokenEncrypted, err = s.vault.Encrypt(fmt.Sprintf("company:%d", result.ID), *body.ProviderToken)
+			if err != nil {
+				return err
+			}
+			result.ProviderTokenLegacyFallback = false
+			if err = repo.Save(ctx, &result); err != nil {
+				return err
+			}
+		} else if body.ClearProviderToken {
+			result.ProviderTokenEncrypted = ""
+			result.ProviderTokenLegacyFallback = false
+			if err = repo.Save(ctx, &result); err != nil {
+				return err
+			}
 		}
 		return repo.Audit(ctx, &actor, action, string(security.ResourceCompanies), &result.ID)
 	})

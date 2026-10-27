@@ -27,6 +27,60 @@
     @apply cursor-pointer appearance-none border-0 bg-transparent disabled:cursor-not-allowed;
     font: inherit;
   }
+  input[type='checkbox']:not(.sr-only),
+  input[type='radio']:not(.sr-only) {
+    appearance: none;
+    position: relative;
+    flex: none;
+    width: 1.125rem;
+    height: 1.125rem;
+    margin: 0;
+    border: 1.5px solid #94a3b8;
+    background: white;
+    cursor: pointer;
+    vertical-align: middle;
+    transition:
+      border-color 150ms,
+      background-color 150ms;
+  }
+  input[type='checkbox']:not(.sr-only) {
+    border-radius: 0.3rem;
+  }
+  input[type='radio']:not(.sr-only) {
+    border-radius: 50%;
+  }
+  input[type='checkbox']:not(.sr-only):hover,
+  input[type='radio']:not(.sr-only):hover {
+    border-color: #660066;
+  }
+  input[type='checkbox']:not(.sr-only):checked,
+  input[type='radio']:not(.sr-only):checked {
+    border-color: #660066;
+    background: #660066;
+  }
+  input[type='checkbox']:not(.sr-only):checked::after {
+    content: '';
+    position: absolute;
+    width: 0.32rem;
+    height: 0.57rem;
+    top: 0.12rem;
+    left: 0.34rem;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+  input[type='radio']:not(.sr-only):checked::after {
+    content: '';
+    position: absolute;
+    inset: 0.28rem;
+    border-radius: 50%;
+    background: white;
+  }
+  input[type='checkbox']:not(.sr-only):disabled,
+  input[type='radio']:not(.sr-only):disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
 }
 
 @layer components {
@@ -66,6 +120,23 @@
   }
   .form-control {
     @apply min-h-11 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 transition-colors placeholder:text-slate-400 hover:border-slate-400 disabled:bg-slate-50 disabled:text-slate-500 [&[readonly]]:bg-slate-50;
+  }
+  .select-trigger {
+    @apply flex w-full items-center justify-between gap-2 text-left font-medium shadow-sm outline-none hover:border-brand-purple data-[disabled]:cursor-not-allowed data-[disabled]:bg-slate-50 data-[disabled]:text-slate-500 data-[state=open]:border-brand-purple data-[state=open]:ring-2 data-[state=open]:ring-purple-100;
+  }
+  .select-content {
+    @apply z-[80] overflow-hidden rounded-xl border border-purple-100 bg-white p-1 shadow-xl shadow-purple-950/10;
+    width: var(--radix-select-trigger-width);
+    max-height: min(320px, var(--radix-select-content-available-height));
+  }
+  .select-viewport {
+    @apply max-h-72 overflow-y-auto;
+  }
+  .select-item {
+    @apply relative flex min-h-10 cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 outline-none select-none data-[disabled]:cursor-not-allowed data-[disabled]:opacity-40 data-[highlighted]:bg-purple-50 data-[highlighted]:text-brand-purple data-[state=checked]:font-bold data-[state=checked]:text-brand-purple;
+  }
+  .select-scroll-button {
+    @apply flex h-7 items-center justify-center text-brand-purple;
   }
 }
 

@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { beforeAll, expect, it, vi } from 'vitest'
 import { CredentialForm } from './CredentialForm'
 import { api } from '../../lib/api'
+import { MemoryRouter } from 'react-router-dom'
 import type { Credential } from './api'
 const credential: Credential = {
   id: 1,
@@ -36,11 +37,13 @@ function renderEditor(close: () => void) {
   })
   return render(
     <QueryClientProvider client={client}>
-      <CredentialForm
-        credential={credential}
-        onClose={close}
-        onSecret={vi.fn()}
-      />
+      <MemoryRouter>
+        <CredentialForm
+          credential={credential}
+          onClose={close}
+          onSecret={vi.fn()}
+        />
+      </MemoryRouter>
     </QueryClientProvider>,
   )
 }
@@ -86,38 +89,10 @@ it('preserves callbacks, hidden IP values and the existing token when editing', 
     get.mockRestore()
   }
 })
-it('clears a pending replacement when explicitly choosing to remove the token', async () => {
-  const put = vi.spyOn(api, 'put').mockResolvedValue({
-    data: {
-      credential: { ...credential, providerTokenConfigured: false },
-      password: '',
-    },
-  })
-  try {
-    const close = vi.fn()
-    renderEditor(close)
-    const user = userEvent.setup()
-    await user.type(
-      screen.getByLabelText('Novo token'),
-      'test-only-replacement',
-    )
-    await user.click(
-      screen.getByRole('checkbox', { name: 'Remover o token desta conta' }),
-    )
-    expect(screen.queryByLabelText('Novo token')).not.toBeInTheDocument()
-    expect(
-      screen.getByText(/novos envios ficam indisponíveis/),
-    ).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Salvar alterações' }))
-    await waitFor(() => expect(close).toHaveBeenCalled())
-    expect(put).toHaveBeenCalledWith(
-      '/admin/credentials/1',
-      expect.objectContaining({
-        providerToken: undefined,
-        clearProviderToken: true,
-      }),
-    )
-  } finally {
-    put.mockRestore()
-  }
+it('directs provider token management to the company', () => {
+  renderEditor(vi.fn())
+  expect(screen.queryByLabelText('Novo token')).not.toBeInTheDocument()
+  expect(
+    screen.getByRole('link', { name: 'Abrir empresa para gerenciar o token' }),
+  ).toHaveAttribute('href', '/empresas/1')
 })

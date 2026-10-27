@@ -90,6 +90,31 @@ export function CompanyDetailPage() {
               </div>
             </dl>
           </section>
+          <section className="rounded-2xl border border-purple-100 bg-purple-50 p-6">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="flex items-center gap-2 text-lg font-bold text-brand-purple">
+                  <KeyRound size={20} aria-hidden="true" />
+                  {t('companies.providerAccess')}
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-slate-700">
+                  {query.data.providerTokenConfigured
+                    ? t('companies.providerConfigured')
+                    : query.data.legacyProviderTokenFallback
+                      ? t('companies.providerLegacy')
+                      : t('companies.providerMissing')}
+                </p>
+              </div>
+              {canEdit ? (
+                <button
+                  className="button-secondary"
+                  onClick={() => setEditing(true)}
+                >
+                  {t('companies.providerManage')}
+                </button>
+              ) : null}
+            </div>
+          </section>
           <section aria-label={t('companyDetail.accessSection')}>
             <div className="mb-3 flex items-center gap-2 text-brand-purple">
               <KeyRound size={19} aria-hidden="true" />

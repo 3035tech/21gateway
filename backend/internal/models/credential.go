@@ -7,12 +7,14 @@ import (
 )
 
 type APICredential struct {
-	ProviderTokenEncrypted string
-	WhitelistEnabled       bool
-	AllowedIPs             []string `gorm:"serializer:json;type:jsonb"`
-	MOCallbackURL          string
-	MOCallbacksEnabled     bool
-	LegacyAccountID        string
+	ProviderTokenEncrypted             string
+	CompanyProviderTokenEncrypted      string `gorm:"->;-:migration"`
+	CompanyProviderTokenLegacyFallback bool   `gorm:"->;-:migration"`
+	WhitelistEnabled                   bool
+	AllowedIPs                         []string `gorm:"serializer:json;type:jsonb"`
+	MOCallbackURL                      string
+	MOCallbacksEnabled                 bool
+	LegacyAccountID                    string
 
 	CompanyID        *uint64
 	CompanyName      string `gorm:"->;-:migration"`

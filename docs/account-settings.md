@@ -1,8 +1,10 @@
 # Configurações da conta de API
 
+Atualização de 27/10/2026: migração 020 move a configuração nova do token Zoug para a empresa. Cada empresa recebe um token do fornecedor e pode ter várias credenciais Basic Auth da API 21. As notas abaixo descrevem o armazenamento individual anterior, preservado apenas para compatibilidade de dados antigos. Configurar/remover o token na ficha da empresa desliga o fallback legado. O token novo usa AAD `company:{id}` e a rotação de chave cobre ambas as formas. Não gerar um token Zoug no gateway: ele é fornecido pela Zoug.
+
 Migração 004 adiciona token Zoug criptografado, whitelist de IPs, configuração MO e ID legado. Os campos pertencem ao domínio de credenciais; controllers/services/models/DTOs/repositories permanecem separados.
 
-PROVIDER_TOKEN_KEY é base64 de 32 bytes aleatórios, fornecida pelo ambiente e separada do banco. Gerar com ferramenta padrão como openssl rand -base64 32 e guardar no gerenciador de segredos ou .env local ignorado pelo Git. Não armazenar a chave nem tokens em VITE_* ou documentos versionados. Sem chave/token válido, o envio falha fechado. Manter a chave protegida junto ao plano de recuperação: backup do banco sozinho não recupera tokens. Rotação de chave requer procedimento de recriptografia ainda não implementado.
+PROVIDER_TOKEN_KEY é base64 de 32 bytes aleatórios, fornecida pelo ambiente e separada do banco. Gerar com ferramenta padrão como openssl rand -base64 32 e guardar no gerenciador de segredos ou .env local ignorado pelo Git. Não armazenar a chave nem tokens em VITE_* ou documentos versionados. Sem chave/token válido, o envio falha fechado. Manter a chave protegida junto ao plano de recuperação: backup do banco sozinho não recupera tokens. A rotação usa o CLI de recriptografia documentado em `docs/operations.md`, incluindo tokens legados e tokens de empresa.
 
 Tokens usam AES-GCM da biblioteca padrão Go, nonce aleatório e username imutável como dados autenticados. Cada requisição tem visão própria do cliente HTTP com token da conta, compartilhando o pool sem mutar headers globais. O frontend recebe somente providerTokenConfigured. Token omitido mantém o atual; clearProviderToken remove explicitamente; substituir e remover na mesma chamada é inválido. Tokens/passwords de entrada são writeOnly no OpenAPI.
 

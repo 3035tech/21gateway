@@ -9,6 +9,7 @@ import { listAudit } from './api'
 import type { Audit, AuditListParams } from './api'
 import { useTranslation } from 'react-i18next'
 import { RecordDetailsDialog } from '../../components/admin/RecordDetailsDialog'
+import { AppSelect } from '../../components/admin/AppSelect'
 
 const actions = [
   'created',
@@ -134,39 +135,39 @@ export function AuditPage() {
             </label>
             <label className="flex flex-col gap-1 text-sm font-semibold">
               {t('audit.action')}
-              <select
-                className="form-control"
+              <AppSelect
                 value={action}
-                onChange={(event) => {
-                  setAction(event.target.value)
+                label={t('audit.action')}
+                onValueChange={(value) => {
+                  setAction(value)
                   resetPage()
                 }}
-              >
-                <option value="">{t('audit.allActions')}</option>
-                {actions.map((value) => (
-                  <option key={value} value={value}>
-                    {t(`audit.actions.${value}`)}
-                  </option>
-                ))}
-              </select>
+                options={[
+                  { value: '', label: t('audit.allActions') },
+                  ...actions.map((value) => ({
+                    value,
+                    label: t(`audit.actions.${value}`),
+                  })),
+                ]}
+              />
             </label>
             <label className="flex flex-col gap-1 text-sm font-semibold">
               {t('audit.resource')}
-              <select
-                className="form-control"
+              <AppSelect
                 value={resource}
-                onChange={(event) => {
-                  setResource(event.target.value)
+                label={t('audit.resource')}
+                onValueChange={(value) => {
+                  setResource(value)
                   resetPage()
                 }}
-              >
-                <option value="">{t('common.all')}</option>
-                {resources.map((value) => (
-                  <option key={value} value={value}>
-                    {t(`audit.resources.${value}`)}
-                  </option>
-                ))}
-              </select>
+                options={[
+                  { value: '', label: t('common.all') },
+                  ...resources.map((value) => ({
+                    value,
+                    label: t(`audit.resources.${value}`),
+                  })),
+                ]}
+              />
             </label>
           </>
         }

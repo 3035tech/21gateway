@@ -39,6 +39,9 @@ func TestPostgresBackofficeAndOutbox(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if company.LegacyProviderTokenFallback {
+		t.Fatal("new company inherited legacy provider fallback")
+	}
 	_, err = users.SaveUser(ctx, admin.ID, admin.ID, dtos.UserBody{Name: admin.Name, Email: admin.Email, Role: models.RoleViewer, Active: true, CompanyIDs: []uint64{company.ID}})
 	assertCode(t, err, apperrors.CodeLastAdmin)
 	vault, err := security.NewTokenVault(base64.StdEncoding.EncodeToString([]byte(strings.Repeat("k", 32))))
@@ -62,19 +65,29 @@ func TestPostgresBackofficeAndOutbox(t *testing.T) {
 		t.Fatal("credential rotation", err)
 	}
 	token := "account-test-token"
+	if _, err := NewCompanyServiceWithVault(repositories.NewCompanies(isolated), vault).SaveCompany(ctx, admin.ID, company.ID, dtos.CompanyBody{Name: company.Name, Reference: company.Reference, Active: true, ProviderToken: &token}); err != nil {
+		t.Fatal(err)
+	}
 	white := true
 	allowed := []string{"203.0.113.10/32"}
 	moURL := "https://client.example/mo"
 	moEnabled := true
-	if _, err := credentials.SaveCredential(ctx, admin.ID, secret.Credential.ID, dtos.CredentialBody{CompanyID: company.ID, Username: secret.Credential.Username, Active: true, CallbacksEnabled: true, CallbackURL: "https://client.example/dlr", ProviderToken: &token, WhitelistEnabled: &white, AllowedIPs: &allowed, MOCallbackURL: &moURL, MOCallbacksEnabled: &moEnabled}); err != nil {
+	if _, err := credentials.SaveCredential(ctx, admin.ID, secret.Credential.ID, dtos.CredentialBody{CompanyID: company.ID, Username: secret.Credential.Username, Active: true, CallbacksEnabled: true, CallbackURL: "https://client.example/dlr", WhitelistEnabled: &white, AllowedIPs: &allowed, MOCallbackURL: &moURL, MOCallbacksEnabled: &moEnabled}); err != nil {
 		t.Fatal(err)
 	}
 	saved, err := repositories.NewCredentials(isolated).FindByUsername(ctx, secret.Credential.Username)
-	if err != nil || len(saved.AllowedIPs) != 1 || saved.ProviderTokenEncrypted == token || saved.CallbackURL != "https://client.example/dlr" || !saved.CallbacksEnabled || saved.MOCallbackURL != moURL || !saved.MOCallbacksEnabled {
+	if err != nil || len(saved.AllowedIPs) != 1 || saved.CompanyProviderTokenEncrypted == token || saved.CallbackURL != "https://client.example/dlr" || !saved.CallbacksEnabled || saved.MOCallbackURL != moURL || !saved.MOCallbacksEnabled {
 		t.Fatal("account settings persistence", err)
 	}
-	if plain, err := vault.Decrypt(saved.Username, saved.ProviderTokenEncrypted); err != nil || plain != token {
+	if plain, err := vault.Decrypt(fmt.Sprintf("company:%d", company.ID), saved.CompanyProviderTokenEncrypted); err != nil || plain != token {
 		t.Fatal("token decryption after persistence")
+	}
+	if _, err := NewCompanyServiceWithVault(repositories.NewCompanies(isolated), vault).SaveCompany(ctx, admin.ID, company.ID, dtos.CompanyBody{Name: company.Name, Reference: company.Reference, Active: true, ClearProviderToken: true}); err != nil {
+		t.Fatal(err)
+	}
+	cleared, err := repositories.NewCredentials(isolated).FindByUsername(ctx, secret.Credential.Username)
+	if err != nil || cleared.CompanyProviderTokenEncrypted != "" || cleared.CompanyProviderTokenLegacyFallback || dtos.CredentialDTO(cleared).ProviderTokenConfigured {
+		t.Fatal("removing company token did not block fallback", err)
 	}
 	limiter := repositories.NewSendLimits(isolated)
 	if ok, err := limiter.Allow(ctx, saved.ID, 200); err != nil || !ok {

@@ -10,6 +10,7 @@ import { listSchedules, scheduleStates } from './api'
 import type { Schedule, ScheduleListParams } from './api'
 import { useTranslation } from 'react-i18next'
 import { RecordDetailsDialog } from '../../components/admin/RecordDetailsDialog'
+import { AppSelect } from '../../components/admin/AppSelect'
 
 function scheduleColumns(
   t: (key: string) => string,
@@ -162,21 +163,21 @@ export function SchedulesPage() {
             </label>
             <label className="flex flex-col gap-1 text-sm font-semibold">
               {t('schedules.queueState')}
-              <select
-                className="form-control"
+              <AppSelect
                 value={state}
-                onChange={(event) => {
-                  setState(event.target.value)
+                label={t('schedules.queueState')}
+                onValueChange={(value) => {
+                  setState(value)
                   resetPage()
                 }}
-              >
-                <option value="">{t('common.all')}</option>
-                {scheduleStates.map((value) => (
-                  <option key={value} value={value}>
-                    {t(`status.${value}`)}
-                  </option>
-                ))}
-              </select>
+                options={[
+                  { value: '', label: t('common.all') },
+                  ...scheduleStates.map((value) => ({
+                    value,
+                    label: t(`status.${value}`),
+                  })),
+                ]}
+              />
             </label>
             <label className="flex flex-col gap-1 text-sm font-semibold">
               {t('schedules.from')}

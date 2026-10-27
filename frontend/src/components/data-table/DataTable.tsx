@@ -13,6 +13,7 @@ import type {
 } from '@tanstack/react-table'
 import { PAGE_SIZE_OPTIONS } from './constants'
 import { useTranslation } from 'react-i18next'
+import { AppSelect } from '../admin/AppSelect'
 import {
   ArrowDown,
   ArrowUp,
@@ -271,23 +272,21 @@ export function DataTable<T>({
       <div className="flex flex-wrap items-center justify-between gap-4 px-1 text-sm text-slate-600">
         <label className="flex items-center gap-2">
           {t('common.itemsPerPage')}
-          <select
+          <AppSelect
             value={pagination.pageSize}
-            onChange={(event) =>
+            label={t('common.itemsPerPage')}
+            onValueChange={(value) =>
               onPaginationChange({
                 pageIndex: 0,
-                pageSize: Number(event.target.value),
+                pageSize: Number(value),
               })
             }
-            className="form-control"
             disabled={isLoading}
-          >
-            {PAGE_SIZE_OPTIONS.map((size) => (
-              <option key={size} value={size}>
-                {size}
-              </option>
-            ))}
-          </select>
+            options={PAGE_SIZE_OPTIONS.map((size) => ({
+              value: size,
+              label: String(size),
+            }))}
+          />
         </label>
         <div className="flex flex-wrap items-center gap-3">
           <span aria-live="polite">

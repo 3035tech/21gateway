@@ -189,7 +189,16 @@
     "activePlural": "Ativas",
     "blockedPlural": "Bloqueadas",
     "archiveTitle": "Arquivar empresa",
-    "archiveDescription": "Arquivar {{name}} bloqueará seus acessos de API. O histórico será mantido."
+    "archiveDescription": "Arquivar {{name}} bloqueará seus acessos de API. O histórico será mantido.",
+    "providerAccess": "Credencial Zoug da empresa",
+    "providerConfigured": "Token Zoug configurado. Ele é compartilhado por todas as credenciais da API desta empresa.",
+    "providerLegacy": "Há tokens legados nas credenciais da API. Cadastre aqui o token Zoug único desta empresa para centralizar o envio.",
+    "providerMissing": "Token Zoug não configurado. O fornecedor fornece esse token; ele não é gerado pelo gateway.",
+    "providerToken": "Token fornecido pela Zoug",
+    "providerReplace": "Substituir token Zoug",
+    "providerIssuedHint": "Cole o token recebido do fornecedor. Deixe vazio para manter o atual; o valor não será exibido depois de salvar.",
+    "providerRemove": "Remover o token Zoug e bloquear novos envios desta empresa",
+    "providerManage": "Gerenciar token"
   },
   "companyDetail": {
     "back": "Voltar para empresas",
@@ -317,6 +326,8 @@
     "active": "Credencial ativa",
     "inactiveHint": "Ao salvar, os envios e as notificações desta credencial ficam bloqueados.",
     "providerSection": "Envio pela Zoug",
+    "providerAtCompany": "O token Zoug é único por empresa e é cadastrado na ficha da empresa. As credenciais Basic Auth desta empresa usam esse token ao enviar.",
+    "openCompanyProvider": "Abrir empresa para gerenciar o token",
     "tokenConfiguredHint": "Token configurado. Preencha apenas para substituir o atual.",
     "tokenMissingHint": "Adicione o token da conta do cliente para habilitar os envios.",
     "newToken": "Novo token",

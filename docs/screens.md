@@ -11,6 +11,8 @@ O administrador pode abrir **Testar credencial** após salvar: instrução para 
 
 Cadastro de credenciais: permite várias credenciais por empresa, username gerado ou informado, senha gerada, manual ou legada e validade opcional no fuso do navegador. A listagem mostra validade e o status vencido; a edição pode definir ou remover a validade. O usuário e o vínculo da credencial não mudam após criação. O painel oferece português e inglês no login e no cabeçalho, com preferência salva no navegador; textos de telas reais, validações e erros vêm dos catálogos em `frontend/src/locales/`.
 
+Credencial Zoug: a ficha da empresa exibe o estado e o cadastro/substituição/remoção do token fornecido pela Zoug. O gateway gera apenas usuário e senha Basic Auth das credenciais de API; não gera o token do fornecedor. Várias credenciais Basic Auth da mesma empresa compartilham seu token Zoug. A edição de credencial da API abre a empresa para gerenciar esse token. Tokens antigos individuais continuam em fallback temporário até a configuração do token da empresa; nenhum valor secreto é devolvido pelo painel.
+
 Polimento de 27/10/2026: a prévia ordena o formulário de credencial por empresa e acesso Basic Auth, permite gerar username e exibe a senha gerada uma vez em diálogo. O formulário real mostra a empresa fixa em campo somente leitura. Os links diretos de usuário e credencial apresentam estados de carregamento, erro e ID inválido. A prévia continua apenas em memória.
 
 Listagens compartilham DataTable, filtros, paginação/tamanho e ordenação no servidor. Envios separam submissão/entrega e resultados incertos. Callbacks mostram fila/falhas e reprocessamento manual, sem reenvio SMS. Auditoria não inclui senhas ou conteúdo SMS. Resumo usa dados reais e não inventa saldo ou contagens.
@@ -34,6 +36,8 @@ Portal de clientes, campanha/envio pelo painel, saldo e consulta MO no painel n�
 Painel real e prévia agora compartilham PanelShell: navegação compacta no celular, menu que fecha ao trocar de tela, indicação da seção atual e acesso ao perfil pelo nome/avatar no rodapé lateral, sem item duplicado no menu. Há foco para pular ao conteúdo. Raleway e cores da marca preservadas; tabelas têm espaçamento consistente, datas sem quebra, ações com alvo de toque e estados de carregamento/vazio/falha identificáveis. Status de entrega são apresentados em português.
 
 Botões do frontend usam variantes próprias da marca para ação principal, secundária, perigosa, discreta, ordenação e barra lateral. Todos têm aparência removida do navegador, alvo de toque, foco visível e estados de hover/pressionado/desabilitado; a prévia compartilha as variantes do painel. O seletor de perfil usa cartões com rádio acessível oculto e indicador visual próprio.
+
+Os selects nativos foram substituídos por `AppSelect` compartilhado no painel real e na prévia: filtros, paginação, idioma e formulários usam menu, seta, seleção e foco com visual da marca. O menu usa o contêiner do diálogo quando aberto dentro dele, para não ficar oculto atrás da camada modal. Checkboxes e rádios visíveis também têm marcação e foco próprios, preservando seus controles semânticos e interação por teclado.
 
 Login tem marca visível no celular, opção de mostrar/ocultar senha e erros associados aos campos. Verificação de sessão e falha de conexão têm apresentação própria, com tentativa manual. Formulários reais não permitem fechar o diálogo enquanto a gravação está em andamento; exibição da senha de API espera o fechamento do formulário/confirmação, evitando diálogos sobrepostos.
 

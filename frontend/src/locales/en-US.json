@@ -189,7 +189,16 @@
     "activePlural": "Active",
     "blockedPlural": "Blocked",
     "archiveTitle": "Archive company",
-    "archiveDescription": "Archiving {{name}} will block its API access. History will be retained."
+    "archiveDescription": "Archiving {{name}} will block its API access. History will be retained.",
+    "providerAccess": "Company Zoug credential",
+    "providerConfigured": "Zoug token configured. It is shared by every API credential for this company.",
+    "providerLegacy": "Legacy tokens exist on API credentials. Add this company's single Zoug token here to centralize sending.",
+    "providerMissing": "Zoug token not configured. The provider issues this token; the gateway does not generate it.",
+    "providerToken": "Token issued by Zoug",
+    "providerReplace": "Replace Zoug token",
+    "providerIssuedHint": "Paste the token received from the provider. Leave blank to keep the current one; it will not be shown after saving.",
+    "providerRemove": "Remove the Zoug token and block new sends for this company",
+    "providerManage": "Manage token"
   },
   "companyDetail": {
     "back": "Back to companies",
@@ -317,6 +326,8 @@
     "active": "Active credential",
     "inactiveHint": "Saving will block messages and notifications for this credential.",
     "providerSection": "Sending through Zoug",
+    "providerAtCompany": "The Zoug token belongs to the company and is set on the company page. This company's Basic Auth credentials use it when sending.",
+    "openCompanyProvider": "Open company to manage the token",
     "tokenConfiguredHint": "Token configured. Fill this only to replace the current one.",
     "tokenMissingHint": "Add the client's account token to enable sending.",
     "newToken": "New token",
