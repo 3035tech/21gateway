@@ -1,0 +1,104 @@
+import { lazy, Suspense } from 'react'
+import { Route, Routes, Navigate } from 'react-router-dom'
+import { AuthProvider } from '../features/auth/AuthProvider'
+import { useUser } from '../features/auth/context'
+import { LoginPage } from '../features/auth/LoginPage'
+import { AdminLayout } from './AdminLayout'
+import { NotFoundPage } from './NotFoundPage'
+const Overview = lazy(() =>
+  import('../features/overview/OverviewPage').then((m) => ({
+    default: m.OverviewPage,
+  })),
+)
+const Companies = lazy(() =>
+  import('../features/companies/CompaniesPage').then((m) => ({
+    default: m.CompaniesPage,
+  })),
+)
+const Users = lazy(() =>
+  import('../features/users/UsersPage').then((m) => ({ default: m.UsersPage })),
+)
+const Credentials = lazy(() =>
+  import('../features/credentials/CredentialsPage').then((m) => ({
+    default: m.CredentialsPage,
+  })),
+)
+const Messages = lazy(() =>
+  import('../features/messages/MessagesPage').then((m) => ({
+    default: m.MessagesPage,
+  })),
+)
+const Schedules = lazy(() =>
+  import('../features/schedules/SchedulesPage').then((m) => ({
+    default: m.SchedulesPage,
+  })),
+)
+const Callbacks = lazy(() =>
+  import('../features/callbacks/CallbacksPage').then((m) => ({
+    default: m.CallbacksPage,
+  })),
+)
+const Audit = lazy(() =>
+  import('../features/audit/AuditPage').then((m) => ({ default: m.AuditPage })),
+)
+function AdminOnly({ children }: { children: React.ReactNode }) {
+  return useUser()?.role === 'admin' ? (
+    children
+  ) : (
+    <p role="alert">Você não tem permissão para acessar esta tela.</p>
+  )
+}
+function Home() {
+  return useUser()?.role === 'admin' ? (
+    <Overview />
+  ) : (
+    <Navigate to="/credenciais" replace />
+  )
+}
+export default function AdminApp() {
+  return (
+    <AuthProvider>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="*"
+          element={
+            <AdminLayout>
+              <Suspense fallback={<p role="status">Carregando tela…</p>}>
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route
+                    path="/operacao"
+                    element={<Navigate to="/" replace />}
+                  />
+                  <Route path="/empresas" element={<Companies />} />
+                  <Route
+                    path="/usuarios"
+                    element={
+                      <AdminOnly>
+                        <Users />
+                      </AdminOnly>
+                    }
+                  />
+                  <Route path="/credenciais" element={<Credentials />} />
+                  <Route path="/envios" element={<Messages />} />
+                  <Route path="/agendamentos" element={<Schedules />} />
+                  <Route path="/callbacks" element={<Callbacks />} />
+                  <Route
+                    path="/auditoria"
+                    element={
+                      <AdminOnly>
+                        <Audit />
+                      </AdminOnly>
+                    }
+                  />
+                  <Route path="*" element={<NotFoundPage />} />
+                </Routes>
+              </Suspense>
+            </AdminLayout>
+          }
+        />
+      </Routes>
+    </AuthProvider>
+  )
+}

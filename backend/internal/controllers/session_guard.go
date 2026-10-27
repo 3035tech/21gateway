@@ -1,0 +1,46 @@
+package controllers
+
+import (
+	"context"
+	apperrors "github.com/21mobile/sms-gateway/internal/errors"
+	"github.com/21mobile/sms-gateway/internal/models"
+	"github.com/21mobile/sms-gateway/internal/security"
+	"github.com/alexedwards/scs/v2"
+	"github.com/danielgtaylor/huma/v2"
+)
+
+const sessionUserID = "user_id"
+const sessionVersion = "session_version"
+const adminSessionScheme = "adminSession"
+
+type userContextKey struct{}
+type SessionAccess interface {
+	SessionUser(context.Context, uint64, int64) (models.SystemUser, error)
+	Allowed(models.Role, security.Resource, security.Action) bool
+}
+type SessionGuard struct {
+	users    SessionAccess
+	sessions *scs.SessionManager
+}
+
+func NewSessionGuard(users SessionAccess, sessions *scs.SessionManager) *SessionGuard {
+	return &SessionGuard{users: users, sessions: sessions}
+}
+func (c *SessionGuard) authorize(api huma.API, resource security.Resource, action security.Action) func(huma.Context, func(huma.Context)) {
+	return func(ctx huma.Context, next func(huma.Context)) {
+		user, err := c.users.SessionUser(ctx.Context(), uint64(c.sessions.GetInt64(ctx.Context(), sessionUserID)), c.sessions.GetInt64(ctx.Context(), sessionVersion))
+		if err == nil && resource != "" && !c.users.Allowed(user.Role, resource, action) {
+			err = apperrors.Wrap(apperrors.CodeForbidden, nil)
+		}
+		if err != nil {
+			public := HTTPError(err)
+			_ = huma.WriteErr(api, ctx, public.GetStatus(), "")
+			return
+		}
+		next(huma.WithContext(ctx, context.WithValue(ctx.Context(), userContextKey{}, user)))
+	}
+}
+func actor(ctx context.Context) uint64 { return ctx.Value(userContextKey{}).(models.SystemUser).ID }
+func (c *SessionGuard) operation(api huma.API, id, method, path, summary string, resource security.Resource, action security.Action) huma.Operation {
+	return huma.Operation{OperationID: id, Method: method, Path: "/admin" + path, Summary: summary, Tags: []string{"Backoffice"}, Errors: []int{401, 403, 404, 409, 422, 429, 503}, Security: []map[string][]string{{adminSessionScheme: {}}}, Middlewares: huma.Middlewares{c.authorize(api, resource, action)}}
+}

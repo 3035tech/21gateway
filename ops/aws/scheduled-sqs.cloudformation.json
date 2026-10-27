@@ -1,0 +1,190 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "21 Mobile scheduled SMS references: encrypted standard SQS, DLQ, TLS-only access, scoped worker policy. Review before deployment.",
+  "Parameters": {
+    "EnvironmentName": {
+      "Type": "String",
+      "AllowedPattern": "[a-z][a-z0-9-]{2,30}",
+      "Description": "Isolated 21 Mobile environment name"
+    },
+    "MaxReceiveCount": {
+      "Type": "Number",
+      "Default": 100,
+      "MinValue": 10,
+      "MaxValue": 1000,
+      "Description": "Includes normal visibility deferrals; tune with workload tests"
+    }
+  },
+  "Resources": {
+    "DispatchDLQ": {
+      "Type": "AWS::SQS::Queue",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "QueueName": {
+          "Fn::Sub": "${EnvironmentName}-21mobile-scheduled-dlq"
+        },
+        "SqsManagedSseEnabled": true,
+        "MessageRetentionPeriod": 1209600,
+        "RedriveAllowPolicy": {
+          "redrivePermission": "byQueue",
+          "sourceQueueArns": [
+            {
+              "Fn::Sub": "arn:${AWS::Partition}:sqs:${AWS::Region}:${AWS::AccountId}:${EnvironmentName}-21mobile-scheduled"
+            }
+          ]
+        }
+      }
+    },
+    "DispatchQueue": {
+      "Type": "AWS::SQS::Queue",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "QueueName": {
+          "Fn::Sub": "${EnvironmentName}-21mobile-scheduled"
+        },
+        "SqsManagedSseEnabled": true,
+        "MessageRetentionPeriod": 345600,
+        "MaximumMessageSize": 1024,
+        "ReceiveMessageWaitTimeSeconds": 20,
+        "VisibilityTimeout": 90,
+        "RedrivePolicy": {
+          "deadLetterTargetArn": {
+            "Fn::GetAtt": [
+              "DispatchDLQ",
+              "Arn"
+            ]
+          },
+          "maxReceiveCount": {
+            "Ref": "MaxReceiveCount"
+          }
+        }
+      }
+    },
+    "TLSOnlyQueuePolicy": {
+      "Type": "AWS::SQS::QueuePolicy",
+      "Properties": {
+        "Queues": [
+          {
+            "Ref": "DispatchQueue"
+          },
+          {
+            "Ref": "DispatchDLQ"
+          }
+        ],
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "DenyInsecureTransport",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "sqs:*",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "DispatchQueue",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::GetAtt": [
+                    "DispatchDLQ",
+                    "Arn"
+                  ]
+                }
+              ],
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": "false"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "WorkerSQSPolicy": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Description": "Attach to the 21 Mobile worker task role; does not grant DLQ redrive or queue administration",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "sqs:SendMessage",
+                "sqs:ReceiveMessage",
+                "sqs:DeleteMessage",
+                "sqs:ChangeMessageVisibility"
+              ],
+              "Resource": {
+                "Fn::GetAtt": [
+                  "DispatchQueue",
+                  "Arn"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    "DLQVisibleAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmDescription": "Dispatch references in DLQ require investigation; connect notification actions separately",
+        "Namespace": "AWS/SQS",
+        "MetricName": "ApproximateNumberOfMessagesVisible",
+        "Dimensions": [
+          {
+            "Name": "QueueName",
+            "Value": {
+              "Fn::GetAtt": [
+                "DispatchDLQ",
+                "QueueName"
+              ]
+            }
+          }
+        ],
+        "Statistic": "Maximum",
+        "Period": 60,
+        "EvaluationPeriods": 1,
+        "Threshold": 0,
+        "ComparisonOperator": "GreaterThanThreshold",
+        "TreatMissingData": "notBreaching"
+      }
+    }
+  },
+  "Outputs": {
+    "QueueURL": {
+      "Value": {
+        "Ref": "DispatchQueue"
+      }
+    },
+    "QueueARN": {
+      "Value": {
+        "Fn::GetAtt": [
+          "DispatchQueue",
+          "Arn"
+        ]
+      }
+    },
+    "DeadLetterQueueURL": {
+      "Value": {
+        "Ref": "DispatchDLQ"
+      }
+    },
+    "WorkerPolicyARN": {
+      "Value": {
+        "Ref": "WorkerSQSPolicy"
+      }
+    },
+    "DLQAlarmName": {
+      "Value": {
+        "Ref": "DLQVisibleAlarm"
+      }
+    }
+  }
+}

@@ -1,0 +1,91 @@
+// Package background composes the gateway's existing domain workers.
+package background
+
+import (
+	"context"
+	"log/slog"
+	"sync"
+
+	"github.com/21mobile/sms-gateway/internal/config"
+	"github.com/21mobile/sms-gateway/internal/integrations/callback"
+	"github.com/21mobile/sms-gateway/internal/integrations/dispatchqueue"
+	"github.com/21mobile/sms-gateway/internal/integrations/whitelabel"
+	"github.com/21mobile/sms-gateway/internal/repositories"
+	"github.com/21mobile/sms-gateway/internal/security"
+	"github.com/21mobile/sms-gateway/internal/services"
+	"gorm.io/gorm"
+)
+
+type Workers struct {
+	callback  *services.CallbackWorker
+	mo        *services.MOWorker
+	retention *services.MaintenanceService
+	scheduled *services.ScheduledSMSWorker
+	pipeline  *services.DispatchPipeline
+	sender    *callback.Client
+	queue     *dispatchqueue.Client
+	days      int
+}
+
+func New(ctx context.Context, cfg config.Config, db *gorm.DB, provider *whitelabel.Client, tokenVault *security.TokenVault, moVault *security.MOContentVault) (*Workers, error) {
+	w := &Workers{sender: callback.New(), days: cfg.MORetentionDays}
+	w.callback = services.NewCallbackWorker(repositories.NewCallbacks(db), w.sender)
+	if moVault.Enabled() {
+		w.mo = services.NewMOWorker(repositories.NewMOs(db), w.sender, moVault)
+	}
+	if cfg.MORetentionDays > 0 {
+		w.retention = services.NewMaintenanceService(repositories.NewMaintenance(db), nil, nil)
+	}
+	if cfg.SchedulerEnabled {
+		scheduledVault, err := cfg.ScheduledVault()
+		if err != nil {
+			w.Close()
+			return nil, err
+		}
+		w.scheduled = services.NewScheduledSMSWorker(repositories.NewScheduledSMS(db), services.NewAccountSMSProvider(provider, tokenVault), repositories.NewDispatchSendLimits(db), scheduledVault)
+		if cfg.ScheduledSQSEnabled {
+			startup, cancel := context.WithTimeout(ctx, config.StartupTimeout)
+			w.queue, err = dispatchqueue.New(startup, cfg.AWSRegion, cfg.ScheduledSQSQueueURL)
+			cancel()
+			if err != nil {
+				w.Close()
+				return nil, err
+			}
+			w.pipeline = services.NewDispatchPipeline(repositories.NewDispatchBatches(db), w.queue, w.scheduled)
+		}
+	}
+	return w, nil
+}
+
+// Run returns after the context is cancelled and all worker loops have stopped.
+func (w *Workers) Run(ctx context.Context) {
+	var group sync.WaitGroup
+	start := func(run func(context.Context)) {
+		group.Add(1)
+		go func() { defer group.Done(); run(ctx) }()
+	}
+	if w.pipeline != nil {
+		start(w.pipeline.Run)
+	} else if w.scheduled != nil {
+		start(w.scheduled.Run)
+	}
+	if w.mo != nil {
+		start(w.mo.Run)
+	}
+	if w.retention != nil {
+		start(func(ctx context.Context) { w.retention.RunRetention(ctx, w.days) })
+	}
+	slog.Info("Callback worker started")
+	w.callback.Run(ctx)
+	group.Wait()
+}
+
+// Close must be called after Run has returned.
+func (w *Workers) Close() {
+	if w.queue != nil {
+		w.queue.Close()
+	}
+	if w.sender != nil {
+		w.sender.Close()
+	}
+}

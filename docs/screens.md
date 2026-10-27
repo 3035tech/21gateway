@@ -1,0 +1,48 @@
+# Telas
+
+> Escopo respondido em 14/10/2026: consulte docs/scope-answers.md. Este documento descreve o código existente; token por cliente, whitelist, MO e compatibilidade V1 completa ainda exigem ajustes. Painel solicitado pela 21 é focado em credenciais/configurações com perfil administrativo único. Não confundir recursos extras implementados com requisitos confirmados.
+## Painel real
+
+Login, visão geral, empresas, usuários internos, credenciais externas, envios, callbacks e auditoria conectados à API administrativa. Campos e permissões em docs/backoffice.md. Usuários/auditoria acessíveis somente a administradores; operação de cadastros/credenciais/callbacks disponível a operadores e administradores; consulta não permite alterações.
+
+Empresas e usuários: formulários próprios, status ativo/bloqueado e confirmação de arquivamento. Usuários têm perfil e senha opcional na edição. Credenciais têm empresa, username, status e configuração de callback; criação/rotação exibe a senha uma vez. Arquivar preserva histórico.
+
+Listagens compartilham DataTable, filtros, paginação/tamanho e ordenação no servidor. Envios separam submissão/entrega e resultados incertos. Callbacks mostram fila/falhas e reprocessamento manual, sem reenvio SMS. Auditoria não inclui senhas ou conteúdo SMS. Resumo usa dados reais e não inventa saldo ou contagens.
+
+## Prévia fictícia
+
+/demo no Vite de desenvolvimento permanece disponível sem backend para revisão visual. A prévia começa em um login simulado e inclui dashboard populado e listagens de empresas, usuários, credenciais, envios, agendamentos, callbacks e auditoria. Os exemplos são fictícios e as alterações em memória são descartadas ao recarregar. O botão Sair volta ao login simulado, sem credenciais reais. Nenhum SMS é enviado. Nunca declarar essas alterações como persistidas. Prévia não é habilitada em build de produção.
+
+## Agendamentos e visão geral — 27/10/2026
+
+O administrador interno abre agora em uma visão geral com contagens de agendamentos vencidos na fila, próximos em 24 horas, em processamento e total na fila; resultados históricos de envio; jobs DLR/MO pendentes ou falhos; empresas e credenciais ativas. Os números vêm de `/admin/summary` e são atualizados manualmente. Aceite do fornecedor não é entrega final, e resultado incerto não recomenda reenvio.
+
+A tela `/agendamentos` lista registros reais com empresa, usuário técnico da API, destinatário, referência, solicitação, horário previsto, despacho e estados. Tem busca, filtros de empresa/credencial/estado/período, paginação, tamanho de página e ordenação nas colunas suportadas. Os horários são exibidos no fuso do navegador. O SMS não é exposto. O sistema identifica a credencial que solicitou o envio, mas não a pessoa física que a utilizou. Consulta administrativa somente leitura; não altera a fila.
+
+## Pendências
+
+Recuperação de senha/MFA, portal de clientes, campanha/envio pelo painel, saldo e consulta MO no painel não implementados. O agendamento interno existe com ativação opt-in; a nova tela oferece visibilidade sem operação de cancelamento/edição. DLR real do fornecedor depende de contrato. Sem PostgreSQL/API disponíveis, o painel real apresenta falha de conexão; não substituir por sucesso fictício.
+
+## Acabamento visual posterior
+
+Painel real e prévia agora compartilham PanelShell: navegação compacta no celular, menu que fecha ao trocar de tela, indicação da seção atual, perfil do usuário e foco para pular ao conteúdo. Raleway e cores da marca preservadas; tabelas têm espaçamento consistente, datas sem quebra, ações com alvo de toque e estados de carregamento/vazio/falha identificáveis. Status de entrega são apresentados em português.
+
+Login tem marca visível no celular, opção de mostrar/ocultar senha e erros associados aos campos. Verificação de sessão e falha de conexão têm apresentação própria, com tentativa manual. Formulários reais não permitem fechar o diálogo enquanto a gravação está em andamento; exibição da senha de API espera o fechamento do formulário/confirmação, evitando diálogos sobrepostos.
+
+Revisão no Chrome: prévia desktop e tela pequena, menu móvel e ausência de overflow da página verificados. Backend indisponível impede homologação visual de dados reais nesta sessão; testes frontend continuam verificando componentes reais. Nenhuma regra SMS, permissão ou contrato de backend alterado pelo polish.
+
+## Configurações após o escopo respondido
+
+Painel real inicia em credenciais, com navegação para empresas, usuários e acessos externos. Formulário da credencial permite token Zoug (somente entrada), status de configuração, substituição/remoção explícita, whitelist/IPs, destinos distintos DLR/MO e ID legado. Cadastro pode preservar senha conhecida de integração existente, sem gerar outra. MO tem fluxo interno durável preparado; recebimento real do fornecedor e consulta legada ainda pendentes. Prévia fictícia continua separada.
+
+## Polish de credenciais e notificações
+
+Formulário amplo/responsivo por seções: acesso do cliente, envio Zoug, notificações DLR/MO e restrição por IP. Senha legada aparece somente ao escolher preservar acesso; lista de IPs aparece com restrição habilitada e mantém valores quando alternada. Remoção de token limpa substituição digitada e explica efeito antes de salvar. Campos ficam bloqueados durante gravação; footer permanece visível na rolagem. Criação usa ação Criar credencial. Empresas não são consultadas novamente ao editar vínculo imutável.
+
+Listagem distingue configuração DLR/MO e nomeia restrição por IP. Revisão do componente real em Chrome desktop/tela pequena com dados fictícios, sem API real: sem overflow horizontal, callbacks/IPs e footer alcançáveis por teclado. Screenshots em docs/reviews/credentials-polish-desktop.png e credentials-polish-mobile.png. Página temporária de revisão removida; produção não ganhou rota de dados fictícios.
+
+## Auditoria de padronização — 27/10/2026
+
+Critérios, matriz de listagens, ajustes e riscos em `docs/reviews/ui-standardization-2026-10-27.md`. As sete listagens reais usam filtro, paginação/tamanho e ordenação em todos os cabeçalhos de dados. Envios e callbacks exibem nome de cliente quando disponível; a busca ocupa a largura do celular e tabelas largas indicam rolagem. Ações não são campos ordenáveis.
+
+Polish posterior: Auditoria mostra nome atual do responsável mais ID, distingue registros do sistema e oferece filtros por responsável, ação e recurso. Abre pelos eventos recentes. A consulta continua restrita ao administrador e sem senhas/conteúdo SMS. Tabelas com colunas ocultas pela largura do celular indicam rolagem horizontal.

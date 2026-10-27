@@ -1,0 +1,38 @@
+package models
+
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
+
+type APICredential struct {
+	ProviderTokenEncrypted string
+	WhitelistEnabled       bool
+	AllowedIPs             []string `gorm:"serializer:json;type:jsonb"`
+	MOCallbackURL          string
+	MOCallbacksEnabled     bool
+	LegacyAccountID        string
+
+	CompanyID        *uint64
+	CompanyName      string `gorm:"->;-:migration"`
+	CompanyActive    *bool  `gorm:"->;-:migration"`
+	CallbackURL      string
+	CallbacksEnabled bool
+	ArchivedAt       *time.Time
+	ID               uint64 `gorm:"primaryKey"`
+	Username         string
+	PasswordHash     string
+	Active           bool
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+}
+
+func (APICredential) TableName() string { return "api_credentials" }
+
+func (credential *APICredential) BeforeCreate(*gorm.DB) error {
+	if credential.AllowedIPs == nil {
+		credential.AllowedIPs = []string{}
+	}
+	return nil
+}

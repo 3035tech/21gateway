@@ -1,0 +1,58 @@
+name: Build frontend
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Verify frontend
+        working-directory: frontend
+        env:
+          VITE_API_URL: https://21gateway-back.3035service.com
+        run: |
+          npm ci
+          npm run lint
+          npm test
+          npm run build
+      - uses: docker/setup-buildx-action@v4
+      - name: Prepare image tags
+        id: image
+        shell: bash
+        run: |
+          image=ghcr.io/3035tech/21gateway-front
+          tags="${image}:sha-${GITHUB_SHA}"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            tags="${tags},${image}:${GITHUB_REF_NAME#v}"
+          fi
+          echo "tags=${tags}" >> "$GITHUB_OUTPUT"
+      - uses: docker/login-action@v4
+        if: github.event_name == 'push' && github.repository_owner == '3035tech'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v7
+        with:
+          context: frontend
+          target: production
+          build-args: VITE_API_URL=https://21gateway-back.3035service.com
+          push: ${{ github.event_name == 'push' && github.repository_owner == '3035tech' }}
+          tags: ${{ steps.image.outputs.tags }}
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}

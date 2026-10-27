@@ -1,0 +1,143 @@
+package services
+
+import (
+	"context"
+	"strconv"
+	"time"
+
+	"github.com/21mobile/sms-gateway/internal/dtos"
+	apperrors "github.com/21mobile/sms-gateway/internal/errors"
+	"github.com/21mobile/sms-gateway/internal/integrations/whitelabel"
+	"github.com/21mobile/sms-gateway/internal/models"
+	"github.com/21mobile/sms-gateway/internal/security"
+	"github.com/google/uuid"
+)
+
+const maximumScheduleTimestamp int64 = 253402300799
+
+type ScheduleAcceptor interface {
+	Enqueue(context.Context, uint64, []dtos.LegacySMS) ([]dtos.LegacySendResult, error)
+}
+type ScheduledQueueWriter interface {
+	Enqueue(context.Context, []models.ScheduledSMS) ([]models.ScheduledSMS, error)
+}
+type ScheduledSMSService struct {
+	repo  ScheduledQueueWriter
+	vault *security.ScheduledContentVault
+}
+
+func NewScheduledSMSService(repo ScheduledQueueWriter, vault *security.ScheduledContentVault) *ScheduledSMSService {
+	return &ScheduledSMSService{repo: repo, vault: vault}
+}
+func (s *ScheduledSMSService) Enqueue(ctx context.Context, credentialID uint64, messages []dtos.LegacySMS) ([]dtos.LegacySendResult, error) {
+	if !s.vault.Enabled() {
+		return nil, apperrors.Wrap(apperrors.CodeServiceUnavailable, nil)
+	}
+	if len(messages) == 0 || len(messages) > models.ScheduledBatchSize {
+		return nil, apperrors.Wrap(apperrors.CodeInvalidRequest, nil)
+	}
+	result := make([]dtos.LegacySendResult, len(messages))
+	jobs := make([]models.ScheduledSMS, 0, len(messages))
+	positions := make([]int, 0, len(messages))
+	now := time.Now().UTC()
+	for i, input := range messages {
+		code := apperrors.CodeNone
+		if input.ScheduledDate == nil || *input.ScheduledDate <= now.Unix() || *input.ScheduledDate > maximumScheduleTimestamp {
+			code = apperrors.CodeInvalidRequest
+		}
+		normalized, normalizationCode := prepareSMSText(input.MessageText)
+		plain := input
+		plain.MessageText = normalized
+		plain.ScheduledDate = nil
+		if normalizationCode != apperrors.CodeNone {
+			code = normalizationCode
+		} else if validation := validateMessage(plain); validation != apperrors.CodeNone {
+			code = validation
+		}
+		if code != apperrors.CodeNone {
+			result[i] = failure(input, code)
+			continue
+		}
+		key := uuid.NewString()
+		ciphertext, err := s.vault.Encrypt(credentialID, key, normalized)
+		if err != nil {
+			return nil, err
+		}
+		due := time.Unix(*input.ScheduledDate, 0).UTC()
+		attempt := models.SMSAttempt{CredentialID: credentialID, Destination: brazilCountryCode + input.Destination, CorrelationID: input.CorrelationID, Encoding: whitelabel.SelectEncoding(normalized), State: models.SubmissionPending, ScheduledAt: &due}
+		if credential, ok := CredentialFromContext(ctx); ok && credential.ID == credentialID {
+			attempt.CompanyID = credential.CompanyID
+		}
+		jobs = append(jobs, models.ScheduledSMS{CredentialID: credentialID, EventKey: key, EncryptedMessage: ciphertext, DueAt: due, AvailableAt: due, State: models.ScheduleQueued, Attempt: attempt})
+		positions = append(positions, i)
+	}
+	if len(jobs) == 0 {
+		return result, nil
+	}
+	saved, err := s.repo.Enqueue(ctx, jobs)
+	if err != nil {
+		return nil, dbError(err)
+	}
+	if len(saved) != len(jobs) {
+		return nil, apperrors.Wrap(apperrors.CodeServiceUnavailable, nil)
+	}
+	for i, job := range saved {
+		position := positions[i]
+		result[position] = dtos.LegacySendResult{Status: dtos.LegacyStatusOK, Code: dtos.LegacyCodeAccepted, IDSMS: strconv.FormatUint(job.AttemptID, 10), CorrelationID: messages[position].CorrelationID}
+	}
+	return result, nil
+}
+
+// Called only during startup. Each HTTP request reserves the shared budget once.
+func (s *SMSService) SetScheduler(queue ScheduleAcceptor) { s.scheduler = queue }
+
+type reservedSendBudget struct{}
+
+func (reservedSendBudget) Allow(context.Context, uint64, int) (bool, error) { return true, nil }
+func (s *SMSService) sendWithSchedules(ctx context.Context, credentialID uint64, messages []dtos.LegacySMS) ([]dtos.LegacySendResult, error) {
+	immediate, future := []dtos.LegacySMS{}, []dtos.LegacySMS{}
+	immediatePositions, futurePositions := []int{}, []int{}
+	for i, m := range messages {
+		if m.ScheduledDate != nil && *m.ScheduledDate != 0 {
+			future = append(future, m)
+			futurePositions = append(futurePositions, i)
+		} else {
+			immediate = append(immediate, m)
+			immediatePositions = append(immediatePositions, i)
+		}
+	}
+	allowed, err := s.allow(ctx, credentialID, len(immediate))
+	if err != nil {
+		return nil, apperrors.Wrap(apperrors.CodeServiceUnavailable, err)
+	}
+	if !allowed {
+		results := make([]dtos.LegacySendResult, len(messages))
+		for i, m := range messages {
+			results[i] = failure(m, apperrors.CodeRateLimited)
+		}
+		return results, nil
+	}
+	// Queue before sending any immediate item. A queue failure cannot follow a live send.
+	queued, err := s.scheduler.Enqueue(ctx, credentialID, future)
+	if err != nil {
+		return nil, err
+	}
+	results := make([]dtos.LegacySendResult, len(messages))
+	for i, position := range futurePositions {
+		results[position] = queued[i]
+	}
+	if len(immediate) > 0 {
+		service := NewSMSServiceWithLimiter(s.repository, s.provider, reservedSendBudget{})
+		sent, err := service.Send(ctx, credentialID, immediate)
+		if err != nil {
+			for i, m := range immediate {
+				results[immediatePositions[i]] = failure(m, apperrors.CodeServiceUnavailable)
+			}
+		} else {
+			for i, position := range immediatePositions {
+				results[position] = sent[i]
+			}
+		}
+	}
+	return results, nil
+}

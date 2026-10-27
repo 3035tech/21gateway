@@ -1,0 +1,138 @@
+package config
+
+import (
+	"encoding/json"
+	"github.com/21mobile/sms-gateway/internal/security"
+	"net/http"
+	"net/url"
+	"regexp"
+	"strings"
+
+	"github.com/caarlos0/env/v11"
+
+	apperrors "github.com/21mobile/sms-gateway/internal/errors"
+)
+
+var scheduledQueuePath = regexp.MustCompile(`^/[0-9]{12}/[A-Za-z0-9_-]{1,80}$`)
+var scheduledQueueRegion = regexp.MustCompile(`^[a-z]{2}(-[a-z]+)+-[0-9]+$`)
+
+type Config struct {
+	ScheduledSQSEnabled      bool   `env:"SCHEDULED_SQS_ENABLED" envDefault:"false"`
+	ScheduledSQSQueueURL     string `env:"SCHEDULED_SQS_QUEUE_URL"`
+	AWSRegion                string `env:"AWS_REGION"`
+	SchedulerEnabled         bool   `env:"SCHEDULER_ENABLED" envDefault:"false"`
+	ScheduledContentKey      string `env:"SCHEDULED_CONTENT_KEY"`
+	ScheduledActiveKeyID     string `env:"SCHEDULED_ACTIVE_KEY_ID"`
+	ScheduledEncryptionKeys  string `env:"SCHEDULED_ENCRYPTION_KEYS"`
+	APIAuthenticationIPLimit int    `env:"API_AUTH_IP_LIMIT_PER_MINUTE" envDefault:"600"`
+	OperationsEnabled        bool   `env:"OPERATIONS_ENABLED" envDefault:"false"`
+	OperationsToken          string `env:"OPERATIONS_TOKEN"`
+	MORetentionDays          int    `env:"MO_RETENTION_DAYS" envDefault:"90"`
+	ProviderActiveKeyID      string `env:"PROVIDER_ACTIVE_KEY_ID"`
+	ProviderEncryptionKeys   string `env:"PROVIDER_ENCRYPTION_KEYS"`
+	MOActiveKeyID            string `env:"MO_ACTIVE_KEY_ID"`
+	MOEncryptionKeys         string `env:"MO_ENCRYPTION_KEYS"`
+	MOFingerprintKey         string `env:"MO_FINGERPRINT_KEY"`
+
+	MOContentKey           string   `env:"MO_CONTENT_KEY"`
+	MOIngressEnabled       bool     `env:"MO_INGRESS_ENABLED" envDefault:"false"`
+	ProviderTokenKey       string   `env:"PROVIDER_TOKEN_KEY"`
+	CookieSecure           bool     `env:"COOKIE_SECURE" envDefault:"true"`
+	CookieCrossSite        bool     `env:"COOKIE_CROSS_SITE" envDefault:"false"`
+	CallbackIngressToken   string   `env:"CALLBACK_INGRESS_TOKEN"`
+	CallbackIngressEnabled bool     `env:"CALLBACK_INGRESS_ENABLED" envDefault:"false"`
+	Address                string   `env:"HTTP_ADDRESS" envDefault:":8080"`
+	DatabaseURL            string   `env:"DATABASE_URL,required"`
+	AllowedOrigins         []string `env:"CORS_ALLOWED_ORIGINS" envDefault:"http://localhost:5173" envSeparator:","`
+	WhiteLabelBaseURL      string   `env:"WHITELABEL_BASE_URL" envDefault:"https://endpoint.devyx.com.br"`
+	WhiteLabelToken        string   `env:"WHITELABEL_API_TOKEN"`
+	DocsEnabled            bool     `env:"DOCS_ENABLED" envDefault:"false"`
+}
+
+func Load() (Config, error) {
+	var cfg Config
+	if err := env.Parse(&cfg); err != nil {
+		return cfg, apperrors.Wrap(apperrors.CodeConfigurationInvalid, err)
+	}
+	if cfg.APIAuthenticationIPLimit < 1 || cfg.APIAuthenticationIPLimit > security.MaximumAuthenticationIPLimit {
+		return cfg, apperrors.Wrap(apperrors.CodeConfigurationInvalid, nil)
+	}
+	if cfg.ScheduledSQSEnabled {
+		queue, err := url.Parse(cfg.ScheduledSQSQueueURL)
+		if err != nil || !cfg.SchedulerEnabled || !scheduledQueueRegion.MatchString(cfg.AWSRegion) || queue.Scheme != "https" || queue.Host != "sqs."+cfg.AWSRegion+".amazonaws.com" || queue.User != nil || queue.RawQuery != "" || queue.Fragment != "" || !scheduledQueuePath.MatchString(queue.Path) || queue.RawPath != "" {
+			return cfg, apperrors.Wrap(apperrors.CodeConfigurationInvalid, nil)
+		}
+	}
+	parsed, err := url.Parse(cfg.WhiteLabelBaseURL)
+	if err != nil || parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" || strings.ContainsAny(cfg.WhiteLabelToken, "\r\n") {
+		return cfg, apperrors.Wrap(apperrors.CodeConfigurationInvalid, nil)
+	}
+	if cfg.CookieCrossSite && !cfg.CookieSecure {
+		return cfg, apperrors.Wrap(apperrors.CodeConfigurationInvalid, nil)
+	}
+	for _, origin := range cfg.AllowedOrigins {
+		u, err := url.Parse(origin)
+		if err != nil || u.User != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" || strings.ContainsAny(u.Host, "*\r\n") || u.Path != "" || u.RawQuery != "" || u.Fragment != "" || (cfg.CookieSecure && u.Scheme != "https") {
+			return cfg, apperrors.Wrap(apperrors.CodeConfigurationInvalid, nil)
+		}
+		if err := http.NewCrossOriginProtection().AddTrustedOrigin(origin); err != nil {
+			return cfg, apperrors.Wrap(apperrors.CodeConfigurationInvalid, nil)
+		}
+	}
+	if (cfg.CallbackIngressEnabled || cfg.MOIngressEnabled) && len(cfg.CallbackIngressToken) < 32 {
+		return cfg, apperrors.Wrap(apperrors.CodeConfigurationInvalid, nil)
+	}
+	if cfg.MOIngressEnabled && cfg.MOContentKey == "" && cfg.MOActiveKeyID == "" {
+		return cfg, apperrors.Wrap(apperrors.CodeConfigurationInvalid, nil)
+	}
+	if cfg.MORetentionDays < 0 || cfg.MORetentionDays > MaximumMORetentionDays || (cfg.OperationsEnabled && len(cfg.OperationsToken) < 32) {
+		return cfg, apperrors.Wrap(apperrors.CodeConfigurationInvalid, nil)
+	}
+	scheduledVault, err := cfg.ScheduledVault()
+	if err != nil {
+		return cfg, err
+	}
+	if cfg.SchedulerEnabled && !scheduledVault.Enabled() {
+		return cfg, apperrors.Wrap(apperrors.CodeConfigurationInvalid, nil)
+	}
+	if _, err := cfg.TokenVault(); err != nil {
+		return cfg, err
+	}
+	if _, err := cfg.MOVault(); err != nil {
+		return cfg, err
+	}
+	return cfg, nil
+}
+
+func parseEncryptionKeys(raw string) (map[string]string, error) {
+	keys := map[string]string{}
+	if raw == "" {
+		return keys, nil
+	}
+	if err := json.Unmarshal([]byte(raw), &keys); err != nil || keys == nil {
+		return nil, apperrors.Wrap(apperrors.CodeConfigurationInvalid, nil)
+	}
+	return keys, nil
+}
+func (c Config) TokenVault() (*security.TokenVault, error) {
+	keys, err := parseEncryptionKeys(c.ProviderEncryptionKeys)
+	if err != nil {
+		return nil, err
+	}
+	return security.NewTokenVaultWithKeys(c.ProviderTokenKey, c.ProviderActiveKeyID, keys)
+}
+func (c Config) MOVault() (*security.MOContentVault, error) {
+	keys, err := parseEncryptionKeys(c.MOEncryptionKeys)
+	if err != nil {
+		return nil, err
+	}
+	return security.NewMOContentVaultWithKeys(c.MOContentKey, c.MOActiveKeyID, keys, c.MOFingerprintKey)
+}
+
+func (c Config) ScheduledVault() (*security.ScheduledContentVault, error) {
+	keys, err := parseEncryptionKeys(c.ScheduledEncryptionKeys)
+	if err != nil {
+		return nil, err
+	}
+	return security.NewScheduledContentVault(c.ScheduledContentKey, c.ScheduledActiveKeyID, keys)
+}

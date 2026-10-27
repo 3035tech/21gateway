@@ -1,0 +1,122 @@
+import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { beforeAll, expect, it, vi } from 'vitest'
+import { CredentialForm } from './CredentialForm'
+import { api } from '../../lib/api'
+import type { Credential } from './api'
+const credential: Credential = {
+  id: 1,
+  companyId: 1,
+  companyName: 'Empresa exemplo',
+  username: 'client',
+  active: true,
+  callbackUrl: 'https://client.example/dlr',
+  callbacksEnabled: true,
+  createdAt: '2026-10-14T12:00:00Z',
+  providerTokenConfigured: true,
+  whitelistEnabled: true,
+  allowedIPs: ['203.0.113.10', '198.51.100.0/24'],
+  moCallbackUrl: 'https://client.example/mo',
+  moCallbacksEnabled: true,
+  legacyAccountId: '2340',
+}
+beforeAll(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '')
+  }
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open')
+  }
+})
+function renderEditor(close: () => void) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  })
+  return render(
+    <QueryClientProvider client={client}>
+      <CredentialForm
+        credential={credential}
+        onClose={close}
+        onSecret={vi.fn()}
+      />
+    </QueryClientProvider>,
+  )
+}
+it('preserves callbacks, hidden IP values and the existing token when editing', async () => {
+  const put = vi
+    .spyOn(api, 'put')
+    .mockResolvedValue({ data: { credential, password: '' } })
+  const get = vi.spyOn(api, 'get')
+  try {
+    const close = vi.fn()
+    renderEditor(close)
+    const user = userEvent.setup()
+    await user.click(
+      screen.getByRole('checkbox', { name: 'Permitir apenas IPs autorizados' }),
+    )
+    expect(
+      screen.queryByRole('textbox', { name: /IPs ou redes autorizadas/ }),
+    ).not.toBeInTheDocument()
+    await user.click(
+      screen.getByRole('checkbox', { name: 'Permitir apenas IPs autorizados' }),
+    )
+    expect(
+      screen.getByRole('textbox', { name: /IPs ou redes autorizadas/ }),
+    ).toHaveValue('203.0.113.10\n198.51.100.0/24')
+    await user.click(screen.getByRole('button', { name: 'Salvar alterações' }))
+    await waitFor(() => expect(close).toHaveBeenCalled())
+    expect(put).toHaveBeenCalledWith(
+      '/admin/credentials/1',
+      expect.objectContaining({
+        companyId: 1,
+        providerToken: undefined,
+        clearProviderToken: false,
+        allowedIPs: credential.allowedIPs,
+        callbackUrl: credential.callbackUrl,
+        callbacksEnabled: true,
+        moCallbackUrl: credential.moCallbackUrl,
+        moCallbacksEnabled: true,
+      }),
+    )
+    expect(get).not.toHaveBeenCalled()
+  } finally {
+    put.mockRestore()
+    get.mockRestore()
+  }
+})
+it('clears a pending replacement when explicitly choosing to remove the token', async () => {
+  const put = vi.spyOn(api, 'put').mockResolvedValue({
+    data: {
+      credential: { ...credential, providerTokenConfigured: false },
+      password: '',
+    },
+  })
+  try {
+    const close = vi.fn()
+    renderEditor(close)
+    const user = userEvent.setup()
+    await user.type(
+      screen.getByLabelText('Novo token'),
+      'test-only-replacement',
+    )
+    await user.click(
+      screen.getByRole('checkbox', { name: 'Remover o token desta conta' }),
+    )
+    expect(screen.queryByLabelText('Novo token')).not.toBeInTheDocument()
+    expect(
+      screen.getByText(/novos envios ficam indisponíveis/),
+    ).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Salvar alterações' }))
+    await waitFor(() => expect(close).toHaveBeenCalled())
+    expect(put).toHaveBeenCalledWith(
+      '/admin/credentials/1',
+      expect.objectContaining({
+        providerToken: undefined,
+        clearProviderToken: true,
+      }),
+    )
+  } finally {
+    put.mockRestore()
+  }
+})
