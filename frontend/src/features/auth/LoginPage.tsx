@@ -127,7 +127,7 @@ export function LoginPage() {
                 />
                 <button
                   type="button"
-                  className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center rounded-r-lg text-slate-500 hover:text-brand-purple"
+                  className="button-icon absolute right-0 top-0 rounded-l-none"
                   aria-label={visible ? 'Ocultar senha' : 'Mostrar senha'}
                   aria-pressed={visible}
                   onClick={() => setVisible((current) => !current)}
@@ -176,7 +176,7 @@ export function LoginPage() {
                 )}
                 <button
                   type="button"
-                  className="text-sm font-semibold text-brand-purple hover:underline"
+                  className="button-ghost"
                   onClick={() => {
                     form.setValue('factor', '')
                     setFactorMode((mode) =>

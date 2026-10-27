@@ -129,7 +129,7 @@ export function CredentialForm({
                   <p role="alert" className="text-xs text-rose-700">
                     Não foi possível carregar as empresas.{' '}
                     <button
-                      className="underline underline-offset-2"
+                      className="rounded px-1 font-semibold text-brand-purple underline underline-offset-2 hover:bg-purple-50"
                       type="button"
                       onClick={() => void companies.refetch()}
                     >

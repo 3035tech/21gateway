@@ -33,7 +33,7 @@ export function Confirmation({
         </button>
         <button
           disabled={pending}
-          className="button-primary"
+          className="button-danger"
           onClick={onConfirm}
         >
           {pending ? 'Processando…' : 'Confirmar'}

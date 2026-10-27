@@ -5,7 +5,7 @@
 
 Login, visão geral, empresas, usuários internos, credenciais externas, envios, callbacks e auditoria conectados à API administrativa. Campos e permissões em docs/backoffice.md. Usuários/auditoria acessíveis somente a administradores; operação de cadastros/credenciais/callbacks disponível a operadores e administradores; consulta não permite alterações.
 
-Empresas e usuários: formulários próprios, status ativo/bloqueado e confirmação de arquivamento. Usuários internos escolhem Consulta, Operador ou Administrador, com Consulta como sugestão inicial e descrição de permissões; o convite por e-mail permite definir a própria senha, que o admin não digita no cadastro/edição. A prévia também mostra o seletor de perfil. Credenciais têm empresa, username, status e configuração de callback; criação/rotação exibe a senha uma vez. Arquivar preserva histórico.
+Empresas e usuários: formulários próprios, status ativo/bloqueado e confirmação de arquivamento. Usuários internos escolhem Consulta, Operador ou Administrador por opções com ícone e resumo visível das permissões, com Consulta como sugestão inicial. O formulário deixa explícito que os perfis internos veem todas as empresas e que o convite por e-mail permite definir a própria senha, que o admin não digita no cadastro/edição. A prévia usa o mesmo seletor de perfil. Credenciais têm empresa, username, status e configuração de callback; criação/rotação exibe a senha uma vez. Arquivar preserva histórico.
 
 O administrador pode abrir **Testar credencial** após salvar: instrução para checagem Basic Auth/IP da rede do cliente, envio controlado ao número de homologação configurado e consulta posterior de DLR. Aceite do fornecedor e entrega são exibidos separadamente. Detalhes e limites em [credential-testing.md](credential-testing.md).
 
@@ -28,6 +28,8 @@ Portal de clientes, campanha/envio pelo painel, saldo e consulta MO no painel n�
 ## Acabamento visual posterior
 
 Painel real e prévia agora compartilham PanelShell: navegação compacta no celular, menu que fecha ao trocar de tela, indicação da seção atual e acesso ao perfil pelo nome/avatar no rodapé lateral, sem item duplicado no menu. Há foco para pular ao conteúdo. Raleway e cores da marca preservadas; tabelas têm espaçamento consistente, datas sem quebra, ações com alvo de toque e estados de carregamento/vazio/falha identificáveis. Status de entrega são apresentados em português.
+
+Botões do frontend usam variantes próprias da marca para ação principal, secundária, perigosa, discreta, ordenação e barra lateral. Todos têm aparência removida do navegador, alvo de toque, foco visível e estados de hover/pressionado/desabilitado; a prévia compartilha as variantes do painel. O seletor de perfil usa cartões com rádio acessível oculto e indicador visual próprio.
 
 Login tem marca visível no celular, opção de mostrar/ocultar senha e erros associados aos campos. Verificação de sessão e falha de conexão têm apresentação própria, com tentativa manual. Formulários reais não permitem fechar o diálogo enquanto a gravação está em andamento; exibição da senha de API espera o fechamento do formulário/confirmação, evitando diálogos sobrepostos.
 

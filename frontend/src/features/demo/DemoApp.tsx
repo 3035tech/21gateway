@@ -18,7 +18,8 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '../../components/data-table/DataTable'
 import { useListState } from '../../components/data-table/useListState'
 import { initialRows, sections } from './data'
-import { roleDescriptions } from '../../lib/admin'
+import { roleLabels } from '../../lib/admin'
+import { RolePicker } from '../users/RolePicker'
 import type { DemoRow, Section } from './data'
 
 function Badge({ value }: { value: string }) {
@@ -387,7 +388,7 @@ function Listing({
       enableSorting: false,
       cell: ({ row }) => (
         <button
-          className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-brand-purple"
+          className="table-action gap-2"
           onClick={() => setEditing(row.original)}
         >
           <Pencil size={15} />
@@ -403,7 +404,7 @@ function Listing({
       cell: ({ row }) =>
         row.original.status === 'Falhou' ? (
           <button
-            className="text-sm font-semibold text-brand-purple"
+            className="table-action"
             onClick={() => {
               onSave({ ...row.original, status: 'Pendente' })
               setNotice('Callback recolocado na fila de demonstração.')
@@ -480,19 +481,21 @@ function Listing({
         }
       />
       {editing ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/40 p-4">
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/40 p-4 sm:items-center">
           <section
             role="dialog"
             aria-modal="true"
             aria-labelledby="edit-title"
-            className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl"
+            className="max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-5 shadow-xl sm:p-6"
           >
             <h2 id="edit-title" className="text-xl font-bold">
               {editing.id ? 'Editar' : section === 'usuarios' ? 'Novo' : 'Nova'}{' '}
               {config.entity}
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Cadastro de demonstração.
+              {section === 'usuarios' && !editing.id
+                ? 'Escolha o acesso e veja como será o convite. Nenhum e-mail é enviado nesta prévia.'
+                : 'Cadastro de demonstração.'}
             </p>
             <form
               className="mt-6 space-y-4"
@@ -504,7 +507,11 @@ function Listing({
                   date: new Date().toLocaleString('pt-BR'),
                 })
                 setEditing(null)
-                setNotice('Cadastro salvo na demonstração.')
+                setNotice(
+                  section === 'usuarios' && !editing.id
+                    ? 'Convite simulado. Nenhum e-mail foi enviado.'
+                    : 'Cadastro salvo na demonstração.',
+                )
               }}
             >
               <label className="flex flex-col gap-2 text-sm font-semibold">
@@ -549,32 +556,24 @@ function Listing({
                 </label>
               ) : null}
               {section === 'usuarios' ? (
-                <div className="space-y-2">
-                  <label className="flex flex-col gap-2 text-sm font-semibold">
-                    Perfil
-                    <select
-                      className="form-control"
-                      value={editing.company}
-                      onChange={(event) =>
-                        setEditing({ ...editing, company: event.target.value })
-                      }
-                    >
-                      <option>Consulta</option>
-                      <option>Operador</option>
-                      <option>Administrador</option>
-                    </select>
-                  </label>
-                  <p className="rounded-lg border border-purple-100 bg-purple-50 px-4 py-3 text-sm leading-6 text-purple-950">
-                    {roleDescriptions[
+                <>
+                  <RolePicker
+                    value={
                       editing.company === 'Administrador'
                         ? 'admin'
                         : editing.company === 'Operador'
                           ? 'operator'
                           : 'viewer'
-                    ]}{' '}
-                    Todos os perfis são da equipe interna.
+                    }
+                    onChange={(role) =>
+                      setEditing({ ...editing, company: roleLabels[role] })
+                    }
+                  />
+                  <p className="text-xs leading-5 text-slate-500">
+                    Estes perfis são da equipe interna e têm visibilidade de
+                    todas as empresas.
                   </p>
-                </div>
+                </>
               ) : null}
               <label className="flex flex-col gap-2 text-sm font-semibold">
                 Status
@@ -598,7 +597,9 @@ function Listing({
                   Cancelar
                 </button>
                 <button className="button-primary" type="submit">
-                  Salvar alterações
+                  {section === 'usuarios' && !editing.id
+                    ? 'Simular convite'
+                    : 'Salvar alterações'}
                 </button>
               </div>
             </form>
@@ -668,7 +669,7 @@ export default function DemoApp() {
                   />
                   <button
                     type="button"
-                    className="ml-2 min-h-11 rounded-lg border border-slate-200 px-3 text-sm"
+                    className="button-secondary ml-2"
                     onClick={() => setVisible((value) => !value)}
                   >
                     {visible ? 'Ocultar' : 'Mostrar'}

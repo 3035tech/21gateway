@@ -67,8 +67,9 @@ export function CredentialTestDialog({
             GET {checkURL}
           </code>
           <p className="mt-2 text-xs text-slate-500">
-            Esta checagem não envia SMS nem consulta status. A whitelist usa o IP
-            visto pelo gateway; confirme a configuração de proxy/NAT no ambiente.
+            Esta checagem não envia SMS nem consulta status. A whitelist usa o
+            IP visto pelo gateway; confirme a configuração de proxy/NAT no
+            ambiente.
           </p>
         </section>
         <section className="rounded-xl border border-slate-200 p-5">

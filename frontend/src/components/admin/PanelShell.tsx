@@ -120,7 +120,7 @@ export function PanelShell({
           ref={menuRef}
           className="group border-t border-white/15 px-3 pb-3 lg:hidden"
         >
-          <summary className="flex min-h-12 cursor-pointer list-none items-center gap-3 px-3 text-sm font-semibold">
+          <summary className="flex min-h-12 cursor-pointer list-none items-center gap-3 rounded-lg px-3 text-sm font-semibold transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
             <Menu size={18} aria-hidden="true" />
             Menu
             <span className="ml-auto font-normal text-purple-200">
@@ -147,7 +147,7 @@ export function PanelShell({
               {name}
             </NavLink>
             <button
-              className="min-h-11 rounded px-3 text-sm"
+              className="button-on-dark"
               disabled={pending}
               onClick={onLogout}
             >
@@ -185,7 +185,7 @@ export function PanelShell({
           <button
             disabled={pending}
             onClick={onLogout}
-            className="mt-4 flex min-h-11 w-full items-center gap-2 rounded-lg px-3 text-sm text-purple-100 hover:bg-white/10"
+            className="button-on-dark mt-4 w-full"
           >
             <LogOut size={16} aria-hidden="true" />
             {pending ? 'Saindo…' : 'Sair'}

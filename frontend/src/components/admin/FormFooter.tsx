@@ -4,10 +4,12 @@ export function FormFooter({
   error,
   onCancel,
   submitLabel = 'Salvar alterações',
+  pendingLabel = 'Salvando…',
 }: {
   pending: boolean
   error: unknown
   submitLabel?: string
+  pendingLabel?: string
   onCancel: () => void
 }) {
   return (
@@ -27,7 +29,7 @@ export function FormFooter({
           Cancelar
         </button>
         <button className="button-primary" type="submit" disabled={pending}>
-          {pending ? 'Salvando…' : submitLabel}
+          {pending ? pendingLabel : submitLabel}
         </button>
       </div>
     </>

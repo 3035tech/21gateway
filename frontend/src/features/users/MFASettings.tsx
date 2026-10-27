@@ -86,7 +86,7 @@ export function MFASettings() {
               </div>
               <button
                 type="button"
-                className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg border border-emerald-300 px-4 text-sm font-semibold"
+                className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg border border-emerald-300 bg-white px-4 text-sm font-semibold text-emerald-900 transition-colors hover:bg-emerald-100 active:bg-emerald-200"
                 onClick={() =>
                   void navigator.clipboard.writeText(recoveryCodes.join('\n'))
                 }
@@ -95,7 +95,7 @@ export function MFASettings() {
               </button>
               <button
                 type="button"
-                className="ml-3 min-h-11 text-sm font-semibold text-emerald-900 underline"
+                className="ml-3 min-h-11 rounded-lg px-3 text-sm font-semibold text-emerald-900 underline transition-colors hover:bg-emerald-100 active:bg-emerald-200"
                 onClick={() => setRecoveryCodes([])}
               >
                 Já salvei os códigos
@@ -245,7 +245,7 @@ export function MFASettings() {
                 )}
                 <button
                   type="button"
-                  className="text-sm font-semibold text-brand-purple hover:underline"
+                  className="button-ghost"
                   onClick={() => {
                     setCode('')
                     setFactorMode((mode) =>
@@ -264,7 +264,7 @@ export function MFASettings() {
                 </p>
               ) : null}
               <button
-                className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-rose-200 px-4 text-sm font-semibold text-rose-700 hover:bg-rose-50"
+                className="button-danger"
                 disabled={
                   disable.isPending ||
                   !password ||

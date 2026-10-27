@@ -152,7 +152,7 @@ export function DataTable<T>({
                         <button
                           type="button"
                           onClick={header.column.getToggleSortingHandler()}
-                          className="inline-flex min-h-11 w-full items-center gap-2 rounded-sm text-left hover:text-brand-purple"
+                          className="button-sort"
                         >
                           {flexRender(
                             header.column.columnDef.header,

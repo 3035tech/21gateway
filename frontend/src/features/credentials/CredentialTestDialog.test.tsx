@@ -41,7 +41,9 @@ it('requires authorized destination confirmation and sends once', async () => {
     },
   })
   try {
-    const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } })
+    const client = new QueryClient({
+      defaultOptions: { mutations: { retry: false } },
+    })
     render(
       <QueryClientProvider client={client}>
         <CredentialTestDialog credential={credential} onClose={vi.fn()} />
@@ -50,14 +52,27 @@ it('requires authorized destination confirmation and sends once', async () => {
     const user = userEvent.setup()
     const send = screen.getByRole('button', { name: 'Enviar um SMS de teste' })
     expect(send).toBeDisabled()
-    await user.type(screen.getByRole('textbox', { name: /Número de teste/ }), '11987654321')
+    await user.type(
+      screen.getByRole('textbox', { name: /Número de teste/ }),
+      '11987654321',
+    )
     expect(send).toBeDisabled()
-    await user.click(screen.getByRole('checkbox', { name: /Confirmo que este número/ }))
+    await user.click(
+      screen.getByRole('checkbox', { name: /Confirmo que este número/ }),
+    )
     await user.click(send)
-    await waitFor(() => expect(screen.getByText('Fornecedor aceitou o SMS')).toBeInTheDocument())
+    await waitFor(() =>
+      expect(screen.getByText('Fornecedor aceitou o SMS')).toBeInTheDocument(),
+    )
     expect(post).toHaveBeenCalledTimes(1)
-    expect(post).toHaveBeenCalledWith('/admin/credentials/21/test-send', { destination: '11987654321' }, { timeout: 20_000 })
-    expect(screen.queryByRole('button', { name: 'Enviar um SMS de teste' })).not.toBeInTheDocument()
+    expect(post).toHaveBeenCalledWith(
+      '/admin/credentials/21/test-send',
+      { destination: '11987654321' },
+      { timeout: 20_000 },
+    )
+    expect(
+      screen.queryByRole('button', { name: 'Enviar um SMS de teste' }),
+    ).not.toBeInTheDocument()
     expect(screen.getByText('ID do envio: 42')).toBeInTheDocument()
   } finally {
     post.mockRestore()

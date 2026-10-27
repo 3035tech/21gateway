@@ -133,7 +133,7 @@ export function ResetPasswordPage() {
                 )}
                 <button
                   type="button"
-                  className="text-sm font-semibold text-brand-purple hover:underline"
+                  className="button-ghost"
                   onClick={() => {
                     setFactor('')
                     setFactorMode((mode) =>
