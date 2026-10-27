@@ -28,6 +28,9 @@ func (r *Companies) Companies(ctx context.Context, q dtos.ListQuery) (dtos.Page[
 	result := dtos.Page[models.Company]{Items: []models.Company{}, Page: q.Page, PageSize: q.PageSize}
 	db := r.db.WithContext(ctx).Model(&models.Company{}).Where("archived_at IS NULL")
 	db = scopedCompanies(db, ctx, "id")
+	if q.CompanyID != 0 {
+		db = db.Where("id = ?", q.CompanyID)
+	}
 	if q.Search != "" {
 		db = db.Where("name ILIKE ? OR reference ILIKE ?", searchTerm(q.Search), searchTerm(q.Search))
 	}

@@ -9,6 +9,7 @@ import type { ListParams, Page } from '../../lib/admin'
 import { errorMessage } from '../../lib/admin'
 import { useTranslation } from 'react-i18next'
 import { AppSelect } from './AppSelect'
+import { useCompanyView } from '../../features/companies/CompanyViewContext'
 type Props<T extends { id: number }> = {
   title: string
   description: string
@@ -40,6 +41,8 @@ export function Listing<T extends { id: number }>({
   headingLevel = 1,
 }: Props<T>) {
   const { t } = useTranslation()
+  const selectedCompanyId = useCompanyView()
+  fixedCompanyId ??= selectedCompanyId
   const state = useListState()
   const [filter, setFilter] = useState('')
   const [company, setCompany] = useState('')

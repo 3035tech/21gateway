@@ -15,6 +15,8 @@ const schema = z.object({
   scheduledNext24h: z.number(),
   scheduledActive: z.number(),
 })
-export async function getSummary(signal?: AbortSignal) {
-  return schema.parse((await api.get('/admin/summary', { signal })).data)
+export async function getSummary(companyId?: number, signal?: AbortSignal) {
+  return schema.parse(
+    (await api.get('/admin/summary', { params: { companyId }, signal })).data,
+  )
 }

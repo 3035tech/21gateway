@@ -176,6 +176,7 @@ export function UserForm({
                   companyOptions.isFetching
                 }
                 error={companyOptions.isError}
+                onRetry={() => void companyOptions.refetch()}
               />
               <FieldError message={form.formState.errors.companyIds?.message} />
             </div>

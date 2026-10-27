@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useCompanyView } from '../companies/CompanyViewContext'
 import { useQuery } from '@tanstack/react-query'
 import type { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '../../components/data-table/DataTable'
@@ -77,6 +78,7 @@ function utc(value: string) {
 
 export function SchedulesPage() {
   const { t } = useTranslation()
+  const selectedCompanyId = useCompanyView()
   const [viewing, setViewing] = useState<Schedule | null>(null)
   const columns = scheduleColumns(t, setViewing)
   const table = useListState([{ id: 'scheduledAt', desc: true }])
@@ -93,7 +95,7 @@ export function SchedulesPage() {
     search: table.search,
     sort: sort?.id,
     direction: sort?.desc ? 'desc' : 'asc',
-    companyId: companyId ? Number(companyId) : undefined,
+    companyId: selectedCompanyId ?? (companyId ? Number(companyId) : undefined),
     credentialId: credentialId ? Number(credentialId) : undefined,
     state: state || undefined,
     dueFrom: utc(dueFrom),
@@ -135,19 +137,21 @@ export function SchedulesPage() {
         error={query.isError ? errorMessage(query.error) : undefined}
         filters={
           <>
-            <label className="flex flex-col gap-1 text-sm font-semibold">
-              {t('common.companyId')}
-              <input
-                className="form-control w-28"
-                type="number"
-                min={1}
-                value={companyId}
-                onChange={(event) => {
-                  setCompanyId(event.target.value)
-                  resetPage()
-                }}
-              />
-            </label>
+            {!selectedCompanyId ? (
+              <label className="flex flex-col gap-1 text-sm font-semibold">
+                {t('common.companyId')}
+                <input
+                  className="form-control w-28"
+                  type="number"
+                  min={1}
+                  value={companyId}
+                  onChange={(event) => {
+                    setCompanyId(event.target.value)
+                    resetPage()
+                  }}
+                />
+              </label>
+            ) : null}
             <label className="flex flex-col gap-1 text-sm font-semibold">
               {t('schedules.credentialId')}
               <input

@@ -4,7 +4,7 @@ import { Controller, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { credentialFormSchema, saveCredential } from './api'
 import type { Credential, CredentialBody } from './api'
-import { listCompanies } from '../companies/api'
+import { getCompany, listCompanies } from '../companies/api'
 import { Dialog } from '../../components/admin/Dialog'
 import { FormFooter, FieldError } from '../../components/admin/FormFooter'
 import { Building2, KeyRound, Link2, ShieldCheck } from 'lucide-react'
@@ -36,17 +36,35 @@ export function CredentialForm({
   const { t } = useTranslation()
   const selectedCompanyId = credential?.companyId ?? initialCompanyId
   const [search, setSearch] = useState('')
+  const [companyPage, setCompanyPage] = useState(1)
+  const [selectedCompany, setSelectedCompany] = useState<{
+    id: number
+    name: string
+    active: boolean
+  } | null>(null)
   const [passwordMode, setPasswordMode] = useState<
     'generated' | 'manual' | 'legacy'
   >('generated')
   const companies = useQuery({
-    queryKey: ['admin', 'company-options', search],
+    queryKey: ['admin', 'company-options', search, companyPage],
     enabled: !selectedCompanyId,
     queryFn: ({ signal }) =>
       listCompanies(
-        { page: 1, pageSize: 100, search, direction: 'asc', sort: 'name' },
+        {
+          page: companyPage,
+          pageSize: 20,
+          search,
+          direction: 'asc',
+          sort: 'name',
+        },
         signal,
       ),
+  })
+  const fixedCompany = useQuery({
+    queryKey: ['admin', 'company', selectedCompanyId],
+    enabled:
+      !!selectedCompanyId && !credential?.companyName && !initialCompanyName,
+    queryFn: ({ signal }) => getCompany(selectedCompanyId!, signal),
   })
   const form = useForm<CredentialBody>({
     resolver: zodResolver(credentialFormSchema),
@@ -111,7 +129,10 @@ export function CredentialForm({
                       className="form-control"
                       placeholder={t('credentials.companySearchPlaceholder')}
                       value={search}
-                      onChange={(event) => setSearch(event.target.value)}
+                      onChange={(event) => {
+                        setSearch(event.target.value)
+                        setCompanyPage(1)
+                      }}
                     />
                   </label>
                 ) : null}
@@ -130,14 +151,15 @@ export function CredentialForm({
                         value={
                           credential?.companyName ??
                           initialCompanyName ??
+                          fixedCompany.data?.name ??
                           t('common.companyNumber', { id: selectedCompanyId })
                         }
                       />
                     </label>
                   </>
                 ) : (
-                  <label className="field">
-                    {t('common.company')}
+                  <div className="field">
+                    <span>{t('common.company')}</span>
                     <Controller
                       name="companyId"
                       control={form.control}
@@ -146,9 +168,15 @@ export function CredentialForm({
                           value={field.value}
                           label={t('common.company')}
                           disabled={companies.isPending || companies.isError}
-                          onValueChange={(value) =>
-                            field.onChange(Number(value))
-                          }
+                          onValueChange={(value) => {
+                            const id = Number(value)
+                            field.onChange(id)
+                            setSelectedCompany(
+                              companies.data?.items.find(
+                                (company) => company.id === id,
+                              ) ?? null,
+                            )
+                          }}
                           options={[
                             {
                               value: 0,
@@ -156,10 +184,20 @@ export function CredentialForm({
                                 ? t('credentials.loadingCompanies')
                                 : t('credentials.selectCompany'),
                             },
-                            ...(companies.data?.items.map((company) => ({
-                              value: company.id,
-                              label: `${company.name}${company.active ? '' : t('credentials.blockedSuffix')}`,
-                            })) ?? []),
+                            ...[
+                              ...(selectedCompany ? [selectedCompany] : []),
+                              ...(companies.data?.items ?? []),
+                            ]
+                              .filter(
+                                (company, index, items) =>
+                                  items.findIndex(
+                                    (item) => item.id === company.id,
+                                  ) === index,
+                              )
+                              .map((company) => ({
+                                value: company.id,
+                                label: `${company.name}${company.active ? '' : t('credentials.blockedSuffix')}`,
+                              })),
                           ]}
                         />
                       )}
@@ -167,7 +205,34 @@ export function CredentialForm({
                     <FieldError
                       message={form.formState.errors.companyId?.message}
                     />
-                  </label>
+                    {(companies.data?.total ?? 0) > 20 ? (
+                      <span className="flex items-center justify-between gap-2 text-xs font-normal text-slate-600">
+                        <button
+                          type="button"
+                          className="button-ghost min-h-9 px-2"
+                          disabled={companyPage <= 1 || companies.isFetching}
+                          onClick={() => setCompanyPage((page) => page - 1)}
+                        >
+                          {t('common.previous')}
+                        </button>
+                        {t('users.companyPage', {
+                          page: companyPage,
+                          pages: Math.ceil((companies.data?.total ?? 0) / 20),
+                        })}
+                        <button
+                          type="button"
+                          className="button-ghost min-h-9 px-2"
+                          disabled={
+                            companyPage * 20 >= (companies.data?.total ?? 0) ||
+                            companies.isFetching
+                          }
+                          onClick={() => setCompanyPage((page) => page + 1)}
+                        >
+                          {t('common.next')}
+                        </button>
+                      </span>
+                    ) : null}
+                  </div>
                 )}
                 {companies.isError ? (
                   <p role="alert" className="text-xs text-rose-700">

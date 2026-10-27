@@ -162,6 +162,21 @@ func TestPostgresUserCompanyAccess(t *testing.T) {
 	if err != nil || len(updated.CompanyIDs) != 2 {
 		t.Fatal("multiple company links", updated, err)
 	}
+	multiCompany := security.WithCompanyScope(ctx, updated.CompanyIDs)
+	for _, selected := range []uint64{first.ID, second.ID} {
+		list.CompanyID = selected
+		page, err := companies.Companies(multiCompany, list)
+		if err != nil || page.Total != 1 || page.Items[0].ID != selected {
+			t.Fatal("selected company list", selected, page, err)
+		}
+		summary, err := NewSummaryService(repositories.NewSummary(db)).Summary(multiCompany, selected)
+		if err != nil || summary.Companies != 1 || summary.ActiveCredentials != 1 || summary.Accepted != 1 {
+			t.Fatal("selected company summary", selected, summary, err)
+		}
+	}
+	if _, err := NewSummaryService(repositories.NewSummary(db)).Summary(restricted, second.ID); err == nil {
+		t.Fatal("summary accepted company outside user scope")
+	}
 	_, err = users.SessionUser(context.Background(), viewer.ID, account.SessionVersion)
 	assertCode(t, err, apperrors.CodeUnauthorized)
 }

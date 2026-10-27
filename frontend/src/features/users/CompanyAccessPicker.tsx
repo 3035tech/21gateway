@@ -15,6 +15,7 @@ export function CompanyAccessPicker({
   onPageChange,
   loading = false,
   error = false,
+  onRetry,
 }: {
   options: CompanyOption[]
   selected: CompanyOption[]
@@ -27,6 +28,7 @@ export function CompanyAccessPicker({
   onPageChange: (page: number) => void
   loading?: boolean
   error?: boolean
+  onRetry?: () => void
 }) {
   const { t } = useTranslation()
   const selectedIds = new Set(selected.map((company) => company.id))
@@ -82,13 +84,24 @@ export function CompanyAccessPicker({
       <div className="overflow-hidden rounded-xl border border-slate-200">
         <div className="max-h-52 overflow-y-auto">
           {loading || error || !options.length ? (
-            <p className="px-4 py-4 text-sm text-slate-500" role="status">
-              {error
-                ? t('users.companyLoadFailed')
-                : loading
-                  ? t('common.loading')
-                  : t('users.noCompanyMatches')}
-            </p>
+            <div className="px-4 py-4 text-sm text-slate-500" role="status">
+              <p>
+                {error
+                  ? t('users.companyLoadFailed')
+                  : loading
+                    ? t('common.loading')
+                    : t('users.noCompanyMatches')}
+              </p>
+              {error && onRetry ? (
+                <button
+                  type="button"
+                  className="button-ghost mt-2 min-h-9 px-2"
+                  onClick={onRetry}
+                >
+                  {t('common.retry')}
+                </button>
+              ) : null}
+            </div>
           ) : (
             options.map((company) => {
               const isSelected = selectedIds.has(company.id)

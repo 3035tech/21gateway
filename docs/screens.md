@@ -65,6 +65,9 @@ Polish posterior: Auditoria mostra nome atual do responsável mais ID, distingue
 
 ## Visão da empresa — 27/10/2026
 
+Contas não administradoras com dois ou mais vínculos exibem um seletor estilizado de empresa no cabeçalho. A empresa escolhida filtra visão geral, cadastros, credenciais, mensagens, agendamentos e callbacks; a prévia pode ser explorada com Lucas Almeida e duas empresas. O seletor não aparece para administrador global nem para usuário com vínculo único.
+No cadastro de credenciais, operadores usam automaticamente a empresa em visualização; quando há só um vínculo, esse vínculo é assumido. O modal mostra o nome em campo somente leitura. A prévia inclui Pedro Lima, operador de uma empresa, para verificar esse caso.
+
 A listagem de empresas abre `/empresas/{id}` pelo nome. A página mostra cadastro, estado, credenciais da API e usuários de operação/consulta vinculados, com criação e edição no próprio contexto; a seleção da empresa fica fixa. A listagem geral de credenciais e usuários permanece disponível. Administradores não possuem vínculo e, por isso, não entram na lista de usuários de uma empresa. Essa seção de usuários só aparece para administradores.
 
 As listagens oferecem Visualizar para consultar os campos disponíveis sem entrar em edição. Empresas abrem a página de detalhes; usuários, credenciais, envios, agendamentos, callbacks e auditoria mostram detalhes em diálogo. Empresas, usuários e credenciais oferecem Arquivar para perfis autorizados, com confirmação e preservação do histórico. Registros de envio, agendamento e auditoria continuam somente leitura; callbacks falhos mantêm a operação de tentativa manual. A prévia fictícia também permite visualizar e arquivar cadastros em memória.

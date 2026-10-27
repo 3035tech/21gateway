@@ -14,11 +14,17 @@ const summaryQueryTimeout = 5 * time.Second
 type Summary struct{ *store }
 
 func NewSummary(db *gorm.DB) *Summary { return &Summary{store: &store{db: db}} }
-func (r *Summary) Summary(ctx context.Context) (dtos.Summary, error) {
+func (r *Summary) Summary(ctx context.Context, companyID ...uint64) (dtos.Summary, error) {
 	var result dtos.Summary
 	ctx, cancel := context.WithTimeout(ctx, summaryQueryTimeout)
 	defer cancel()
 	db := r.db.WithContext(ctx)
+	if len(companyID) > 0 && companyID[0] != 0 {
+		if !security.AllowsCompany(ctx, companyID[0]) {
+			return result, gorm.ErrRecordNotFound
+		}
+		return scopedSummary(db, []uint64{companyID[0]})
+	}
 	if scope := security.Scope(ctx); scope.Restricted {
 		return scopedSummary(db, scope.IDs)
 	}

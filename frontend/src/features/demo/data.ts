@@ -151,10 +151,12 @@ export const initialRows: Record<Section, DemoRow[]> = Object.fromEntries(
               : '',
           company:
             key === 'usuarios'
-              ? ['admin', 'operator', 'viewer'][i % 3]
+              ? i === 3
+                ? 'operator'
+                : ['admin', 'operator', 'viewer'][i % 3]
               : company,
           companyAccess:
-            key === 'usuarios' && i % 3 !== 0
+            key === 'usuarios' && (i % 3 !== 0 || i === 3)
               ? i === 1
                 ? [company, companies[0]]
                 : [company]

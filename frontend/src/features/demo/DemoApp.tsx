@@ -39,12 +39,19 @@ import type { DemoRow, Section } from './data'
 const demoSessionKey = '21gateway-demo-session-until'
 const demoUserKey = '21gateway-demo-user-id'
 const demoRememberDurationMs = 14 * 24 * 60 * 60 * 1000
-const demoLoginUsers = ['usuarios-1', 'usuarios-2', 'usuarios-3']
+const demoLoginUsers = ['usuarios-1', 'usuarios-2', 'usuarios-3', 'usuarios-4']
 
-function visibleDemoRows(section: Section, rows: DemoRow[], user: DemoRow) {
+function visibleDemoRows(
+  section: Section,
+  rows: DemoRow[],
+  user: DemoRow,
+  selectedCompany?: string,
+) {
   if (user.company === 'admin') return rows
   if (section === 'usuarios' || section === 'auditoria') return []
-  const allowed = new Set(user.companyAccess ?? [])
+  const allowed = new Set(
+    selectedCompany ? [selectedCompany] : (user.companyAccess ?? []),
+  )
   return rows.filter((row) =>
     allowed.has(section === 'empresas' ? row.name : row.company),
   )
@@ -286,16 +293,38 @@ function Overview() {
 function ScopedOverview({
   rows,
   user,
+  selectedCompany,
 }: {
   rows: Record<Section, DemoRow[]>
   user: DemoRow
+  selectedCompany?: string
 }) {
   const { t } = useTranslation()
-  const companies = visibleDemoRows('empresas', rows.empresas, user)
-  const credentials = visibleDemoRows('credenciais', rows.credenciais, user)
-  const messages = visibleDemoRows('envios', rows.envios, user)
-  const schedules = visibleDemoRows('agendamentos', rows.agendamentos, user)
-  const callbacks = visibleDemoRows('callbacks', rows.callbacks, user)
+  const companies = visibleDemoRows(
+    'empresas',
+    rows.empresas,
+    user,
+    selectedCompany,
+  )
+  const credentials = visibleDemoRows(
+    'credenciais',
+    rows.credenciais,
+    user,
+    selectedCompany,
+  )
+  const messages = visibleDemoRows('envios', rows.envios, user, selectedCompany)
+  const schedules = visibleDemoRows(
+    'agendamentos',
+    rows.agendamentos,
+    user,
+    selectedCompany,
+  )
+  const callbacks = visibleDemoRows(
+    'callbacks',
+    rows.callbacks,
+    user,
+    selectedCompany,
+  )
   return (
     <div className="space-y-6">
       <div>
@@ -650,7 +679,14 @@ function Listing({
                 name: '',
                 detail: '',
                 scheduledAt: '',
-                company: section === 'usuarios' ? 'viewer' : 'Horizonte Saúde',
+                company:
+                  section === 'usuarios'
+                    ? 'viewer'
+                    : section === 'credenciais'
+                      ? (companies.find(
+                          (company) => company.status === 'active',
+                        )?.name ?? '')
+                      : 'Horizonte Saúde',
                 companyAccess:
                   section === 'usuarios' ? ['Horizonte Saúde'] : [],
                 status: 'active',
@@ -937,18 +973,24 @@ function Listing({
             {section === 'credenciais' ? (
               <label className="flex flex-col gap-2 text-sm font-semibold">
                 {t('common.company')}
-                <AppSelect
-                  value={editing.company}
-                  disabled={!!editing.id}
-                  label={t('common.company')}
-                  onValueChange={(value) =>
-                    setEditing({ ...editing, company: value })
-                  }
-                  options={initialRows.empresas.slice(0, 6).map((row) => ({
-                    value: row.name,
-                    label: row.name,
-                  }))}
-                />
+                {admin && !editing.id ? (
+                  <AppSelect
+                    value={editing.company}
+                    label={t('common.company')}
+                    onValueChange={(value) =>
+                      setEditing({ ...editing, company: value })
+                    }
+                    options={companies
+                      .filter((row) => row.status === 'active')
+                      .map((row) => ({ value: row.name, label: row.name }))}
+                  />
+                ) : (
+                  <input
+                    className="form-control"
+                    value={editing.company}
+                    readOnly
+                  />
+                )}
               </label>
             ) : null}
             {section === 'credenciais' ? (
@@ -1271,6 +1313,10 @@ export default function DemoApp() {
   const [demoUserId, setDemoUserId] = useState(
     () => localStorage.getItem(demoUserKey) ?? demoLoginUsers[0],
   )
+  const [companySelection, setCompanySelection] = useState<{
+    userId: string
+    company: string
+  }>()
   const [loggedOut, setLoggedOut] = useState(
     () => !(Number(localStorage.getItem(demoSessionKey)) > Date.now()),
   )
@@ -1279,6 +1325,12 @@ export default function DemoApp() {
   const demoUser =
     rows.usuarios.find((user) => user.id === demoUserId) ?? rows.usuarios[0]
   const isAdmin = demoUser.company === 'admin'
+  const selectedCompany = !isAdmin
+    ? companySelection?.userId === demoUserId &&
+      demoUser.companyAccess?.includes(companySelection.company)
+      ? companySelection.company
+      : demoUser.companyAccess?.[0]
+    : undefined
   const canManage = isAdmin || demoUser.company === 'operator'
   if (loggedOut)
     return (
@@ -1396,6 +1448,22 @@ export default function DemoApp() {
       role={t(demoRoleKey(demoUser.company))}
       admin={isAdmin}
       demo
+      companyView={
+        demoUser.companyAccess && demoUser.companyAccess.length > 1
+          ? {
+              value: selectedCompany ?? demoUser.companyAccess[0],
+              options: demoUser.companyAccess.map((company) => ({
+                value: company,
+                label: company,
+              })),
+              onChange: (company) =>
+                setCompanySelection({
+                  userId: demoUserId,
+                  company: String(company),
+                }),
+            }
+          : undefined
+      }
       onLogout={() => {
         localStorage.removeItem(demoSessionKey)
         setLoggedOut(true)
@@ -1409,7 +1477,11 @@ export default function DemoApp() {
             isAdmin ? (
               <Overview />
             ) : (
-              <ScopedOverview rows={rows} user={demoUser} />
+              <ScopedOverview
+                rows={rows}
+                user={demoUser}
+                selectedCompany={selectedCompany}
+              />
             )
           }
         />
@@ -1425,18 +1497,25 @@ export default function DemoApp() {
               path={`/${section}/:recordId?`}
               element={
                 <Listing
-                  key={section}
+                  key={`${section}-${selectedCompany ?? ''}`}
                   section={section}
-                  rows={visibleDemoRows(section, rows[section], demoUser)}
+                  rows={visibleDemoRows(
+                    section,
+                    rows[section],
+                    demoUser,
+                    selectedCompany,
+                  )}
                   companies={visibleDemoRows(
                     'empresas',
                     rows.empresas,
                     demoUser,
+                    selectedCompany,
                   )}
                   companyCredentials={visibleDemoRows(
                     'credenciais',
                     rows.credenciais,
                     demoUser,
+                    selectedCompany,
                   )}
                   companyUsers={isAdmin ? rows.usuarios : []}
                   canManage={canManage}
@@ -1465,7 +1544,6 @@ export default function DemoApp() {
               }
             />
           ))}
-        <Route path="*" element={<Navigate to="/" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </PanelShell>

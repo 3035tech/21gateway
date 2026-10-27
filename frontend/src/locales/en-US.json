@@ -19,6 +19,7 @@
     "name": "Name",
     "email": "Email",
     "company": "Company",
+    "viewingCompany": "Viewing company",
     "createdAt": "Created",
     "updatedAt": "Updated",
     "previous": "Previous",
@@ -525,8 +526,8 @@
     "loginHint": "Preview with sample data. No real credential is required.",
     "signInAs": "Sign in as",
     "loginCompanyScope": "Linked companies: {{companies}}",
-    "scopedOverview": "{{name}}'s view, limited to linked companies.",
-    "scopedCallbacks": "{{count}} callbacks for linked companies.",
+    "scopedOverview": "{{name}}'s view for the selected company.",
+    "scopedCallbacks": "{{count}} callbacks for the selected company.",
     "enterDemo": "Enter demo",
     "sections": {
       "companies": "Organize companies using the SMS API.",

@@ -1,5 +1,6 @@
 import { DateCell } from '../../components/admin/DateCell'
 import { useState } from 'react'
+import { useCompanyView } from '../companies/CompanyViewContext'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import type { ColumnDef } from '@tanstack/react-table'
@@ -25,6 +26,7 @@ export function CredentialsPage({
   companyId,
   companyName,
 }: { companyId?: number; companyName?: string } = {}) {
+  const selectedCompanyId = useCompanyView()
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -268,7 +270,7 @@ export function CredentialsPage({
       {editor !== undefined ? (
         <CredentialForm
           credential={editor ?? undefined}
-          initialCompanyId={companyId}
+          initialCompanyId={companyId ?? selectedCompanyId}
           initialCompanyName={companyName}
           onClose={() => setEditor(undefined)}
           onSecret={(username, password) => setSecret({ username, password })}

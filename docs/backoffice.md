@@ -47,6 +47,11 @@ Senhas externas são aleatórias, armazenadas somente como hash e exibidas uma v
 
 Listagens fazem busca literal, filtro de status/empresa, paginação de 1 a 100 itens, ordenação por whitelist e desempate por ID. Frontend usa TanStack Table/Query; formulários usam React Hook Form/Zod e respostas têm validação Zod. Falhas não apresentam linhas antigas como resultado válido. Diálogos nativos mantêm foco e aceitam Escape.
 
+## Visualização por empresa
+
+Usuários `operator` e `viewer` com mais de uma empresa vinculada escolhem no cabeçalho qual empresa visualizar. O painel inicia na primeira empresa autorizada, e a escolha filtra dashboard, empresas, credenciais, envios, agendamentos e callbacks. A seleção é uma preferência da sessão da página; a autorização continua no servidor e aceita somente os vínculos atuais do usuário. `GET /admin/summary?companyId={id}` e `GET /admin/companies?companyId={id}` aplicam o filtro no banco. Uma empresa fora do escopo não retorna métricas. Usuários `admin` mantêm a visão global. A prévia `/demo` reproduz o seletor com Lucas Almeida, vinculado a duas empresas.
+Ao criar credencial, um operador recebe a empresa selecionada (ou seu único vínculo) como valor fixo no formulário. O backend continua validando o vínculo, inclusive se a requisição for alterada fora do painel. Administradores globais podem escolher a empresa no próprio cadastro.
+
 ## Rotas
 
 Prefixo `/admin`: `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`; listagem/criação em `/companies`, `/users`, `/credentials`, edição por PUT e arquivamento por DELETE em `/{id}`; `POST /credentials/{id}/rotate`; `GET /messages`, `/callbacks`, `/audit`, `/summary`; `POST /callbacks/{id}/retry`. Schemas e permissões estão refletidos na especificação OpenAPI. Consulta individual para edição utiliza o registro da listagem nesta etapa.

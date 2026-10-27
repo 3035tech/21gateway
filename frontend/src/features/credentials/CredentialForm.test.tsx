@@ -96,3 +96,51 @@ it('directs provider token management to the company', () => {
     screen.getByRole('link', { name: 'Abrir empresa para gerenciar o token' }),
   ).toHaveAttribute('href', '/empresas/1')
 })
+
+it('uses the selected company when creating an operator credential', async () => {
+  const post = vi.spyOn(api, 'post').mockResolvedValue({
+    data: {
+      credential: {
+        ...credential,
+        id: 2,
+        companyId: 7,
+        companyName: 'Aurora Varejo',
+      },
+      password: 'generated-secret',
+    },
+  })
+  try {
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter>
+          <CredentialForm
+            initialCompanyId={7}
+            initialCompanyName="Aurora Varejo"
+            onClose={vi.fn()}
+            onSecret={vi.fn()}
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+    expect(screen.getByRole('textbox', { name: 'Empresa' })).toHaveValue(
+      'Aurora Varejo',
+    )
+    expect(
+      screen.queryByRole('combobox', { name: 'Empresa' }),
+    ).not.toBeInTheDocument()
+    await userEvent
+      .setup()
+      .click(screen.getByRole('button', { name: 'Criar credencial' }))
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith(
+        '/admin/credentials',
+        expect.objectContaining({ companyId: 7 }),
+      ),
+    )
+  } finally {
+    post.mockRestore()
+  }
+})

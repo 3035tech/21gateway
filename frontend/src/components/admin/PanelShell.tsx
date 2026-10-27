@@ -3,6 +3,7 @@ import type { PropsWithChildren } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { LanguageSwitcher } from './LanguageSwitcher'
+import { AppSelect } from './AppSelect'
 import {
   Building2,
   Users,
@@ -77,6 +78,11 @@ type Props = PropsWithChildren<{
   pending?: boolean
   logoutError?: string
   onLogout: () => void
+  companyView?: {
+    value: string | number
+    options: { value: string | number; label: string }[]
+    onChange: (value: string) => void
+  }
 }>
 export function PanelShell({
   children,
@@ -88,6 +94,7 @@ export function PanelShell({
   pending = false,
   logoutError,
   onLogout,
+  companyView,
 }: Props) {
   const { t } = useTranslation()
   const menuRef = useRef<HTMLDetailsElement>(null)
@@ -216,6 +223,16 @@ export function PanelShell({
             <span className="font-semibold text-slate-700">{current}</span>
           </div>
           <div className="flex items-center gap-3">
+            {companyView ? (
+              <div className="min-w-40 max-w-64">
+                <AppSelect
+                  value={companyView.value}
+                  label={t('common.viewingCompany')}
+                  onValueChange={companyView.onChange}
+                  options={companyView.options}
+                />
+              </div>
+            ) : null}
             <LanguageSwitcher />
             {demo ? (
               <span className="hidden rounded-md bg-purple-50 px-3 py-1 text-xs font-semibold text-brand-purple sm:block">

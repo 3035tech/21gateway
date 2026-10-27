@@ -12,13 +12,15 @@ import {
 import { getSummary } from './api'
 import { errorMessage } from '../../lib/admin'
 import { useTranslation } from 'react-i18next'
+import { useCompanyView } from '../companies/CompanyViewContext'
 
 export function OverviewPage() {
   const { t, i18n } = useTranslation()
+  const companyId = useCompanyView()
   const number = (value: number) => value.toLocaleString(i18n.language)
   const query = useQuery({
-    queryKey: ['admin', 'summary'],
-    queryFn: ({ signal }) => getSummary(signal),
+    queryKey: ['admin', 'summary', companyId],
+    queryFn: ({ signal }) => getSummary(companyId, signal),
   })
   const data = query.data
   return (
