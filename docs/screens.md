@@ -27,7 +27,7 @@ Portal de clientes, campanha/envio pelo painel, saldo e consulta MO no painel n�
 
 ## Acabamento visual posterior
 
-Painel real e prévia agora compartilham PanelShell: navegação compacta no celular, menu que fecha ao trocar de tela, indicação da seção atual, perfil do usuário e foco para pular ao conteúdo. Raleway e cores da marca preservadas; tabelas têm espaçamento consistente, datas sem quebra, ações com alvo de toque e estados de carregamento/vazio/falha identificáveis. Status de entrega são apresentados em português.
+Painel real e prévia agora compartilham PanelShell: navegação compacta no celular, menu que fecha ao trocar de tela, indicação da seção atual e acesso ao perfil pelo nome/avatar no rodapé lateral, sem item duplicado no menu. Há foco para pular ao conteúdo. Raleway e cores da marca preservadas; tabelas têm espaçamento consistente, datas sem quebra, ações com alvo de toque e estados de carregamento/vazio/falha identificáveis. Status de entrega são apresentados em português.
 
 Login tem marca visível no celular, opção de mostrar/ocultar senha e erros associados aos campos. Verificação de sessão e falha de conexão têm apresentação própria, com tentativa manual. Formulários reais não permitem fechar o diálogo enquanto a gravação está em andamento; exibição da senha de API espera o fechamento do formulário/confirmação, evitando diálogos sobrepostos.
 

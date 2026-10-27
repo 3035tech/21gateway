@@ -13,7 +13,6 @@ import {
   LogOut,
   Menu,
   ChevronRight,
-  CircleUserRound,
 } from 'lucide-react'
 const navigation = [
   ['/', 'Visão geral', LayoutDashboard, true],
@@ -24,7 +23,6 @@ const navigation = [
   ['/agendamentos', 'Agendamentos', CalendarClock, false],
   ['/callbacks', 'Callbacks', Webhook, false],
   ['/auditoria', 'Auditoria', History, true],
-  ['/perfil', 'Meu perfil', CircleUserRound, false],
 ] as const
 function Navigation({
   admin,
@@ -48,7 +46,6 @@ function Navigation({
                 '/usuarios',
                 '/credenciais',
                 '/agendamentos',
-                '/perfil',
               ].includes(path)),
         )
         .map(([path, label, Icon]) => (
@@ -92,7 +89,10 @@ export function PanelShell({
   const menuRef = useRef<HTMLDetailsElement>(null)
   const location = useLocation()
   const current =
-    navigation.find(([path]) => path === location.pathname)?.[1] ?? 'Painel'
+    location.pathname === '/perfil'
+      ? 'Meu perfil'
+      : (navigation.find(([path]) => path === location.pathname)?.[1] ??
+        'Painel')
   const initials = name
     .split(' ')
     .filter(Boolean)
@@ -136,7 +136,16 @@ export function PanelShell({
             />
           </nav>
           <div className="flex items-center justify-between border-t border-white/15 px-3 pt-3">
-            <span className="text-sm">{name}</span>
+            <NavLink
+              to="/perfil"
+              onClick={() => {
+                if (menuRef.current) menuRef.current.open = false
+              }}
+              className="min-h-11 min-w-0 rounded-lg px-2 py-3 text-sm font-semibold hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-white"
+              aria-label={`Abrir meu perfil: ${name}`}
+            >
+              {name}
+            </NavLink>
             <button
               className="min-h-11 rounded px-3 text-sm"
               disabled={pending}
@@ -153,7 +162,13 @@ export function PanelShell({
           <Navigation admin={admin} managementOnly={managementOnly} />
         </nav>
         <div className="mt-auto hidden border-t border-white/15 p-5 lg:block">
-          <div className="flex items-center gap-3">
+          <NavLink
+            to="/perfil"
+            aria-label={`Abrir meu perfil: ${name}`}
+            className={({ isActive }) =>
+              `flex min-h-14 items-center gap-3 rounded-lg p-2 transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-white ${isActive ? 'bg-white/15' : ''}`
+            }
+          >
             <span
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15 text-xs font-semibold"
               aria-hidden="true"
@@ -166,7 +181,7 @@ export function PanelShell({
               </p>
               <p className="mt-1 text-xs text-purple-200">{role}</p>
             </div>
-          </div>
+          </NavLink>
           <button
             disabled={pending}
             onClick={onLogout}
