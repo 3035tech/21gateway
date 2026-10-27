@@ -204,7 +204,7 @@ export function DataTable<T>({
                       {row.getVisibleCells().map((cell) => (
                         <td
                           key={cell.id}
-                          className={`px-5 py-3.5 align-middle text-slate-700 ${cell.column.id === 'actions' ? 'text-center' : ''}`}
+                          className={`px-5 py-3.5 align-middle text-slate-700 ${cell.column.id === 'actions' ? 'data-grid-actions text-center' : ''}`}
                         >
                           {cell.column.id === 'actions' ? (
                             <div className="flex justify-center">

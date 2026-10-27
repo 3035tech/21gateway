@@ -25,9 +25,9 @@ const (
 
 type LegacySMS struct {
 	MessageText   string `json:"messageText" minLength:"1" maxLength:"160" doc:"Texto do SMS. Até 160 caracteres na entrada; acentos e emojis são removidos pela normalização do gateway."`
-	Destination   string `json:"destination" pattern:"^[0-9]{11}$" doc:"Celular brasileiro com DDD e 9 dígitos, sem +55, espaços ou pontuação. Exemplo: 11987654321."`
+	Destination   string `json:"destination" minLength:"11" maxLength:"11" pattern:"^[0-9]{11}$" doc:"Celular brasileiro com DDD e 9 dígitos, sem +55, espaços ou pontuação. Exemplo: 11987654321."`
 	CorrelationID string `json:"correlationId,omitempty" maxLength:"50" doc:"Referência opcional do cliente, devolvida na resposta. Não é chave de idempotência."`
-	ScheduledDate *int64 `json:"scheduledDate,omitempty" doc:"Unix timestamp em segundos para envio futuro. Ausente ou zero envia imediatamente; agendamento depende de ativação no ambiente."`
+	ScheduledDate *int64 `json:"scheduledDate,omitempty" minimum:"0" maximum:"253402300799" doc:"Unix timestamp em segundos para envio futuro. Ausente ou zero envia imediatamente; agendamento depende de ativação no ambiente."`
 }
 
 type LegacySendInput struct {

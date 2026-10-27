@@ -9,11 +9,8 @@ import (
 	"github.com/21mobile/sms-gateway/internal/models"
 	"log/slog"
 	"strconv"
-	"strings"
 	"unicode/utf8"
 )
-
-const maximumRecordedDestinationBytes = 128
 
 type BatchProvider interface {
 	SendBatch(context.Context, whitelabel.BatchRequest) ([]whitelabel.BatchResult, error)
@@ -69,8 +66,8 @@ func (s *SMSService) sendBatch(ctx context.Context, credentialID uint64, message
 		} else if utf8.RuneCountInString(input.CorrelationID) > MaximumCorrelationCharacters {
 			code = apperrors.CodeInvalidRequest
 		}
-		// Ten-digit normalization still needs an example from the legacy implementation.
-		if len(input.Destination) > maximumRecordedDestinationBytes || (len(input.Destination) == 10 && allDigits(input.Destination)) {
+		// Keep the documented 11-digit contract for each item, including batches.
+		if !brazilLocalNumber.MatchString(input.Destination) {
 			code = apperrors.CodeInvalidDestination
 		}
 		if code != apperrors.CodeNone {
@@ -79,10 +76,7 @@ func (s *SMSService) sendBatch(ctx context.Context, credentialID uint64, message
 		}
 		input.MessageText = normalized
 		messages[i] = input
-		destination := input.Destination
-		if brazilLocalNumber.MatchString(destination) {
-			destination = brazilCountryCode + destination
-		}
+		destination := brazilCountryCode + input.Destination
 		if whitelabel.SelectEncoding(input.MessageText) == models.SMSEncodingUCS2 {
 			encoding = models.SMSEncodingUCS2
 		}
@@ -154,7 +148,4 @@ func (s *SMSService) sendBatch(ctx context.Context, credentialID uint64, message
 		slog.Error("Batch outcome persistence failed", "items", len(completed))
 	}
 	return result, nil
-}
-func allDigits(value string) bool {
-	return value != "" && strings.IndexFunc(value, func(r rune) bool { return r < '0' || r > '9' }) < 0
 }

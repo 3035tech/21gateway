@@ -131,7 +131,7 @@ func TestLegacyBatchAccountTokenAndWhitelistHTTP(t *testing.T) {
 		if r.Header.Get("X-API-TOKEN") != "private-account-token" {
 			t.Fatal("wrong account token")
 		}
-		return httpmock.NewStringResponder(207, `{"success":[{"position":0,"message_id":"550e8400-e29b-41d4-a716-446655440001"}],"errors":[{"position":1,"error":"destination_addr is required"}],"total_items":2}`)(r)
+		return httpmock.NewStringResponder(200, `{"success":[{"position":0,"message_id":"550e8400-e29b-41d4-a716-446655440001"}],"errors":[],"total_items":1}`)(r)
 	})
 	client, _ := whitelabel.NewWithTransport("https://provider.example", "unused-shared-token", transport)
 	defer client.Close()
@@ -157,7 +157,7 @@ func TestLegacyBatchAccountTokenAndWhitelistHTTP(t *testing.T) {
 	if err := json.Unmarshal(response.Body.Bytes(), &outcomes); err != nil {
 		t.Fatal(err)
 	}
-	if response.Code != 200 || len(outcomes) != 2 || outcomes[0].IDSMS != "42" || outcomes[0].CorrelationID != "first" || outcomes[1].CorrelationID != "second" || outcomes[1].Status != dtos.LegacyStatusNOK || len(repo.completed) != 2 {
+	if response.Code != 200 || len(outcomes) != 2 || outcomes[0].IDSMS != "42" || outcomes[0].CorrelationID != "first" || outcomes[1].CorrelationID != "second" || outcomes[1].Message != dtos.LegacyInvalidNumber || len(repo.completed) != 1 {
 		t.Fatal("legacy batch HTTP translation failed")
 	}
 	if strings.Contains(response.Body.String(), "private-account-token") {

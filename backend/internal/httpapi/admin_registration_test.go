@@ -81,6 +81,11 @@ func TestPublicOpenAPIOnlyShowsClientIntegration(t *testing.T) {
 	if !strings.Contains(send.Post.Description, "não evita duplicações") || len(send.Post.RequestBody.Content["application/json"].Examples) == 0 || len(send.Post.Responses["200"].Content["application/json"].Examples) < 2 {
 		t.Fatal("send operation must explain behavior and show request/result examples")
 	}
+	for _, constraint := range []string{`"minLength":11`, `"maxLength":11`, `"maximum":253402300799`} {
+		if !strings.Contains(w.Body.String(), constraint) {
+			t.Fatalf("public OpenAPI missing DTO constraint %s", constraint)
+		}
+	}
 	for _, path := range []string{"/v1/status", "/v1/consultmo"} {
 		var operation struct {
 			Get struct {

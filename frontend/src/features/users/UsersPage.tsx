@@ -93,7 +93,7 @@ export function UsersPage({
     header: t('common.actions'),
     enableSorting: false,
     cell: ({ row }) => (
-      <div className="flex gap-1">
+      <div className="flex w-max items-center gap-1">
         <button
           className="table-action"
           onClick={() => setViewing(row.original)}

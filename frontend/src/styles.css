@@ -85,14 +85,19 @@
 
 @layer components {
   .table-action {
-    @apply inline-flex min-h-11 items-center justify-center rounded-lg px-3 text-sm font-semibold text-brand-purple transition-colors hover:bg-purple-50 active:bg-purple-100 disabled:opacity-40;
+    @apply inline-flex min-h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-lg px-3 text-sm font-semibold text-brand-purple transition-colors hover:bg-purple-50 active:bg-purple-100 disabled:opacity-40;
   }
   .table-action-danger {
-    @apply inline-flex min-h-11 items-center justify-center rounded-lg px-3 text-sm font-semibold text-rose-700 transition-colors hover:bg-rose-50 active:bg-rose-100 disabled:opacity-40;
+    @apply inline-flex min-h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-lg px-3 text-sm font-semibold text-rose-700 transition-colors hover:bg-rose-50 active:bg-rose-100 disabled:opacity-40;
   }
   .data-grid td {
     @apply max-w-80;
     overflow-wrap: anywhere;
+  }
+  .data-grid td.data-grid-actions {
+    max-width: none;
+    overflow-wrap: normal;
+    white-space: nowrap;
   }
   .field {
     @apply flex flex-col gap-2 text-sm font-semibold;
