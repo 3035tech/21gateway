@@ -11,6 +11,7 @@ func operationEnvironment(t *testing.T) {
 	for name, value := range map[string]string{"SCHEDULED_SQS_ENABLED": "false", "SCHEDULED_SQS_QUEUE_URL": "", "AWS_REGION": "", "SCHEDULER_ENABLED": "false", "SCHEDULED_CONTENT_KEY": "", "SCHEDULED_ACTIVE_KEY_ID": "", "SCHEDULED_ENCRYPTION_KEYS": "", "API_AUTH_IP_LIMIT_PER_MINUTE": "600", "DATABASE_URL": "postgres://unused/unused", "COOKIE_SECURE": "false", "COOKIE_CROSS_SITE": "false", "CORS_ALLOWED_ORIGINS": "http://localhost:5173", "WHITELABEL_BASE_URL": "https://provider.example", "WHITELABEL_API_TOKEN": "", "CALLBACK_INGRESS_ENABLED": "false", "MO_INGRESS_ENABLED": "false", "CALLBACK_INGRESS_TOKEN": "", "MO_CONTENT_KEY": "", "PROVIDER_TOKEN_KEY": "", "PROVIDER_ACTIVE_KEY_ID": "", "PROVIDER_ENCRYPTION_KEYS": "", "MO_ACTIVE_KEY_ID": "", "MO_ENCRYPTION_KEYS": "", "MO_FINGERPRINT_KEY": "", "MO_RETENTION_DAYS": "90", "OPERATIONS_ENABLED": "false", "OPERATIONS_TOKEN": ""} {
 		t.Setenv(name, value)
 	}
+	t.Setenv("HEALTH_DEPENDENCIES_TOKEN_SHA256", "")
 }
 func TestOperationalConfigurationFailsClosed(t *testing.T) {
 	operationEnvironment(t)
@@ -34,6 +35,20 @@ func TestOperationalConfigurationFailsClosed(t *testing.T) {
 	t.Setenv("MO_ENCRYPTION_KEYS", "invalid JSON")
 	if _, err := Load(); err == nil {
 		t.Fatal("malformed keyring allowed")
+	}
+}
+
+func TestHealthDependenciesTokenHashConfiguration(t *testing.T) {
+	operationEnvironment(t)
+	for _, value := range []string{"short", strings.Repeat("x", 64), strings.Repeat("A", 64)} {
+		t.Setenv("HEALTH_DEPENDENCIES_TOKEN_SHA256", value)
+		if _, err := Load(); err == nil {
+			t.Fatal("invalid health token hash accepted")
+		}
+	}
+	t.Setenv("HEALTH_DEPENDENCIES_TOKEN_SHA256", strings.Repeat("a", 64))
+	if _, err := Load(); err != nil {
+		t.Fatal("valid health token hash rejected", err)
 	}
 }
 func TestVersionedMOIngressRequiresStableFingerprintKey(t *testing.T) {

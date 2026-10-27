@@ -2,7 +2,11 @@ package controllers
 
 import (
 	"context"
+	"crypto/sha256"
+	"crypto/subtle"
+	"encoding/hex"
 	"net/http"
+	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
 
@@ -16,10 +20,31 @@ func NewHealthController(service *services.HealthService) *HealthController {
 	return &HealthController{service: service}
 }
 
-func (c *HealthController) Register(api huma.API) {
+func (c *HealthController) Register(api huma.API, tokenSHA256 string) {
 	huma.Register(api, huma.Operation{OperationID: "health", Method: http.MethodGet, Path: "/healthz", Summary: "Process health", Tags: []string{"Operations"}}, c.Health)
 	huma.Register(api, huma.Operation{OperationID: "ready", Method: http.MethodGet, Path: "/readyz", Summary: "Database readiness", Tags: []string{"Operations"}}, c.Ready)
-	huma.Register(api, huma.Operation{OperationID: "dependencies", Method: http.MethodGet, Path: "/health/dependencies", Summary: "Database, SMTP and SQS diagnostics", Tags: []string{"Operations"}}, c.Dependencies)
+	huma.Register(api, huma.Operation{OperationID: "dependencies", Method: http.MethodGet, Path: "/health/dependencies", Summary: "Database, SMTP and SQS diagnostics", Tags: []string{"Operations"}, Middlewares: huma.Middlewares{healthDependenciesAuth(api, tokenSHA256)}, Errors: []int{http.StatusUnauthorized, http.StatusServiceUnavailable}}, c.Dependencies)
+}
+
+func healthDependenciesAuth(api huma.API, tokenSHA256 string) func(huma.Context, func(huma.Context)) {
+	expected, err := hex.DecodeString(tokenSHA256)
+	return func(ctx huma.Context, next func(huma.Context)) {
+		if err != nil || len(expected) != sha256.Size {
+			_ = huma.WriteErr(api, ctx, http.StatusServiceUnavailable, "")
+			return
+		}
+		authorization := ctx.Header("Authorization")
+		if !strings.HasPrefix(authorization, "Bearer ") {
+			_ = huma.WriteErr(api, ctx, http.StatusUnauthorized, "")
+			return
+		}
+		actual := sha256.Sum256([]byte(strings.TrimPrefix(authorization, "Bearer ")))
+		if subtle.ConstantTimeCompare(expected, actual[:]) != 1 {
+			_ = huma.WriteErr(api, ctx, http.StatusUnauthorized, "")
+			return
+		}
+		next(ctx)
+	}
 }
 
 func (c *HealthController) Health(ctx context.Context, input *struct{}) (*dtos.HealthOutput, error) {

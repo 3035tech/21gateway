@@ -2,6 +2,8 @@ package httpapi
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -61,11 +63,16 @@ func TestReadinessErrorIsStandardizedAndPrivate(t *testing.T) {
 }
 
 func TestDependencyDiagnosticsReportEnabledAndDisabledChecks(t *testing.T) {
+	token := "diagnostics-token-with-at-least-32-bytes"
+	digest := sha256.Sum256([]byte(token))
 	router := New(nil, false, func(context.Context) error { return nil }, Dependencies{
-		SMTPProbe: func(context.Context) error { return errors.New("password=private-secret") },
+		HealthDependenciesTokenSHA256: hex.EncodeToString(digest[:]),
+		SMTPProbe:                     func(context.Context) error { return errors.New("password=private-secret") },
 	})
 	response := httptest.NewRecorder()
-	router.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/health/dependencies", nil))
+	request := httptest.NewRequest(http.MethodGet, "/health/dependencies", nil)
+	request.Header.Set("Authorization", "Bearer "+token)
+	router.ServeHTTP(response, request)
 	if response.Code != http.StatusServiceUnavailable {
 		t.Fatalf("unexpected status: %d", response.Code)
 	}
@@ -82,12 +89,17 @@ func TestDependencyDiagnosticsReportEnabledAndDisabledChecks(t *testing.T) {
 }
 
 func TestDependencyDiagnosticsHealthy(t *testing.T) {
+	token := "diagnostics-token-with-at-least-32-bytes"
+	digest := sha256.Sum256([]byte(token))
 	router := New(nil, false, func(context.Context) error { return nil }, Dependencies{
-		SMTPProbe: func(context.Context) error { return nil },
-		SQSProbe:  func(context.Context) error { return nil },
+		HealthDependenciesTokenSHA256: hex.EncodeToString(digest[:]),
+		SMTPProbe:                     func(context.Context) error { return nil },
+		SQSProbe:                      func(context.Context) error { return nil },
 	})
 	response := httptest.NewRecorder()
-	router.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/health/dependencies", nil))
+	request := httptest.NewRequest(http.MethodGet, "/health/dependencies", nil)
+	request.Header.Set("Authorization", "Bearer "+token)
+	router.ServeHTTP(response, request)
 	if response.Code != http.StatusOK {
 		t.Fatalf("unexpected status: %d", response.Code)
 	}
@@ -97,5 +109,34 @@ func TestDependencyDiagnosticsHealthy(t *testing.T) {
 	}
 	if report.Status != dtos.HealthStatusOK || report.Database != dtos.DependencyOK || report.SMTP != dtos.DependencyOK || report.SQS != dtos.DependencyOK {
 		t.Fatalf("unexpected report: %+v", report)
+	}
+}
+
+func TestDependencyDiagnosticsRequireBearerBeforeProbing(t *testing.T) {
+	token := "diagnostics-token-with-at-least-32-bytes"
+	digest := sha256.Sum256([]byte(token))
+	probes := 0
+	for _, tc := range []struct {
+		name, hash, header string
+		want               int
+	}{
+		{"missing configuration", "", "Bearer " + token, http.StatusServiceUnavailable},
+		{"missing token", hex.EncodeToString(digest[:]), "", http.StatusUnauthorized},
+		{"incorrect token", hex.EncodeToString(digest[:]), "Bearer wrong", http.StatusUnauthorized},
+		{"incorrect scheme", hex.EncodeToString(digest[:]), token, http.StatusUnauthorized},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			router := New(nil, false, func(context.Context) error { probes++; return nil }, Dependencies{
+				HealthDependenciesTokenSHA256: tc.hash,
+				SMTPProbe:                     func(context.Context) error { probes++; return nil },
+			})
+			request := httptest.NewRequest(http.MethodGet, "/health/dependencies", nil)
+			request.Header.Set("Authorization", tc.header)
+			response := httptest.NewRecorder()
+			router.ServeHTTP(response, request)
+			if response.Code != tc.want || probes != 0 {
+				t.Fatalf("status=%d probes=%d, want status=%d and no probes", response.Code, probes, tc.want)
+			}
+		})
 	}
 }

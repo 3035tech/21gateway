@@ -17,30 +17,31 @@ import (
 )
 
 type Dependencies struct {
-	SMTPProbe              func(context.Context) error
-	SQSProbe               func(context.Context) error
-	Operations             *services.OperationsService
-	OperationsEnabled      bool
-	OperationsToken        string
-	LegacyMO               *services.LegacyMOService
-	MO                     *services.MOService
-	MOIngressEnabled       bool
-	LegacyStatuses         *services.LegacyStatusService
-	Users                  *services.UserService
-	UserMFA                *services.UserMFAService
-	UserRecovery           *services.UserRecoveryService
-	Companies              *services.CompanyService
-	Credentials            *services.CredentialService
-	Messages               *services.MessageService
-	Schedules              *services.ScheduledListService
-	Audit                  *services.AuditService
-	Summary                *services.SummaryService
-	Sessions               *scs.SessionManager
-	Callbacks              *services.CallbackService
-	CallbackIngressEnabled bool
-	CallbackIngressToken   string
-	SMS                    *services.SMSService
-	Auth                   *services.AuthService
+	SMTPProbe                     func(context.Context) error
+	SQSProbe                      func(context.Context) error
+	Operations                    *services.OperationsService
+	OperationsEnabled             bool
+	OperationsToken               string
+	HealthDependenciesTokenSHA256 string
+	LegacyMO                      *services.LegacyMOService
+	MO                            *services.MOService
+	MOIngressEnabled              bool
+	LegacyStatuses                *services.LegacyStatusService
+	Users                         *services.UserService
+	UserMFA                       *services.UserMFAService
+	UserRecovery                  *services.UserRecoveryService
+	Companies                     *services.CompanyService
+	Credentials                   *services.CredentialService
+	Messages                      *services.MessageService
+	Schedules                     *services.ScheduledListService
+	Audit                         *services.AuditService
+	Summary                       *services.SummaryService
+	Sessions                      *scs.SessionManager
+	Callbacks                     *services.CallbackService
+	CallbackIngressEnabled        bool
+	CallbackIngressToken          string
+	SMS                           *services.SMSService
+	Auth                          *services.AuthService
 }
 
 func New(origins []string, docsEnabled bool, ping func(context.Context) error, dependencies Dependencies) http.Handler {
@@ -116,7 +117,7 @@ func New(origins []string, docsEnabled bool, ping func(context.Context) error, d
 	if dependencies.Operations != nil && dependencies.OperationsEnabled {
 		controllers.NewOperationsController(dependencies.Operations).Register(api, dependencies.OperationsToken)
 	}
-	controllers.NewHealthController(services.NewHealthService(ping).WithDependencies(dependencies.SMTPProbe, dependencies.SQSProbe)).Register(api)
+	controllers.NewHealthController(services.NewHealthService(ping).WithDependencies(dependencies.SMTPProbe, dependencies.SQSProbe)).Register(api, dependencies.HealthDependenciesTokenSHA256)
 	if dependencies.SMS != nil && dependencies.Auth != nil {
 		controllers.NewSMSController(dependencies.SMS, dependencies.Auth).Register(api)
 	}

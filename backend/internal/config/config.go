@@ -21,25 +21,26 @@ var testSMSDestination = regexp.MustCompile(`^[0-9]{11}$`)
 var smtpHost = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9.-]*$`)
 
 type Config struct {
-	ScheduledSQSEnabled      bool   `env:"SCHEDULED_SQS_ENABLED" envDefault:"false"`
-	ScheduledSQSQueueURL     string `env:"SCHEDULED_SQS_QUEUE_URL"`
-	AWSRegion                string `env:"AWS_REGION"`
-	SchedulerEnabled         bool   `env:"SCHEDULER_ENABLED" envDefault:"false"`
-	ScheduledContentKey      string `env:"SCHEDULED_CONTENT_KEY"`
-	ScheduledActiveKeyID     string `env:"SCHEDULED_ACTIVE_KEY_ID"`
-	ScheduledEncryptionKeys  string `env:"SCHEDULED_ENCRYPTION_KEYS"`
-	SMSHistoryContentKey     string `env:"SMS_HISTORY_CONTENT_KEY"`
-	SMSHistoryActiveKeyID    string `env:"SMS_HISTORY_ACTIVE_KEY_ID"`
-	SMSHistoryEncryptionKeys string `env:"SMS_HISTORY_ENCRYPTION_KEYS"`
-	APIAuthenticationIPLimit int    `env:"API_AUTH_IP_LIMIT_PER_MINUTE" envDefault:"600"`
-	OperationsEnabled        bool   `env:"OPERATIONS_ENABLED" envDefault:"false"`
-	OperationsToken          string `env:"OPERATIONS_TOKEN"`
-	MORetentionDays          int    `env:"MO_RETENTION_DAYS" envDefault:"90"`
-	ProviderActiveKeyID      string `env:"PROVIDER_ACTIVE_KEY_ID"`
-	ProviderEncryptionKeys   string `env:"PROVIDER_ENCRYPTION_KEYS"`
-	MOActiveKeyID            string `env:"MO_ACTIVE_KEY_ID"`
-	MOEncryptionKeys         string `env:"MO_ENCRYPTION_KEYS"`
-	MOFingerprintKey         string `env:"MO_FINGERPRINT_KEY"`
+	ScheduledSQSEnabled           bool   `env:"SCHEDULED_SQS_ENABLED" envDefault:"false"`
+	ScheduledSQSQueueURL          string `env:"SCHEDULED_SQS_QUEUE_URL"`
+	AWSRegion                     string `env:"AWS_REGION"`
+	SchedulerEnabled              bool   `env:"SCHEDULER_ENABLED" envDefault:"false"`
+	ScheduledContentKey           string `env:"SCHEDULED_CONTENT_KEY"`
+	ScheduledActiveKeyID          string `env:"SCHEDULED_ACTIVE_KEY_ID"`
+	ScheduledEncryptionKeys       string `env:"SCHEDULED_ENCRYPTION_KEYS"`
+	SMSHistoryContentKey          string `env:"SMS_HISTORY_CONTENT_KEY"`
+	SMSHistoryActiveKeyID         string `env:"SMS_HISTORY_ACTIVE_KEY_ID"`
+	SMSHistoryEncryptionKeys      string `env:"SMS_HISTORY_ENCRYPTION_KEYS"`
+	APIAuthenticationIPLimit      int    `env:"API_AUTH_IP_LIMIT_PER_MINUTE" envDefault:"600"`
+	OperationsEnabled             bool   `env:"OPERATIONS_ENABLED" envDefault:"false"`
+	OperationsToken               string `env:"OPERATIONS_TOKEN"`
+	HealthDependenciesTokenSHA256 string `env:"HEALTH_DEPENDENCIES_TOKEN_SHA256"`
+	MORetentionDays               int    `env:"MO_RETENTION_DAYS" envDefault:"90"`
+	ProviderActiveKeyID           string `env:"PROVIDER_ACTIVE_KEY_ID"`
+	ProviderEncryptionKeys        string `env:"PROVIDER_ENCRYPTION_KEYS"`
+	MOActiveKeyID                 string `env:"MO_ACTIVE_KEY_ID"`
+	MOEncryptionKeys              string `env:"MO_ENCRYPTION_KEYS"`
+	MOFingerprintKey              string `env:"MO_FINGERPRINT_KEY"`
 
 	MOContentKey               string   `env:"MO_CONTENT_KEY"`
 	MOIngressEnabled           bool     `env:"MO_INGRESS_ENABLED" envDefault:"false"`
@@ -119,6 +120,9 @@ func Load() (Config, error) {
 	if cfg.MORetentionDays < 0 || cfg.MORetentionDays > MaximumMORetentionDays || (cfg.OperationsEnabled && len(cfg.OperationsToken) < 32) {
 		return cfg, apperrors.Wrap(apperrors.CodeConfigurationInvalid, nil)
 	}
+	if cfg.HealthDependenciesTokenSHA256 != "" && !validSHA256Hex(cfg.HealthDependenciesTokenSHA256) {
+		return cfg, apperrors.Wrap(apperrors.CodeConfigurationInvalid, nil)
+	}
 	scheduledVault, err := cfg.ScheduledVault()
 	if err != nil {
 		return cfg, err
@@ -136,6 +140,20 @@ func Load() (Config, error) {
 		return cfg, err
 	}
 	return cfg, nil
+}
+
+func validSHA256Hex(value string) bool {
+	if len(value) != 64 {
+		return false
+	}
+	for _, char := range value {
+		if char < '0' || char > '9' {
+			if char < 'a' || char > 'f' {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func parseEncryptionKeys(raw string) (map[string]string, error) {
