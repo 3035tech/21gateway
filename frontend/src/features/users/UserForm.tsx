@@ -4,10 +4,11 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { userFormSchema, saveUser } from './api'
 import type { SystemUser, UserBody } from './api'
 import { RolePicker } from './RolePicker'
+import { CompanyAccessPicker } from './CompanyAccessPicker'
 import { Dialog } from '../../components/admin/Dialog'
 import { FormFooter, FieldError } from '../../components/admin/FormFooter'
 import { useTranslation } from 'react-i18next'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQueries, useQuery } from '@tanstack/react-query'
 import { getCompany, listCompanies } from '../companies/api'
 export function UserForm({
@@ -22,6 +23,15 @@ export function UserForm({
   const { t } = useTranslation()
   const client = useQueryClient()
   const [companySearch, setCompanySearch] = useState('')
+  const [debouncedCompanySearch, setDebouncedCompanySearch] = useState('')
+  const [companyPage, setCompanyPage] = useState(1)
+  useEffect(() => {
+    const timer = window.setTimeout(
+      () => setDebouncedCompanySearch(companySearch),
+      250,
+    )
+    return () => window.clearTimeout(timer)
+  }, [companySearch])
   const form = useForm<UserBody>({
     resolver: zodResolver(userFormSchema),
     defaultValues: {
@@ -38,14 +48,19 @@ export function UserForm({
   const companyIds =
     useWatch({ control: form.control, name: 'companyIds' }) ?? []
   const companyOptions = useQuery({
-    queryKey: ['admin', 'user-company-options', companySearch],
+    queryKey: [
+      'admin',
+      'user-company-options',
+      debouncedCompanySearch,
+      companyPage,
+    ],
     enabled: selectedRole !== 'admin',
     queryFn: ({ signal }) =>
       listCompanies(
         {
-          page: 1,
-          pageSize: 100,
-          search: companySearch,
+          page: companyPage,
+          pageSize: 20,
+          search: debouncedCompanySearch,
           sort: 'name',
           direction: 'asc',
           active: true,
@@ -125,66 +140,43 @@ export function UserForm({
           </p>
           {selectedRole !== 'admin' ? (
             <div className="space-y-3">
-              <label className="field">
-                {t('users.companyAccess')}
-                <input
-                  className="form-control"
-                  type="search"
-                  value={companySearch}
-                  onChange={(event) => setCompanySearch(event.target.value)}
-                  placeholder={t('companies.searchPlaceholder')}
-                />
-              </label>
-              <div className="max-h-40 overflow-y-auto rounded-lg border border-slate-200">
-                {companyOptions.data?.items
-                  .filter((company) => !companyIds.includes(company.id))
-                  .map((company) => (
-                    <button
-                      key={company.id}
-                      className="flex min-h-11 w-full items-center px-3 text-left text-sm hover:bg-purple-50"
-                      type="button"
-                      onClick={() =>
-                        form.setValue(
-                          'companyIds',
-                          [...companyIds, company.id],
-                          { shouldValidate: true, shouldDirty: true },
-                        )
-                      }
-                    >
-                      {company.name}
-                    </button>
-                  ))}
-                {companyOptions.isPending ? (
-                  <p className="p-3 text-sm text-slate-500">
-                    {t('common.loading')}
-                  </p>
-                ) : null}
-              </div>
-              <ul className="flex flex-wrap gap-2">
-                {companyIds.map((id, index) => (
-                  <li
-                    key={id}
-                    className="flex items-center gap-2 rounded-lg bg-purple-50 px-3 py-1 text-sm text-brand-purple"
-                  >
-                    {selectedCompanies[index]?.data?.name ??
-                      t('common.companyNumber', { id })}
-                    <button
-                      type="button"
-                      className="table-action-danger min-h-8 px-1"
-                      aria-label={t('users.removeCompany', { id })}
-                      onClick={() =>
-                        form.setValue(
-                          'companyIds',
-                          companyIds.filter((value) => value !== id),
-                          { shouldValidate: true, shouldDirty: true },
-                        )
-                      }
-                    >
-                      ×
-                    </button>
-                  </li>
-                ))}
-              </ul>
+              <CompanyAccessPicker
+                options={(companyOptions.data?.items ?? []).map((company) => ({
+                  id: String(company.id),
+                  name: company.name,
+                }))}
+                selected={companyIds.map((id, index) => ({
+                  id: String(id),
+                  name:
+                    selectedCompanies[index]?.data?.name ??
+                    t('common.companyNumber', { id }),
+                }))}
+                search={companySearch}
+                onSearchChange={(value) => {
+                  setCompanySearch(value)
+                  setCompanyPage(1)
+                }}
+                onToggle={(value) => {
+                  const id = Number(value)
+                  form.setValue(
+                    'companyIds',
+                    companyIds.includes(id)
+                      ? companyIds.filter((current) => current !== id)
+                      : [...companyIds, id],
+                    { shouldValidate: true, shouldDirty: true },
+                  )
+                }}
+                page={companyPage}
+                pageSize={20}
+                total={companyOptions.data?.total ?? 0}
+                onPageChange={setCompanyPage}
+                loading={
+                  companySearch !== debouncedCompanySearch ||
+                  companyOptions.isPending ||
+                  companyOptions.isFetching
+                }
+                error={companyOptions.isError}
+              />
               <FieldError message={form.formState.errors.companyIds?.message} />
             </div>
           ) : null}

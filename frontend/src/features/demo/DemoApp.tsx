@@ -33,6 +33,7 @@ import { LanguageSwitcher } from '../../components/admin/LanguageSwitcher'
 import { Dialog } from '../../components/admin/Dialog'
 import { AppSelect } from '../../components/admin/AppSelect'
 import { RolePicker } from '../users/RolePicker'
+import { CompanyAccessPicker } from '../users/CompanyAccessPicker'
 import type { DemoRow, Section } from './data'
 
 const demoSessionKey = '21gateway-demo-session-until'
@@ -347,6 +348,7 @@ function DemoProfile() {
 function Listing({
   section,
   rows,
+  companies,
   companyCredentials,
   companyUsers,
   onSave,
@@ -354,6 +356,7 @@ function Listing({
 }: {
   section: Section
   rows: DemoRow[]
+  companies: DemoRow[]
   companyCredentials: DemoRow[]
   companyUsers: DemoRow[]
   onSave: (row: DemoRow) => void
@@ -370,6 +373,8 @@ function Listing({
   )
   const [status, setStatus] = useState('')
   const [editing, setEditing] = useState<DemoRow | null>(null)
+  const [companySearch, setCompanySearch] = useState('')
+  const [companyPage, setCompanyPage] = useState(1)
   const [demoPasswordMode, setDemoPasswordMode] = useState<
     'generated' | 'manual' | 'legacy'
   >('generated')
@@ -386,6 +391,14 @@ function Listing({
   )
   const [archiving, setArchiving] = useState<DemoRow | null>(null)
   const [notice, setNotice] = useState('')
+  const matchingCompanies = companies
+    .filter((company) => company.status === 'active')
+    .filter((company) =>
+      `${company.name} ${company.detail}`
+        .toLocaleLowerCase(i18n.language)
+        .includes(companySearch.trim().toLocaleLowerCase(i18n.language)),
+    )
+    .sort((a, b) => a.name.localeCompare(b.name, i18n.language))
   const filtered = rows.filter(
     (row) =>
       (!status || row.status === status) &&
@@ -1010,47 +1023,44 @@ function Listing({
                     : t('users.companyAccessHint')}
                 </p>
                 {editing.company !== 'admin' ? (
-                  <fieldset className="space-y-2">
-                    <legend className="text-sm font-semibold">
-                      {t('users.companyAccess')}
-                    </legend>
-                    <div className="flex flex-wrap gap-2">
-                      {initialRows.empresas.slice(0, 6).map((company) => (
-                        <label
-                          key={company.id}
-                          className="flex min-h-11 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm"
-                        >
-                          <input
-                            type="checkbox"
-                            className="accent-brand-purple"
-                            checked={
-                              editing.companyAccess?.includes(company.name) ??
-                              false
-                            }
-                            onChange={(event) =>
-                              setEditing({
-                                ...editing,
-                                companyAccess: event.target.checked
-                                  ? [
-                                      ...(editing.companyAccess ?? []),
-                                      company.name,
-                                    ]
-                                  : (editing.companyAccess ?? []).filter(
-                                      (name) => name !== company.name,
-                                    ),
-                              })
-                            }
-                          />
-                          {company.name}
-                        </label>
-                      ))}
-                    </div>
+                  <div className="space-y-2">
+                    <CompanyAccessPicker
+                      options={matchingCompanies
+                        .slice((companyPage - 1) * 10, companyPage * 10)
+                        .map((company) => ({
+                          id: company.name,
+                          name: company.name,
+                        }))}
+                      selected={(editing.companyAccess ?? []).map((name) => ({
+                        id: name,
+                        name,
+                      }))}
+                      search={companySearch}
+                      onSearchChange={(value) => {
+                        setCompanySearch(value)
+                        setCompanyPage(1)
+                      }}
+                      onToggle={(name) =>
+                        setEditing({
+                          ...editing,
+                          companyAccess: editing.companyAccess?.includes(name)
+                            ? editing.companyAccess.filter(
+                                (companyName) => companyName !== name,
+                              )
+                            : [...(editing.companyAccess ?? []), name],
+                        })
+                      }
+                      page={companyPage}
+                      pageSize={10}
+                      total={matchingCompanies.length}
+                      onPageChange={setCompanyPage}
+                    />
                     {!editing.companyAccess?.length ? (
                       <p className="text-xs text-rose-700">
                         {t('validation.companyAccess')}
                       </p>
                     ) : null}
-                  </fieldset>
+                  </div>
                 ) : null}
               </>
             ) : null}
@@ -1248,6 +1258,7 @@ export default function DemoApp() {
                 key={section}
                 section={section}
                 rows={rows[section]}
+                companies={rows.empresas}
                 companyCredentials={rows.credenciais}
                 companyUsers={rows.usuarios}
                 onSave={(row) =>

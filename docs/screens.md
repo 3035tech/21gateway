@@ -39,6 +39,8 @@ Botões do frontend usam variantes próprias da marca para ação principal, sec
 
 Os selects nativos foram substituídos por `AppSelect` compartilhado no painel real e na prévia: filtros, paginação, idioma e formulários usam menu, seta, seleção e foco com visual da marca. O menu usa o contêiner do diálogo quando aberto dentro dele, para não ficar oculto atrás da camada modal. Checkboxes e rádios visíveis também têm marcação e foco próprios, preservando seus controles semânticos e interação por teclado.
 
+O vínculo de empresas no formulário de usuário usa um seletor compartilhado no painel e na prévia: busca por nome ou referência, resultados em área rolável com páginas de 20 no painel (10 na prévia) e empresas já escolhidas em chips removíveis. A consulta real é paginada no servidor; a busca não fica limitada às primeiras 100 empresas. O perfil administrador mantém acesso global sem vínculo obrigatório.
+
 Login tem marca visível no celular, opção de mostrar/ocultar senha e erros associados aos campos. Verificação de sessão e falha de conexão têm apresentação própria, com tentativa manual. Formulários reais não permitem fechar o diálogo enquanto a gravação está em andamento; exibição da senha de API espera o fechamento do formulário/confirmação, evitando diálogos sobrepostos.
 
 Revisão no Chrome: prévia desktop e tela pequena, menu móvel e ausência de overflow da página verificados. Backend indisponível impede homologação visual de dados reais nesta sessão; testes frontend continuam verificando componentes reais. Nenhuma regra SMS, permissão ou contrato de backend alterado pelo polish.

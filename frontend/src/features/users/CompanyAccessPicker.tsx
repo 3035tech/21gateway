@@ -1,0 +1,139 @@
+import { Check, Search, X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+
+type CompanyOption = { id: string; name: string }
+
+export function CompanyAccessPicker({
+  options,
+  selected,
+  search,
+  onSearchChange,
+  onToggle,
+  page,
+  pageSize,
+  total,
+  onPageChange,
+  loading = false,
+  error = false,
+}: {
+  options: CompanyOption[]
+  selected: CompanyOption[]
+  search: string
+  onSearchChange: (value: string) => void
+  onToggle: (id: string) => void
+  page: number
+  pageSize: number
+  total: number
+  onPageChange: (page: number) => void
+  loading?: boolean
+  error?: boolean
+}) {
+  const { t } = useTranslation()
+  const selectedIds = new Set(selected.map((company) => company.id))
+  const pageCount = Math.max(1, Math.ceil(total / pageSize))
+
+  return (
+    <fieldset className="space-y-3">
+      <legend className="text-sm font-semibold">
+        {t('users.companyAccess')}
+      </legend>
+      <p className="text-xs text-slate-500">
+        {t('users.selectedCompanies', { count: selected.length })}
+      </p>
+      {selected.length ? (
+        <ul
+          className="flex flex-wrap gap-2"
+          aria-label={t('users.selectedCompanyList')}
+        >
+          {selected.map((company) => (
+            <li key={company.id}>
+              <button
+                type="button"
+                className="inline-flex min-h-9 max-w-full items-center gap-2 rounded-lg border border-purple-200 bg-purple-50 px-3 py-1 text-sm font-semibold text-brand-purple hover:bg-purple-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-purple"
+                aria-label={t('users.removeCompanyNamed', {
+                  name: company.name,
+                })}
+                onClick={() => onToggle(company.id)}
+              >
+                <span className="truncate">{company.name}</span>
+                <X size={15} aria-hidden="true" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <label className="field">
+        {t('users.findCompany')}
+        <span className="relative block">
+          <Search
+            size={18}
+            aria-hidden="true"
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+          />
+          <input
+            className="form-control w-full pl-10"
+            type="search"
+            value={search}
+            onChange={(event) => onSearchChange(event.target.value)}
+            placeholder={t('users.companySearchPlaceholder')}
+          />
+        </span>
+      </label>
+      <div className="overflow-hidden rounded-xl border border-slate-200">
+        <div className="max-h-52 overflow-y-auto">
+          {loading || error || !options.length ? (
+            <p className="px-4 py-4 text-sm text-slate-500" role="status">
+              {error
+                ? t('users.companyLoadFailed')
+                : loading
+                  ? t('common.loading')
+                  : t('users.noCompanyMatches')}
+            </p>
+          ) : (
+            options.map((company) => {
+              const isSelected = selectedIds.has(company.id)
+              return (
+                <button
+                  key={company.id}
+                  type="button"
+                  aria-pressed={isSelected}
+                  className="flex min-h-11 w-full items-center justify-between gap-3 border-b border-slate-100 px-4 py-2 text-left text-sm last:border-b-0 hover:bg-purple-50 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-purple"
+                  onClick={() => onToggle(company.id)}
+                >
+                  <span className="truncate">{company.name}</span>
+                  <span
+                    className={`flex size-6 shrink-0 items-center justify-center rounded-md border ${isSelected ? 'border-brand-purple bg-brand-purple text-white' : 'border-slate-300 text-transparent'}`}
+                    aria-hidden="true"
+                  >
+                    <Check size={15} />
+                  </span>
+                </button>
+              )
+            })
+          )}
+        </div>
+        {pageCount > 1 ? (
+          <div className="flex items-center justify-between gap-2 border-t border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+            <button
+              type="button"
+              className="button-ghost min-h-9 px-2"
+              disabled={page <= 1 || loading}
+              onClick={() => onPageChange(page - 1)}
+            >
+              {t('common.previous')}
+            </button>
+            <span>{t('users.companyPage', { page, pages: pageCount })}</span>
+            <button
+              type="button"
+              className="button-ghost min-h-9 px-2"
+              disabled={page >= pageCount || loading}
+              onClick={() => onPageChange(page + 1)}
+            >
+              {t('common.next')}
+            </button>
+          </div>
+        ) : null}
+      </div>
+    </fieldset>
+  )
+}

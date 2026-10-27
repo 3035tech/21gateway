@@ -1,5 +1,9 @@
 # Estado da implementação
 
+## Seleção de empresas por usuário — 27/10/2026
+
+O formulário de usuário no painel e na prévia agora apresenta busca, lista de altura limitada, paginação e chips para os vínculos escolhidos. O painel consulta empresas ativas no servidor em páginas de 20, incluindo resultados além das primeiras 100; a prévia usa as empresas simuladas, inclusive cadastros feitos durante a sessão. Administradores continuam com acesso global. Mudança restrita ao frontend, sem novo contrato ou migração.
+
 ## Token Zoug por empresa — 27/10/2026
 
 Uma empresa agora pode ter várias credenciais Basic Auth da API 21 e um token Zoug compartilhado. O token fornecido pela Zoug é cadastrado/substituído/removido na ficha da empresa; o gateway não o gera. Migração 020 cria os campos cifrados da empresa e habilita fallback temporário nas empresas já existentes para preservar tokens individuais, inclusive durante a troca de binários. O envio imediato, teste e scheduler priorizam o token da empresa; remover o token desabilita o fallback e bloqueia novos envios. Os valores antigos permanecem cifrados para rollback, sem retorno em DTOs. Rotação de chave inclui tokens da empresa. Antes do deployment, aplicar migração 020 e planejar a configuração por empresa; não voltar para imagem antiga após usar tokens centralizados sem restaurar os tokens individuais de forma controlada.
