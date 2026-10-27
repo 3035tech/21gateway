@@ -523,6 +523,10 @@
     "archived": "Record archived in this preview.",
     "simulateInvitation": "Simulate invitation",
     "loginHint": "Preview with sample data. No real credential is required.",
+    "signInAs": "Sign in as",
+    "loginCompanyScope": "Linked companies: {{companies}}",
+    "scopedOverview": "{{name}}'s view, limited to linked companies.",
+    "scopedCallbacks": "{{count}} callbacks for linked companies.",
     "enterDemo": "Enter demo",
     "sections": {
       "companies": "Organize companies using the SMS API.",

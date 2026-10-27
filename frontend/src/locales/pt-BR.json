@@ -523,6 +523,10 @@
     "archived": "Cadastro arquivado nesta prévia.",
     "simulateInvitation": "Simular convite",
     "loginHint": "Prévia com dados fictícios. Nenhuma credencial real é necessária.",
+    "signInAs": "Entrar como",
+    "loginCompanyScope": "Empresas vinculadas: {{companies}}",
+    "scopedOverview": "Visão de {{name}}, limitada às empresas vinculadas.",
+    "scopedCallbacks": "{{count}} callbacks das empresas vinculadas.",
     "enterDemo": "Entrar na demonstração",
     "sections": {
       "companies": "Organize as empresas que utilizam a API de SMS.",

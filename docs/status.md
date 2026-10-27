@@ -1,5 +1,9 @@
 # Estado da implementação
 
+## Prévia de usuário vinculado — 27/10/2026
+
+O login fictício da prévia permite escolher administradora, operador vinculado a duas empresas ou usuária de consulta vinculada apenas a Nexo Educação. Para perfis vinculados, o dashboard usa contagens dos registros simulados filtrados, menu e rotas escondem usuários/auditoria, listagens e detalhes mostram somente empresas autorizadas e consulta não pode editar. A prévia não implementa autenticação; o painel real continua usando sessão e escopo do backend.
+
 ## Seleção de empresas por usuário — 27/10/2026
 
 O formulário de usuário no painel e na prévia agora apresenta busca, lista de altura limitada, paginação e chips para os vínculos escolhidos. O painel consulta empresas ativas no servidor em páginas de 20, incluindo resultados além das primeiras 100; a prévia usa as empresas simuladas, inclusive cadastros feitos durante a sessão. Administradores continuam com acesso global. Mudança restrita ao frontend, sem novo contrato ou migração.

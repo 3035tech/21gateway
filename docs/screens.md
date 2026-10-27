@@ -41,6 +41,8 @@ Os selects nativos foram substituídos por `AppSelect` compartilhado no painel r
 
 O vínculo de empresas no formulário de usuário usa um seletor compartilhado no painel e na prévia: busca por nome ou referência, resultados em área rolável com páginas de 20 no painel (10 na prévia) e empresas já escolhidas em chips removíveis. A consulta real é paginada no servidor; a busca não fica limitada às primeiras 100 empresas. O perfil administrador mantém acesso global sem vínculo obrigatório.
 
+A prévia `/demo` permite selecionar no login Marina (administradora global), Lucas (operador vinculado a Horizonte Saúde e Vértice Logística) ou Beatriz (consulta vinculada a Nexo Educação). A navegação, as listas, o resumo e os detalhes simulados usam o vínculo escolhido; consulta não exibe ações de edição, e usuários/auditoria não aparecem para perfis não administradores. Esse login continua fictício, sem autenticação real ou dados do backend.
+
 Login tem marca visível no celular, opção de mostrar/ocultar senha e erros associados aos campos. Verificação de sessão e falha de conexão têm apresentação própria, com tentativa manual. Formulários reais não permitem fechar o diálogo enquanto a gravação está em andamento; exibição da senha de API espera o fechamento do formulário/confirmação, evitando diálogos sobrepostos.
 
 Revisão no Chrome: prévia desktop e tela pequena, menu móvel e ausência de overflow da página verificados. Backend indisponível impede homologação visual de dados reais nesta sessão; testes frontend continuam verificando componentes reais. Nenhuma regra SMS, permissão ou contrato de backend alterado pelo polish.

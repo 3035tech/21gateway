@@ -37,7 +37,18 @@ import { CompanyAccessPicker } from '../users/CompanyAccessPicker'
 import type { DemoRow, Section } from './data'
 
 const demoSessionKey = '21gateway-demo-session-until'
+const demoUserKey = '21gateway-demo-user-id'
 const demoRememberDurationMs = 14 * 24 * 60 * 60 * 1000
+const demoLoginUsers = ['usuarios-1', 'usuarios-2', 'usuarios-3']
+
+function visibleDemoRows(section: Section, rows: DemoRow[], user: DemoRow) {
+  if (user.company === 'admin') return rows
+  if (section === 'usuarios' || section === 'auditoria') return []
+  const allowed = new Set(user.companyAccess ?? [])
+  return rows.filter((row) =>
+    allowed.has(section === 'empresas' ? row.name : row.company),
+  )
+}
 
 function Badge({ value }: { value: string }) {
   const { t } = useTranslation()
@@ -272,7 +283,109 @@ function Overview() {
     </>
   )
 }
-function DemoProfile() {
+function ScopedOverview({
+  rows,
+  user,
+}: {
+  rows: Record<Section, DemoRow[]>
+  user: DemoRow
+}) {
+  const { t } = useTranslation()
+  const companies = visibleDemoRows('empresas', rows.empresas, user)
+  const credentials = visibleDemoRows('credenciais', rows.credenciais, user)
+  const messages = visibleDemoRows('envios', rows.envios, user)
+  const schedules = visibleDemoRows('agendamentos', rows.agendamentos, user)
+  const callbacks = visibleDemoRows('callbacks', rows.callbacks, user)
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">
+          {t('nav.overview')}
+        </h1>
+        <p className="mt-2 text-sm text-slate-500">
+          {t('demo.scopedOverview', { name: user.name })}
+        </p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {companies.map((company) => (
+          <span
+            key={company.id}
+            className="rounded-full bg-purple-50 px-3 py-1.5 text-sm font-semibold text-brand-purple"
+          >
+            {company.name}
+          </span>
+        ))}
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {(
+          [
+            ['nav.companies', companies.length, '/empresas', Building2],
+            ['nav.credentials', credentials.length, '/credenciais', KeyRound],
+            ['nav.messages', messages.length, '/envios', Send],
+            ['nav.schedules', schedules.length, '/agendamentos', CalendarClock],
+          ] as const
+        ).map(([label, count, path, Icon]) => (
+          <Link
+            key={path}
+            to={path}
+            className="group rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-purple-300 hover:bg-purple-50"
+          >
+            <Icon size={20} className="text-brand-purple" aria-hidden="true" />
+            <strong className="mt-5 block text-3xl tabular-nums">
+              {count}
+            </strong>
+            <span className="mt-1 block text-sm font-semibold text-slate-600 group-hover:text-brand-purple">
+              {t(label)}
+            </span>
+          </Link>
+        ))}
+      </div>
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="flex items-center gap-2 text-lg font-bold">
+            <Webhook size={20} className="text-brand-purple" />
+            {t('overview.clientNotifications')}
+          </h2>
+          <Link
+            to="/callbacks"
+            className="text-sm font-semibold text-brand-purple hover:underline"
+          >
+            {t('demo.viewAll')}
+          </Link>
+        </div>
+        <p className="mt-3 text-sm text-slate-600">
+          {t('demo.scopedCallbacks', { count: callbacks.length })}
+        </p>
+      </section>
+      <section className="rounded-2xl border border-slate-200 bg-white">
+        <div className="flex items-center justify-between gap-3 border-b border-slate-100 p-5">
+          <h2 className="font-bold">{t('demo.recentMessages')}</h2>
+          <Link
+            to="/envios"
+            className="text-sm font-semibold text-brand-purple hover:underline"
+          >
+            {t('demo.viewAll')}
+          </Link>
+        </div>
+        {messages.slice(0, 5).map((row) => (
+          <div
+            key={row.id}
+            className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4 last:border-0"
+          >
+            <div>
+              <p className="text-sm font-semibold">{row.company}</p>
+              <p className="mt-1 text-xs text-slate-500">
+                {row.name} · {row.date}
+              </p>
+            </div>
+            <Badge value={row.status} />
+          </div>
+        ))}
+      </section>
+    </div>
+  )
+}
+function DemoProfile({ user }: { user: DemoRow }) {
   const { t } = useTranslation()
   return (
     <div className="max-w-4xl space-y-6">
@@ -291,15 +404,15 @@ function DemoProfile() {
         <dl className="mt-5 grid gap-5 text-sm sm:grid-cols-2">
           <div>
             <dt className="text-slate-500">{t('common.name')}</dt>
-            <dd className="font-semibold">Marina Costa</dd>
+            <dd className="font-semibold">{user.name}</dd>
           </div>
           <div>
             <dt className="text-slate-500">{t('common.email')}</dt>
-            <dd className="font-semibold">marina@21mobile.com.br</dd>
+            <dd className="font-semibold">{user.detail}</dd>
           </div>
           <div>
             <dt className="text-slate-500">{t('roles.label')}</dt>
-            <dd className="font-semibold">{t('roles.admin')}</dd>
+            <dd className="font-semibold">{t(demoRoleKey(user.company))}</dd>
           </div>
         </dl>
       </section>
@@ -351,6 +464,8 @@ function Listing({
   companies,
   companyCredentials,
   companyUsers,
+  canManage,
+  admin,
   onSave,
   onArchive,
 }: {
@@ -359,6 +474,8 @@ function Listing({
   companies: DemoRow[]
   companyCredentials: DemoRow[]
   companyUsers: DemoRow[]
+  canManage: boolean
+  admin: boolean
   onSave: (row: DemoRow) => void
   onArchive: (id: string) => void
 }) {
@@ -474,7 +591,7 @@ function Listing({
         >
           <Eye size={15} aria-hidden="true" /> {t('common.view')}
         </button>
-        {config.entity ? (
+        {canManage && config.entity ? (
           <>
             <button
               className="table-action gap-2"
@@ -494,7 +611,9 @@ function Listing({
             </button>
           </>
         ) : null}
-        {section === 'callbacks' && row.original.status === 'failed' ? (
+        {canManage &&
+        section === 'callbacks' &&
+        row.original.status === 'failed' ? (
           <button
             className="table-action"
             onClick={() => {
@@ -517,7 +636,7 @@ function Listing({
           </h1>
           <p className="mt-2 text-sm text-slate-500">{t(config.description)}</p>
         </div>
-        {config.entity ? (
+        {canManage && config.entity && (admin || section !== 'empresas') ? (
           <button
             className="button-primary"
             onClick={() => {
@@ -654,9 +773,11 @@ function Listing({
               <h3 className="font-bold text-brand-purple">
                 {t('companyDetail.credentialsTitle')}
               </h3>
-              <p className="mt-1 text-xs text-slate-600">
-                {t('demo.adminUsersGlobal')}
-              </p>
+              {admin ? (
+                <p className="mt-1 text-xs text-slate-600">
+                  {t('demo.adminUsersGlobal')}
+                </p>
+              ) : null}
               <ul className="mt-3 space-y-2 text-sm">
                 {companyCredentials
                   .filter(
@@ -680,29 +801,33 @@ function Listing({
                     </li>
                   ))}
               </ul>
-              <h3 className="mt-5 font-bold text-brand-purple">
-                {t('users.companyUsersTitle')}
-              </h3>
-              <ul className="mt-3 space-y-2 text-sm">
-                {companyUsers
-                  .filter(
-                    (user) =>
-                      user.status === 'active' &&
-                      user.companyAccess?.includes(viewing.name),
-                  )
-                  .map((user) => (
-                    <li key={user.id} className="rounded-lg bg-white">
-                      <Link
-                        to={`/usuarios/${user.id}?fromCompany=${viewing.id}`}
-                        className="flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 text-brand-purple hover:bg-white/70 hover:underline"
-                      >
-                        <CircleUserRound size={16} aria-hidden="true" />{' '}
-                        {user.name} · {t(demoRoleKey(user.company))}{' '}
-                        <ArrowRight size={15} aria-hidden="true" />
-                      </Link>
-                    </li>
-                  ))}
-              </ul>
+              {admin ? (
+                <>
+                  <h3 className="mt-5 font-bold text-brand-purple">
+                    {t('users.companyUsersTitle')}
+                  </h3>
+                  <ul className="mt-3 space-y-2 text-sm">
+                    {companyUsers
+                      .filter(
+                        (user) =>
+                          user.status === 'active' &&
+                          user.companyAccess?.includes(viewing.name),
+                      )
+                      .map((user) => (
+                        <li key={user.id} className="rounded-lg bg-white">
+                          <Link
+                            to={`/usuarios/${user.id}?fromCompany=${viewing.id}`}
+                            className="flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 text-brand-purple hover:bg-white/70 hover:underline"
+                          >
+                            <CircleUserRound size={16} aria-hidden="true" />{' '}
+                            {user.name} · {t(demoRoleKey(user.company))}{' '}
+                            <ArrowRight size={15} aria-hidden="true" />
+                          </Link>
+                        </li>
+                      ))}
+                  </ul>
+                </>
+              ) : null}
             </div>
           ) : null}
           <div className="mt-6 flex justify-end">
@@ -1143,11 +1268,18 @@ function Listing({
 export default function DemoApp() {
   const { t } = useTranslation()
   const [rows, setRows] = useState(initialRows)
+  const [demoUserId, setDemoUserId] = useState(
+    () => localStorage.getItem(demoUserKey) ?? demoLoginUsers[0],
+  )
   const [loggedOut, setLoggedOut] = useState(
     () => !(Number(localStorage.getItem(demoSessionKey)) > Date.now()),
   )
   const [rememberDemo, setRememberDemo] = useState(false)
   const [visible, setVisible] = useState(false)
+  const demoUser =
+    rows.usuarios.find((user) => user.id === demoUserId) ?? rows.usuarios[0]
+  const isAdmin = demoUser.company === 'admin'
+  const canManage = isAdmin || demoUser.company === 'operator'
   if (loggedOut)
     return (
       <div className="grid min-h-screen lg:grid-cols-2">
@@ -1187,16 +1319,40 @@ export default function DemoApp() {
                     String(Date.now() + demoRememberDurationMs),
                   )
                 else localStorage.removeItem(demoSessionKey)
+                localStorage.setItem(demoUserKey, demoUserId)
                 setLoggedOut(false)
               }}
             >
+              <label className="field">
+                {t('demo.signInAs')}
+                <AppSelect
+                  value={demoUserId}
+                  label={t('demo.signInAs')}
+                  onValueChange={setDemoUserId}
+                  options={demoLoginUsers.map((id) => {
+                    const user = rows.usuarios.find((row) => row.id === id)!
+                    return {
+                      value: id,
+                      label: `${user.name} · ${t(demoRoleKey(user.company))}`,
+                    }
+                  })}
+                />
+                <span className="text-xs font-normal text-slate-500">
+                  {isAdmin
+                    ? t('roles.globalAccess')
+                    : t('demo.loginCompanyScope', {
+                        companies: demoUser.companyAccess?.join(', '),
+                      })}
+                </span>
+              </label>
               <label className="block text-sm font-semibold">
                 {t('common.email')}
                 <input
                   type="email"
                   autoComplete="username"
                   className="form-control mt-2 w-full"
-                  defaultValue="marina@21mobile.example"
+                  value={demoUser.detail}
+                  readOnly
                 />
               </label>
               <label className="block text-sm font-semibold">
@@ -1236,9 +1392,9 @@ export default function DemoApp() {
     )
   return (
     <PanelShell
-      name="Marina Costa"
-      role={t('roles.admin')}
-      admin
+      name={demoUser.name}
+      role={t(demoRoleKey(demoUser.company))}
+      admin={isAdmin}
       demo
       onLogout={() => {
         localStorage.removeItem(demoSessionKey)
@@ -1247,42 +1403,69 @@ export default function DemoApp() {
     >
       {' '}
       <Routes>
-        <Route path="/" element={<Overview />} />
-        <Route path="/perfil" element={<DemoProfile />} />
-        {(Object.keys(sections) as Section[]).map((section) => (
-          <Route
-            key={section}
-            path={`/${section}/:recordId?`}
-            element={
-              <Listing
-                key={section}
-                section={section}
-                rows={rows[section]}
-                companies={rows.empresas}
-                companyCredentials={rows.credenciais}
-                companyUsers={rows.usuarios}
-                onSave={(row) =>
-                  setRows((current) => ({
-                    ...current,
-                    [section]: current[section].some(
-                      (value) => value.id === row.id,
-                    )
-                      ? current[section].map((value) =>
-                          value.id === row.id ? row : value,
-                        )
-                      : [row, ...current[section]],
-                  }))
-                }
-                onArchive={(id) =>
-                  setRows((current) => ({
-                    ...current,
-                    [section]: current[section].filter((row) => row.id !== id),
-                  }))
-                }
-              />
-            }
-          />
-        ))}
+        <Route
+          path="/"
+          element={
+            isAdmin ? (
+              <Overview />
+            ) : (
+              <ScopedOverview rows={rows} user={demoUser} />
+            )
+          }
+        />
+        <Route path="/perfil" element={<DemoProfile user={demoUser} />} />
+        {(Object.keys(sections) as Section[])
+          .filter(
+            (section) =>
+              isAdmin || (section !== 'usuarios' && section !== 'auditoria'),
+          )
+          .map((section) => (
+            <Route
+              key={section}
+              path={`/${section}/:recordId?`}
+              element={
+                <Listing
+                  key={section}
+                  section={section}
+                  rows={visibleDemoRows(section, rows[section], demoUser)}
+                  companies={visibleDemoRows(
+                    'empresas',
+                    rows.empresas,
+                    demoUser,
+                  )}
+                  companyCredentials={visibleDemoRows(
+                    'credenciais',
+                    rows.credenciais,
+                    demoUser,
+                  )}
+                  companyUsers={isAdmin ? rows.usuarios : []}
+                  canManage={canManage}
+                  admin={isAdmin}
+                  onSave={(row) =>
+                    setRows((current) => ({
+                      ...current,
+                      [section]: current[section].some(
+                        (value) => value.id === row.id,
+                      )
+                        ? current[section].map((value) =>
+                            value.id === row.id ? row : value,
+                          )
+                        : [row, ...current[section]],
+                    }))
+                  }
+                  onArchive={(id) =>
+                    setRows((current) => ({
+                      ...current,
+                      [section]: current[section].filter(
+                        (row) => row.id !== id,
+                      ),
+                    }))
+                  }
+                />
+              }
+            />
+          ))}
+        <Route path="*" element={<Navigate to="/" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </PanelShell>
