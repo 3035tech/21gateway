@@ -19,6 +19,20 @@ type MessageView struct {
 }
 type MessagesOutput struct{ Body Page[MessageView] }
 
+type MessageContentState string
+
+const (
+	MessageContentAvailable   MessageContentState = "available"
+	MessageContentExpired     MessageContentState = "expired"
+	MessageContentUnavailable MessageContentState = "unavailable"
+)
+
+type MessageContentView struct {
+	State       MessageContentState `json:"state" enum:"available,expired,unavailable"`
+	MessageText string              `json:"messageText,omitempty"`
+}
+type MessageContentOutput struct{ Body MessageContentView }
+
 type TestSendInput struct {
 	ID   uint64 `path:"id" minimum:"1"`
 	Body struct {

@@ -135,6 +135,7 @@ func (r *Callbacks) Callbacks(ctx context.Context, q dtos.CallbackListInput) (dt
 		return result, err
 	}
 	db := r.db.WithContext(ctx).Table("callback_jobs").Joins("JOIN sms_attempts ON sms_attempts.id=callback_jobs.attempt_id")
+	db = scopedCompanies(db, ctx, "sms_attempts.company_id")
 	if q.Search != "" {
 		db = db.Where("callback_jobs.url ILIKE ?", searchTerm(q.Search))
 	}
@@ -166,6 +167,12 @@ func (r *Callbacks) RetryCallback(ctx context.Context, actor, id uint64) error {
 		}
 		var attempt models.SMSAttempt
 		if err := repo.db.First(&attempt, job.AttemptID).Error; err != nil {
+			return err
+		}
+		if attempt.CompanyID == nil {
+			return requireCompany(ctx, 0)
+		}
+		if err := requireCompany(ctx, *attempt.CompanyID); err != nil {
 			return err
 		}
 		if job.State != models.CallbackFailed || attempt.DeliveryStatus != string(job.Status) {

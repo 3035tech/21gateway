@@ -28,6 +28,7 @@ func (r *ScheduledSMS) List(ctx context.Context, q dtos.ScheduledListQuery, from
 		Joins("JOIN sms_attempts AS a ON a.id=s.attempt_id").
 		Joins("JOIN api_credentials AS cred ON cred.id=s.credential_id").
 		Joins("LEFT JOIN companies AS c ON c.id=a.company_id")
+	db = scopedCompanies(db, ctx, "a.company_id")
 	if q.CompanyID != 0 {
 		db = db.Where("a.company_id=?", q.CompanyID)
 	}

@@ -26,12 +26,42 @@ func (r *Users) LockUsers(ctx context.Context) error {
 func (r *Users) UserByEmail(ctx context.Context, email string) (models.SystemUser, error) {
 	var user models.SystemUser
 	err := r.db.WithContext(ctx).Where("lower(email) = ? AND archived_at IS NULL", strings.ToLower(email)).First(&user).Error
+	if err == nil {
+		err = r.loadCompanyIDs(ctx, &user)
+	}
 	return user, err
 }
 func (r *Users) User(ctx context.Context, id uint64) (models.SystemUser, error) {
 	var user models.SystemUser
 	err := r.db.WithContext(ctx).Where("id = ? AND archived_at IS NULL", id).First(&user).Error
+	if err == nil {
+		err = r.loadCompanyIDs(ctx, &user)
+	}
 	return user, err
+}
+func (r *Users) loadCompanyIDs(ctx context.Context, user *models.SystemUser) error {
+	return r.db.WithContext(ctx).Table("system_user_companies").Where("user_id = ?", user.ID).Order("company_id").Pluck("company_id", &user.CompanyIDs).Error
+}
+func (r *Users) ReplaceCompanyIDs(ctx context.Context, userID uint64, companyIDs []uint64) error {
+	if err := r.db.WithContext(ctx).Exec("DELETE FROM system_user_companies WHERE user_id = ?", userID).Error; err != nil {
+		return err
+	}
+	for _, companyID := range companyIDs {
+		if err := r.db.WithContext(ctx).Exec("INSERT INTO system_user_companies(user_id,company_id) VALUES (?,?)", userID, companyID).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+func (r *Users) ValidateCompanies(ctx context.Context, ids []uint64) error {
+	var count int64
+	if err := r.db.WithContext(ctx).Table("companies").Where("id IN ? AND active AND archived_at IS NULL", ids).Count(&count).Error; err != nil {
+		return err
+	}
+	if count != int64(len(ids)) {
+		return apperrors.Wrap(apperrors.CodeInvalidRequest, nil)
+	}
+	return nil
 }
 func (r *Users) ReplaceOwnPassword(ctx context.Context, id uint64, version int64, oldHash, newHash string) error {
 	result := r.db.WithContext(ctx).Model(&models.SystemUser{}).
@@ -75,6 +105,9 @@ func (r *Users) Users(ctx context.Context, q dtos.ListQuery) (dtos.Page[models.S
 	if q.Active.Set {
 		db = db.Where("active = ?", q.Active.Value)
 	}
+	if q.CompanyID != 0 {
+		db = db.Where("EXISTS (SELECT 1 FROM system_user_companies access WHERE access.user_id = system_users.id AND access.company_id = ?)", q.CompanyID)
+	}
 	if err := db.Count(&result.Total).Error; err != nil {
 		return result, err
 	}
@@ -83,6 +116,25 @@ func (r *Users) Users(ctx context.Context, q dtos.ListQuery) (dtos.Page[models.S
 		return result, err
 	}
 	err = db.Find(&result.Items).Error
+	if err == nil {
+		ids := make([]uint64, len(result.Items))
+		index := make(map[uint64]int, len(ids))
+		for i := range result.Items {
+			ids[i], index[result.Items[i].ID] = result.Items[i].ID, i
+		}
+		if len(ids) > 0 {
+			var links []struct {
+				UserID    uint64
+				CompanyID uint64
+			}
+			if err = r.db.WithContext(ctx).Table("system_user_companies").Select("user_id,company_id").Where("user_id IN ?", ids).Order("company_id").Scan(&links).Error; err != nil {
+				return result, err
+			}
+			for _, link := range links {
+				result.Items[index[link.UserID]].CompanyIDs = append(result.Items[index[link.UserID]].CompanyIDs, link.CompanyID)
+			}
+		}
+	}
 	return result, err
 }
 func (r *Users) AllowLogin(ctx context.Context, key string) (bool, error) {

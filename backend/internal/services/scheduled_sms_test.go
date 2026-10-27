@@ -52,9 +52,15 @@ func futureSMS() dtos.LegacySMS {
 func TestScheduledAdmissionEncrypts200AndReservesNoProviderBudget(t *testing.T) {
 	repo := &scheduleMemory{}
 	vault := scheduledVault(t)
+	historyVault, err := security.NewSMSHistoryVault(base64.StdEncoding.EncodeToString([]byte(strings.Repeat("h", 32))), "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	budget := &countLimiter{allowed: true}
 	service := NewSMSServiceWithLimiter(&memoryAttempts{}, nil, budget)
-	service.SetScheduler(NewScheduledSMSService(repo, vault))
+	scheduler := NewScheduledSMSService(repo, vault)
+	scheduler.SetHistoryVault(historyVault)
+	service.SetScheduler(scheduler)
 	inputs := make([]dtos.LegacySMS, models.ScheduledBatchSize)
 	for i := range inputs {
 		inputs[i] = futureSMS()
@@ -71,6 +77,13 @@ func TestScheduledAdmissionEncrypts200AndReservesNoProviderBudget(t *testing.T) 
 		plain, err := vault.Decrypt(7, job.EventKey, job.EncryptedMessage)
 		if err != nil || plain != "Ola, acao!" || strings.Contains(job.EncryptedMessage, "Ola, acao!") {
 			t.Fatal("content protection", err)
+		}
+		if job.Attempt.ContentRef == nil || job.Attempt.EncryptedMessage == "" {
+			t.Fatal("history content missing")
+		}
+		historyText, err := historyVault.Decrypt(7, *job.Attempt.ContentRef, job.Attempt.EncryptedMessage)
+		if err != nil || historyText != plain {
+			t.Fatal("scheduled history differs", err)
 		}
 	}
 }

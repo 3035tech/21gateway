@@ -51,7 +51,11 @@ func (c *SessionGuard) authorize(api huma.API, resource security.Resource, actio
 			_ = huma.WriteErr(api, ctx, public.GetStatus(), "")
 			return
 		}
-		next(huma.WithContext(ctx, context.WithValue(ctx.Context(), userContextKey{}, user)))
+		requestCtx := context.WithValue(ctx.Context(), userContextKey{}, user)
+		if user.Role != models.RoleAdmin {
+			requestCtx = security.WithCompanyScope(requestCtx, user.CompanyIDs)
+		}
+		next(huma.WithContext(ctx, requestCtx))
 	}
 }
 func actor(ctx context.Context) uint64 { return ctx.Value(userContextKey{}).(models.SystemUser).ID }

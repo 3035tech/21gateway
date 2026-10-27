@@ -1,6 +1,14 @@
 import { PanelShell } from '../../components/admin/PanelShell'
 import { useState } from 'react'
-import { Route, Routes, Link, Navigate } from 'react-router-dom'
+import {
+  Route,
+  Routes,
+  Link,
+  Navigate,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from 'react-router-dom'
 import {
   Activity,
   Plus,
@@ -25,6 +33,9 @@ import { LanguageSwitcher } from '../../components/admin/LanguageSwitcher'
 import { Dialog } from '../../components/admin/Dialog'
 import { RolePicker } from '../users/RolePicker'
 import type { DemoRow, Section } from './data'
+
+const demoSessionKey = '21gateway-demo-session-until'
+const demoRememberDurationMs = 14 * 24 * 60 * 60 * 1000
 
 function Badge({ value }: { value: string }) {
   const { t } = useTranslation()
@@ -336,30 +347,46 @@ function Listing({
   section,
   rows,
   companyCredentials,
+  companyUsers,
   onSave,
   onArchive,
 }: {
   section: Section
   rows: DemoRow[]
   companyCredentials: DemoRow[]
+  companyUsers: DemoRow[]
   onSave: (row: DemoRow) => void
   onArchive: (id: string) => void
 }) {
   const { t, i18n } = useTranslation()
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const fromCompany = searchParams.get('fromCompany')
+  const { recordId } = useParams()
   const config = sections[section]
   const state = useListState(
     section === 'agendamentos' ? [{ id: 'scheduledAt', desc: true }] : [],
   )
   const [status, setStatus] = useState('')
   const [editing, setEditing] = useState<DemoRow | null>(null)
-  const [viewing, setViewing] = useState<DemoRow | null>(null)
+  const [demoPasswordMode, setDemoPasswordMode] = useState<
+    'generated' | 'manual' | 'legacy'
+  >('generated')
+  const [demoPassword, setDemoPassword] = useState('')
+  const [demoSecret, setDemoSecret] = useState<{
+    username: string
+    password: string
+  } | null>(null)
+  const [viewing, setViewing] = useState<DemoRow | null>(
+    () => rows.find((row) => row.id === recordId) ?? null,
+  )
   const [archiving, setArchiving] = useState<DemoRow | null>(null)
   const [notice, setNotice] = useState('')
   const filtered = rows.filter(
     (row) =>
       (!status || row.status === status) &&
       Object.values(row).some((value) =>
-        value
+        String(value)
           .toLocaleLowerCase(i18n.language)
           .includes(state.search.toLocaleLowerCase(i18n.language)),
       ),
@@ -479,6 +506,8 @@ function Listing({
                 detail: '',
                 scheduledAt: '',
                 company: section === 'usuarios' ? 'viewer' : 'Horizonte Saúde',
+                companyAccess:
+                  section === 'usuarios' ? ['Horizonte Saúde'] : [],
                 status: 'active',
                 date: '',
               })
@@ -530,7 +559,14 @@ function Listing({
         }
       />
       {viewing ? (
-        <Dialog title={t('demo.viewRecord')} onClose={() => setViewing(null)}>
+        <Dialog
+          title={t('demo.viewRecord')}
+          onClose={() => {
+            setViewing(null)
+            if (recordId)
+              navigate(fromCompany ? `/empresas/${fromCompany}` : `/${section}`)
+          }}
+        >
           <dl className="space-y-4 text-sm">
             {[
               [t(config.first), viewing.name],
@@ -554,6 +590,14 @@ function Listing({
                   ]),
               [t('common.status'), t(demoStatusKey(viewing.status))],
               [t('common.updatedAt'), viewing.date],
+              ...(section === 'envios'
+                ? [
+                    [
+                      t('messages.contentLabel'),
+                      t('demo.sampleMessage', { company: viewing.company }),
+                    ],
+                  ]
+                : []),
             ].map(([label, value]) => (
               <div
                 key={label}
@@ -584,9 +628,39 @@ function Listing({
                   .map((credential) => (
                     <li
                       key={credential.id}
-                      className="rounded-lg bg-white px-3 py-2 font-semibold"
+                      className="rounded-lg bg-white font-semibold"
                     >
-                      {credential.name}
+                      <Link
+                        to={`/credenciais/${credential.id}?fromCompany=${viewing.id}`}
+                        className="flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 text-brand-purple hover:bg-white/70 hover:underline"
+                      >
+                        <KeyRound size={16} aria-hidden="true" />{' '}
+                        {credential.name}{' '}
+                        <ArrowRight size={15} aria-hidden="true" />
+                      </Link>
+                    </li>
+                  ))}
+              </ul>
+              <h3 className="mt-5 font-bold text-brand-purple">
+                {t('users.companyUsersTitle')}
+              </h3>
+              <ul className="mt-3 space-y-2 text-sm">
+                {companyUsers
+                  .filter(
+                    (user) =>
+                      user.status === 'active' &&
+                      user.companyAccess?.includes(viewing.name),
+                  )
+                  .map((user) => (
+                    <li key={user.id} className="rounded-lg bg-white">
+                      <Link
+                        to={`/usuarios/${user.id}?fromCompany=${viewing.id}`}
+                        className="flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 text-brand-purple hover:bg-white/70 hover:underline"
+                      >
+                        <CircleUserRound size={16} aria-hidden="true" />{' '}
+                        {user.name} · {t(demoRoleKey(user.company))}{' '}
+                        <ArrowRight size={15} aria-hidden="true" />
+                      </Link>
                     </li>
                   ))}
               </ul>
@@ -595,7 +669,13 @@ function Listing({
           <div className="mt-6 flex justify-end">
             <button
               className="button-secondary"
-              onClick={() => setViewing(null)}
+              onClick={() => {
+                setViewing(null)
+                if (recordId)
+                  navigate(
+                    fromCompany ? `/empresas/${fromCompany}` : `/${section}`,
+                  )
+              }}
             >
               {t('common.close')}
             </button>
@@ -650,12 +730,29 @@ function Listing({
               className="mt-6 space-y-4"
               onSubmit={(event) => {
                 event.preventDefault()
+                if (
+                  section === 'credenciais' &&
+                  !editing.id &&
+                  demoPasswordMode !== 'generated' &&
+                  !demoPassword
+                )
+                  return
+                if (
+                  section === 'credenciais' &&
+                  !editing.id &&
+                  demoPasswordMode === 'generated'
+                )
+                  setDemoSecret({
+                    username: editing.name,
+                    password: crypto.randomUUID(),
+                  })
                 onSave({
                   ...editing,
                   id: editing.id || `${section}-${crypto.randomUUID()}`,
                   date: new Date().toLocaleString(i18n.language),
                 })
                 setEditing(null)
+                setDemoPassword('')
                 setNotice(
                   section === 'usuarios' && !editing.id
                     ? t('demo.invitationSimulated')
@@ -663,6 +760,16 @@ function Listing({
                 )
               }}
             >
+              {section === 'credenciais' ? (
+                <div className="rounded-xl border border-purple-100 bg-purple-50 p-4">
+                  <h3 className="font-bold text-brand-purple">
+                    {t('credentials.clientAccess')}
+                  </h3>
+                  <p className="mt-1 text-xs leading-5 text-slate-600">
+                    {t('credentials.basicAuthHint')}
+                  </p>
+                </div>
+              ) : null}
               <label className="flex flex-col gap-2 text-sm font-semibold">
                 {t(config.first)}
                 <input
@@ -688,6 +795,61 @@ function Listing({
                   }
                 />
               </label>
+              {section === 'credenciais' ? (
+                editing.id ? (
+                  <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
+                    {t('credentials.passwordStoredHint')}
+                  </p>
+                ) : (
+                  <fieldset className="space-y-3 rounded-xl border border-slate-200 p-4">
+                    <legend className="px-1 text-sm font-bold">
+                      {t('credentials.passwordSetup')}
+                    </legend>
+                    {(['generated', 'manual', 'legacy'] as const).map(
+                      (mode) => (
+                        <label
+                          key={mode}
+                          className="flex min-h-10 items-center gap-2 text-sm"
+                        >
+                          <input
+                            type="radio"
+                            name="demo-basic-password"
+                            checked={demoPasswordMode === mode}
+                            onChange={() => {
+                              setDemoPasswordMode(mode)
+                              setDemoPassword('')
+                            }}
+                          />
+                          {t(`credentials.passwordMode.${mode}`)}
+                        </label>
+                      ),
+                    )}
+                    {demoPasswordMode !== 'generated' ? (
+                      <label className="flex flex-col gap-2 text-sm font-semibold">
+                        {t(
+                          demoPasswordMode === 'manual'
+                            ? 'credentials.manualPassword'
+                            : 'credentials.currentApiPassword',
+                        )}
+                        <input
+                          type="password"
+                          autoComplete="new-password"
+                          required
+                          className="form-control"
+                          value={demoPassword}
+                          onChange={(event) =>
+                            setDemoPassword(event.target.value)
+                          }
+                        />
+                      </label>
+                    ) : (
+                      <p className="text-xs text-slate-500">
+                        {t('credentials.newPasswordHint')}
+                      </p>
+                    )}
+                  </fieldset>
+                )
+              ) : null}
               {section === 'credenciais' ? (
                 <label className="flex flex-col gap-2 text-sm font-semibold">
                   {t('common.company')}
@@ -715,12 +877,66 @@ function Listing({
                           : 'viewer'
                     }
                     onChange={(role) =>
-                      setEditing({ ...editing, company: demoRoleValue(role) })
+                      setEditing({
+                        ...editing,
+                        company: demoRoleValue(role),
+                        companyAccess:
+                          role === 'admin'
+                            ? []
+                            : editing.companyAccess?.length
+                              ? editing.companyAccess
+                              : ['Horizonte Saúde'],
+                      })
                     }
                   />
                   <p className="text-xs leading-5 text-slate-500">
-                    {t('roles.globalAccess')}
+                    {editing.company === 'admin'
+                      ? t('roles.globalAccess')
+                      : t('users.companyAccessHint')}
                   </p>
+                  {editing.company !== 'admin' ? (
+                    <fieldset className="space-y-2">
+                      <legend className="text-sm font-semibold">
+                        {t('users.companyAccess')}
+                      </legend>
+                      <div className="flex flex-wrap gap-2">
+                        {initialRows.empresas.slice(0, 6).map((company) => (
+                          <label
+                            key={company.id}
+                            className="flex min-h-11 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm"
+                          >
+                            <input
+                              type="checkbox"
+                              className="accent-brand-purple"
+                              checked={
+                                editing.companyAccess?.includes(company.name) ??
+                                false
+                              }
+                              onChange={(event) =>
+                                setEditing({
+                                  ...editing,
+                                  companyAccess: event.target.checked
+                                    ? [
+                                        ...(editing.companyAccess ?? []),
+                                        company.name,
+                                      ]
+                                    : (editing.companyAccess ?? []).filter(
+                                        (name) => name !== company.name,
+                                      ),
+                                })
+                              }
+                            />
+                            {company.name}
+                          </label>
+                        ))}
+                      </div>
+                      {!editing.companyAccess?.length ? (
+                        <p className="text-xs text-rose-700">
+                          {t('validation.companyAccess')}
+                        </p>
+                      ) : null}
+                    </fieldset>
+                  ) : null}
                 </>
               ) : null}
               <label className="flex flex-col gap-2 text-sm font-semibold">
@@ -744,7 +960,15 @@ function Listing({
                 >
                   {t('common.cancel')}
                 </button>
-                <button className="button-primary" type="submit">
+                <button
+                  className="button-primary"
+                  type="submit"
+                  disabled={
+                    section === 'usuarios' &&
+                    editing.company !== 'admin' &&
+                    !editing.companyAccess?.length
+                  }
+                >
                   {section === 'usuarios' && !editing.id
                     ? t('demo.simulateInvitation')
                     : t('common.save')}
@@ -754,13 +978,48 @@ function Listing({
           </section>
         </div>
       ) : null}
+      {demoSecret ? (
+        <Dialog
+          title={t('credentials.secretTitle')}
+          onClose={() => setDemoSecret(null)}
+        >
+          <p className="mb-4 text-sm text-slate-600">
+            {t('demo.sampleSecretHint')}
+          </p>
+          <dl className="space-y-3 text-sm">
+            <div>
+              <dt className="font-semibold">{t('common.apiUsername')}</dt>
+              <dd className="mt-1 rounded-lg bg-slate-50 p-3 font-mono">
+                {demoSecret.username}
+              </dd>
+            </div>
+            <div>
+              <dt className="font-semibold">
+                {t('credentials.passwordSetup')}
+              </dt>
+              <dd className="mt-1 rounded-lg bg-slate-50 p-3 font-mono break-all">
+                {demoSecret.password}
+              </dd>
+            </div>
+          </dl>
+          <button
+            className="button-primary mt-6 w-full"
+            onClick={() => setDemoSecret(null)}
+          >
+            {t('common.close')}
+          </button>
+        </Dialog>
+      ) : null}
     </>
   )
 }
 export default function DemoApp() {
   const { t } = useTranslation()
   const [rows, setRows] = useState(initialRows)
-  const [loggedOut, setLoggedOut] = useState(true)
+  const [loggedOut, setLoggedOut] = useState(
+    () => !(Number(localStorage.getItem(demoSessionKey)) > Date.now()),
+  )
+  const [rememberDemo, setRememberDemo] = useState(false)
   const [visible, setVisible] = useState(false)
   if (loggedOut)
     return (
@@ -795,6 +1054,12 @@ export default function DemoApp() {
               className="mt-8 space-y-5"
               onSubmit={(event) => {
                 event.preventDefault()
+                if (rememberDemo)
+                  localStorage.setItem(
+                    demoSessionKey,
+                    String(Date.now() + demoRememberDurationMs),
+                  )
+                else localStorage.removeItem(demoSessionKey)
                 setLoggedOut(false)
               }}
             >
@@ -825,6 +1090,15 @@ export default function DemoApp() {
                   </button>
                 </div>
               </label>
+              <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-brand-purple"
+                  checked={rememberDemo}
+                  onChange={(event) => setRememberDemo(event.target.checked)}
+                />
+                {t('auth.rememberMe')}
+              </label>
               <button className="button-primary w-full" type="submit">
                 {t('demo.enterDemo')}
               </button>
@@ -839,7 +1113,10 @@ export default function DemoApp() {
       role={t('roles.admin')}
       admin
       demo
-      onLogout={() => setLoggedOut(true)}
+      onLogout={() => {
+        localStorage.removeItem(demoSessionKey)
+        setLoggedOut(true)
+      }}
     >
       {' '}
       <Routes>
@@ -848,13 +1125,14 @@ export default function DemoApp() {
         {(Object.keys(sections) as Section[]).map((section) => (
           <Route
             key={section}
-            path={`/${section}`}
+            path={`/${section}/:recordId?`}
             element={
               <Listing
                 key={section}
                 section={section}
                 rows={rows[section]}
                 companyCredentials={rows.credenciais}
+                companyUsers={rows.usuarios}
                 onSave={(row) =>
                   setRows((current) => ({
                     ...current,

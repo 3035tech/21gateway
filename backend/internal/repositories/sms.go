@@ -7,6 +7,7 @@ import (
 	apperrors "github.com/21mobile/sms-gateway/internal/errors"
 	"github.com/21mobile/sms-gateway/internal/models"
 	"gorm.io/gorm"
+	"time"
 )
 
 type SMSAttempts struct{ db *gorm.DB }
@@ -30,6 +31,7 @@ func (r *SMSAttempts) Complete(ctx context.Context, attempt models.SMSAttempt) e
 func (r *SMSAttempts) Messages(ctx context.Context, q dtos.ListQuery) (dtos.Page[dtos.MessageView], error) {
 	result := dtos.Page[dtos.MessageView]{Items: []dtos.MessageView{}, Page: q.Page, PageSize: q.PageSize}
 	db := r.db.WithContext(ctx).Table("sms_attempts")
+	db = scopedCompanies(db, ctx, "sms_attempts.company_id")
 	if q.Search != "" {
 		db = db.Where("sms_attempts.correlation_id ILIKE ? OR sms_attempts.destination ILIKE ?", searchTerm(q.Search), searchTerm(q.Search))
 	}
@@ -53,8 +55,18 @@ func (r *SMSAttempts) Messages(ctx context.Context, q dtos.ListQuery) (dtos.Page
 		return result, apperrors.Wrap(apperrors.CodeInvalidRequest, nil)
 	}
 	direction := string(q.Direction)
-	err := db.Joins("LEFT JOIN companies ON companies.id=sms_attempts.company_id").Select("sms_attempts.*, COALESCE(companies.name,'') AS company_name").Order(column + " " + direction).Order("sms_attempts.id " + direction).Offset((q.Page - 1) * q.PageSize).Limit(q.PageSize).Scan(&result.Items).Error
+	err := db.Joins("LEFT JOIN companies ON companies.id=sms_attempts.company_id").Select("sms_attempts.id,sms_attempts.credential_id,sms_attempts.company_id,COALESCE(companies.name,'') AS company_name,sms_attempts.destination,sms_attempts.correlation_id,sms_attempts.state,sms_attempts.failure_code,sms_attempts.delivery_status,sms_attempts.created_at").Order(column + " " + direction).Order("sms_attempts.id " + direction).Offset((q.Page - 1) * q.PageSize).Limit(q.PageSize).Scan(&result.Items).Error
 	return result, err
+}
+func (r *SMSAttempts) MessageContent(ctx context.Context, id uint64) (models.SMSAttempt, error) {
+	var attempt models.SMSAttempt
+	err := scopedCompanies(r.db.WithContext(ctx).Model(&models.SMSAttempt{}), ctx, "company_id").Select("id,credential_id,content_ref,encrypted_message,content_purged_at,created_at,scheduled_at,dispatched_at").Where("id = ?", id).First(&attempt).Error
+	return attempt, err
+}
+
+func (r *SMSAttempts) PurgeContent(ctx context.Context, before time.Time, limit int) (int64, error) {
+	result := r.db.WithContext(ctx).Exec(`WITH expired AS (SELECT id FROM sms_attempts WHERE encrypted_message <> '' AND COALESCE(dispatched_at,scheduled_at,created_at) < ? ORDER BY COALESCE(dispatched_at,scheduled_at,created_at),id LIMIT ? FOR UPDATE SKIP LOCKED) UPDATE sms_attempts AS a SET encrypted_message='',content_ref=NULL,content_purged_at=NOW() FROM expired WHERE a.id=expired.id`, before, limit)
+	return result.RowsAffected, result.Error
 }
 
 func (r *SMSAttempts) CreateBatch(ctx context.Context, attempts []*models.SMSAttempt) error {

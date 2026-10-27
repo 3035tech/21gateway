@@ -1,5 +1,9 @@
 # Operação do gateway
 
+## Conteúdo de SMS no painel
+
+Aplicar migração 019 antes do backend novo e configurar `SMS_HISTORY_CONTENT_KEY` (32 bytes em base64) ou `SMS_HISTORY_ACTIVE_KEY_ID` com `SMS_HISTORY_ENCRYPTION_KEYS`. A chave é independente das de MO, MFA e agendamento. Guardar versões antigas durante o período de retenção de 90 dias. O backend falha ao iniciar sem chave válida. Não registrar texto ou ciphertext em logs. A listagem lê apenas metadados; `GET /admin/messages/{id}/content` devolve o texto normalizado somente a usuários autorizados à empresa e apenas dentro da retenção. Envios anteriores à migração retornam indisponível. O expurgo usa lotes de 500, até dez por ciclo de cinco minutos; a verificação de prazo na API impede leitura mesmo se o worker atrasar. Backup de banco pode reter ciphertext por mais tempo; definir retenção do backup separadamente.
+
 ## Estado desta etapa
 
 Usuário autorizou os itens 3 (contratos), 4 (telefone) e 5 (operação) e definiu retenção de **90 dias para conteúdo MO**. Contratos de paginação/saldo/agendamento e corte telefônico 4/5 continuam aguardando evidência; nenhuma regra foi presumida. Implementações operacionais abaixo não equivalem a deployment/homologação de produção.

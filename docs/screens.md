@@ -5,7 +5,7 @@
 
 Login, visão geral, empresas, usuários internos, credenciais externas, envios, callbacks e auditoria conectados à API administrativa. Campos e permissões em docs/backoffice.md. Usuários/auditoria acessíveis somente a administradores; operação de cadastros/credenciais/callbacks disponível a operadores e administradores; consulta não permite alterações.
 
-Empresas e usuários: formulários próprios, status ativo/bloqueado e confirmação de arquivamento. Usuários internos escolhem Consulta, Operador ou Administrador por opções com ícone e resumo visível das permissões, com Consulta como sugestão inicial. O formulário deixa explícito que os perfis internos veem todas as empresas e que o convite por e-mail permite definir a própria senha, que o admin não digita no cadastro/edição. A prévia usa o mesmo seletor de perfil. Credenciais têm empresa, username, status e configuração de callback; criação/rotação exibe a senha uma vez. Arquivar preserva histórico.
+Empresas e usuários: formulários próprios, status ativo/bloqueado e confirmação de arquivamento. Usuários escolhem Consulta, Operador ou Administrador por opções com ícone e resumo das permissões, com Consulta como sugestão inicial. Administradores têm acesso global; para os demais, o formulário exige uma ou mais empresas. O convite por e-mail permite definir a própria senha, que o admin não digita no cadastro/edição. A prévia usa o mesmo seletor de perfil. Credenciais têm empresa, username, status e configuração de callback; criação/rotação exibe a senha uma vez. Arquivar preserva histórico.
 
 O administrador pode abrir **Testar credencial** após salvar: instrução para checagem Basic Auth/IP da rede do cliente, envio controlado ao número de homologação configurado e consulta posterior de DLR. Aceite do fornecedor e entrega são exibidos separadamente. Detalhes e limites em [credential-testing.md](credential-testing.md).
 
@@ -55,8 +55,10 @@ Polish posterior: Auditoria mostra nome atual do responsável mais ID, distingue
 
 ## Visão da empresa — 27/10/2026
 
-A listagem de empresas abre `/empresas/{id}` pelo nome. A página mostra cadastro, estado e credenciais da API vinculadas à empresa, com criação e edição no próprio contexto; a seleção da empresa fica fixa. A listagem geral de credenciais permanece disponível. Usuários do painel continuam internos e globais, sem `company_id`; por isso a página não atribui esses usuários a uma empresa. A associação de usuários do painel a clientes exige decisão de escopo e regras de autorização antes de expor uma lista por empresa.
+A listagem de empresas abre `/empresas/{id}` pelo nome. A página mostra cadastro, estado, credenciais da API e usuários de operação/consulta vinculados, com criação e edição no próprio contexto; a seleção da empresa fica fixa. A listagem geral de credenciais e usuários permanece disponível. Administradores não possuem vínculo e, por isso, não entram na lista de usuários de uma empresa. Essa seção de usuários só aparece para administradores.
 
 As listagens oferecem Visualizar para consultar os campos disponíveis sem entrar em edição. Empresas abrem a página de detalhes; usuários, credenciais, envios, agendamentos, callbacks e auditoria mostram detalhes em diálogo. Empresas, usuários e credenciais oferecem Arquivar para perfis autorizados, com confirmação e preservação do histórico. Registros de envio, agendamento e auditoria continuam somente leitura; callbacks falhos mantêm a operação de tentativa manual. A prévia fictícia também permite visualizar e arquivar cadastros em memória.
 
 O cabeçalho e os controles da coluna Ações são centralizados pelo componente compartilhado de tabela, incluindo listas com uma ou várias ações.
+
+Os nomes das credenciais e usuários na visão da empresa abrem URLs próprias (`/credenciais/{id}` e `/usuarios/{id}`), carregadas por GET administrativo do registro real e autorizadas pelo domínio. Ao fechar o detalhe, o usuário volta para a empresa de origem. A prévia fictícia usa o mesmo fluxo com registros simulados.

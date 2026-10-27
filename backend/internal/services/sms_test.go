@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"strings"
 	"testing"
@@ -10,6 +11,7 @@ import (
 	apperrors "github.com/21mobile/sms-gateway/internal/errors"
 	"github.com/21mobile/sms-gateway/internal/integrations/whitelabel"
 	"github.com/21mobile/sms-gateway/internal/models"
+	"github.com/21mobile/sms-gateway/internal/security"
 )
 
 type memoryAttempts struct {
@@ -67,6 +69,27 @@ func TestSendTranslatesAndPersistsAcceptance(t *testing.T) {
 	}
 	if len(repo.completed) != 1 || repo.completed[0].State != models.SubmissionAccepted || repo.completed[0].CredentialID != 7 || *repo.completed[0].ProviderMessageID != provider.response.MessageID {
 		t.Fatalf("unexpected persisted result: %+v", repo.completed)
+	}
+}
+
+func TestImmediateSMSPersistsOnlyEncryptedHistory(t *testing.T) {
+	repo := &memoryAttempts{}
+	provider := &stubProvider{enabled: true, response: whitelabel.SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440000", Status: whitelabel.StatusSent}}
+	vault, err := security.NewSMSHistoryVault(base64.StdEncoding.EncodeToString([]byte(strings.Repeat("h", 32))), "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sender := NewSMSService(repo, provider)
+	sender.SetHistoryVault(vault)
+	if _, err := sender.Send(context.Background(), 7, []dtos.LegacySMS{validSMS()}); err != nil {
+		t.Fatal(err)
+	}
+	if len(repo.created) != 1 || repo.created[0].ContentRef == nil || repo.created[0].EncryptedMessage == "" || strings.Contains(repo.created[0].EncryptedMessage, validSMS().MessageText) {
+		t.Fatal("SMS text not safely retained")
+	}
+	plain, err := vault.Decrypt(7, *repo.created[0].ContentRef, repo.created[0].EncryptedMessage)
+	if err != nil || plain != validSMS().MessageText {
+		t.Fatal("stored content differs from submitted text", err)
 	}
 }
 

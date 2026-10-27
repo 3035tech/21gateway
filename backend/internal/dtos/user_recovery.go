@@ -16,9 +16,10 @@ type RecoveryResetInput struct {
 }
 type InviteUserInput struct {
 	Body struct {
-		Name   string      `json:"name" minLength:"1" maxLength:"120"`
-		Email  string      `json:"email" format:"email" maxLength:"254"`
-		Role   models.Role `json:"role" enum:"admin,operator,viewer"`
-		Active bool        `json:"active"`
+		Name       string      `json:"name" minLength:"1" maxLength:"120"`
+		Email      string      `json:"email" format:"email" maxLength:"254"`
+		Role       models.Role `json:"role" enum:"admin,operator,viewer"`
+		Active     bool        `json:"active"`
+		CompanyIDs []uint64    `json:"companyIds"`
 	}
 }

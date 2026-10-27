@@ -22,13 +22,15 @@ type ScheduledQueueWriter interface {
 	Enqueue(context.Context, []models.ScheduledSMS) ([]models.ScheduledSMS, error)
 }
 type ScheduledSMSService struct {
-	repo  ScheduledQueueWriter
-	vault *security.ScheduledContentVault
+	repo    ScheduledQueueWriter
+	vault   *security.ScheduledContentVault
+	history *security.SMSHistoryVault
 }
 
 func NewScheduledSMSService(repo ScheduledQueueWriter, vault *security.ScheduledContentVault) *ScheduledSMSService {
 	return &ScheduledSMSService{repo: repo, vault: vault}
 }
+func (s *ScheduledSMSService) SetHistoryVault(vault *security.SMSHistoryVault) { s.history = vault }
 func (s *ScheduledSMSService) Enqueue(ctx context.Context, credentialID uint64, messages []dtos.LegacySMS) ([]dtos.LegacySendResult, error) {
 	if !s.vault.Enabled() {
 		return nil, apperrors.Wrap(apperrors.CodeServiceUnavailable, nil)
@@ -67,6 +69,15 @@ func (s *ScheduledSMSService) Enqueue(ctx context.Context, credentialID uint64, 
 		attempt := models.SMSAttempt{CredentialID: credentialID, Destination: brazilCountryCode + input.Destination, CorrelationID: input.CorrelationID, Encoding: whitelabel.SelectEncoding(normalized), State: models.SubmissionPending, ScheduledAt: &due}
 		if credential, ok := CredentialFromContext(ctx); ok && credential.ID == credentialID {
 			attempt.CompanyID = credential.CompanyID
+		}
+		if s.history != nil {
+			reference := uuid.NewString()
+			historyCiphertext, err := s.history.Encrypt(credentialID, reference, normalized)
+			if err != nil {
+				return nil, err
+			}
+			attempt.ContentRef = &reference
+			attempt.EncryptedMessage = historyCiphertext
 		}
 		jobs = append(jobs, models.ScheduledSMS{CredentialID: credentialID, EventKey: key, EncryptedMessage: ciphertext, DueAt: due, AvailableAt: due, State: models.ScheduleQueued, Attempt: attempt})
 		positions = append(positions, i)

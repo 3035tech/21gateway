@@ -132,6 +132,7 @@
     "passwordMinimumTrimmed": "Use pelo menos 15 caracteres sem contar espaços nas pontas.",
     "passwordDifferent": "Escolha uma senha diferente da atual.",
     "selectCompany": "Selecione uma empresa.",
+    "companyAccess": "Selecione ao menos uma empresa para este perfil e não repita vínculos.",
     "invalidUsername": "Usuário inválido.",
     "invalidToken": "Token inválido.",
     "httpsUrl": "Use uma URL HTTPS válida.",
@@ -200,6 +201,11 @@
   },
   "messages": {
     "description": "Aceite pelo fornecedor e entrega são etapas diferentes. Não reenvie automaticamente resultados incertos.",
+    "contentLabel": "Texto da mensagem",
+    "content": {
+      "expired": "Texto removido após 90 dias.",
+      "unavailable": "Texto indisponível para este envio anterior à retenção."
+    },
     "pending": "Pendentes",
     "accepted": "Aceitos",
     "rejected": "Rejeitados",
@@ -284,13 +290,18 @@
     "activePlural": "Ativos",
     "blockedPlural": "Bloqueados",
     "archiveTitle": "Arquivar usuário",
-    "archiveDescription": "Arquivar {{name}} encerrará suas sessões de acesso. O histórico será mantido."
+    "archiveDescription": "Arquivar {{name}} encerrará suas sessões de acesso. O histórico será mantido.",
+    "companyAccess": "Empresas autorizadas",
+    "companyAccessHint": "Este usuário verá apenas as empresas selecionadas e os dados vinculados a elas.",
+    "companyUsersTitle": "Usuários vinculados",
+    "companyUsersDescription": "Usuários de operação ou consulta com acesso a {{name}}. Administradores têm acesso global e não aparecem nesta lista.",
+    "removeCompany": "Remover empresa #{{id}}"
   },
   "credentials": {
     "editTitle": "Editar credencial",
     "newTitle": "Nova credencial da API",
     "formDescription": "Configure o acesso do cliente, o envio de mensagens e os destinos das notificações.",
-    "clientAccess": "Acesso do cliente",
+    "clientAccess": "Acesso do cliente · Basic Auth",
     "searchCompany": "Buscar empresa",
     "companySearchPlaceholder": "Nome ou referência",
     "loadingCompanies": "Carregando empresas…",
@@ -350,9 +361,12 @@
     "secretHint": "A senha só aparece agora. Guarde-a em um local seguro antes de fechar.",
     "username": "Usuário",
     "savedPassword": "Já guardei a senha",
-    "generateUsername": "Gerar usuário aleatório",
+    "generateUsername": "Gerar usuário Basic Auth aleatório",
+    "basicAuthHint": "Este usuário e esta senha autenticam o cliente nos endpoints /v1 por HTTP Basic Auth. São diferentes do token de envio do fornecedor Zoug.",
+    "generatedUsernamePlaceholder": "Gerado ao salvar",
+    "passwordStoredHint": "A senha Basic Auth já está definida e não pode ser exibida novamente. Para substituí-la, use Trocar senha da API na listagem e atualize a integração do cliente.",
     "generatedUsernameHint": "Um usuário único será gerado e exibido após salvar.",
-    "passwordSetup": "Senha da credencial",
+    "passwordSetup": "Senha Basic Auth da API",
     "passwordMode": {
       "generated": "Gerar senha aleatória",
       "manual": "Definir senha manualmente",
@@ -457,6 +471,7 @@
     "disclaimer": "A verificação de conexão não confirma o envio nem a entrega de mensagens."
   },
   "demo": {
+    "sampleMessage": "Olá! Esta é uma mensagem de demonstração para {{company}}.",
     "simulatedOperation": "Operação simulada",
     "recentMessages": "Últimos envios",
     "viewAll": "Ver todos",
@@ -481,7 +496,8 @@
     "invitationSimulated": "Convite simulado. Nenhum e-mail foi enviado.",
     "recordSaved": "Cadastro salvo na demonstração.",
     "viewRecord": "Detalhes do registro",
-    "adminUsersGlobal": "Usuários do painel são internos e não estão vinculados à empresa. Abaixo estão os acessos técnicos ativos da API nesta prévia.",
+    "adminUsersGlobal": "Administradores têm acesso global. Operadores e consultores podem estar vinculados a uma ou mais empresas. As credenciais abaixo são acessos técnicos da API.",
+    "sampleSecretHint": "Senha fictícia gerada apenas para esta prévia. No painel real, ela é exibida uma vez após salvar e usada no Basic Auth da API.",
     "archiveTitle": "Arquivar cadastro",
     "archiveHint": "Arquivar {{name}}? O registro será removido desta listagem da prévia.",
     "archived": "Cadastro arquivado nesta prévia.",
@@ -540,9 +556,9 @@
     "operator": "Operador",
     "viewer": "Consulta",
     "adminDescription": "Gerencia usuários e acessos, consulta auditoria e pode fazer um envio de homologação.",
-    "operatorDescription": "Gerencia empresas e credenciais, troca senhas da API e reprocessa callbacks falhos.",
-    "viewerDescription": "Consulta indicadores, empresas, credenciais, envios, agendamentos e callbacks.",
-    "globalAccess": "Estes perfis são da equipe interna e têm visibilidade de todas as empresas."
+    "operatorDescription": "Gerencia dados e credenciais das empresas vinculadas, troca senhas da API e reprocessa callbacks falhos.",
+    "viewerDescription": "Consulta indicadores, empresas, credenciais, envios, agendamentos e callbacks das empresas vinculadas.",
+    "globalAccess": "Administradores têm acesso global a todas as empresas."
   },
   "errors": {
     "UNAUTHORIZED": "Sua sessão expirou. Entre novamente.",

@@ -26,6 +26,9 @@ func (s *CompanyService) Company(ctx context.Context, id uint64) (dtos.CompanyVi
 }
 func (s *CompanyService) SaveCompany(ctx context.Context, actor, id uint64, body dtos.CompanyBody) (dtos.CompanyView, error) {
 	var result models.Company
+	if id == 0 && security.Scope(ctx).Restricted {
+		return dtos.CompanyView{}, apperrors.Wrap(apperrors.CodeForbidden, nil)
+	}
 	if strings.TrimSpace(body.Name) == "" {
 		return dtos.CompanyView{}, apperrors.Wrap(apperrors.CodeInvalidRequest, nil)
 	}

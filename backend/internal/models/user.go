@@ -24,4 +24,5 @@ type SystemUser struct {
 	LastLoginAt    *time.Time
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
+	CompanyIDs     []uint64 `gorm:"-"`
 }

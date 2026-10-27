@@ -18,6 +18,15 @@ export type Message = z.infer<typeof messageSchema>
 export const listMessages = (params: ListParams, signal?: AbortSignal) =>
   list('messages', messageSchema, params, signal)
 
+const messageContentSchema = z.object({
+  state: z.enum(['available', 'expired', 'unavailable']),
+  messageText: z.string().optional(),
+})
+export async function getMessageContent(id: number, signal?: AbortSignal) {
+  const response = await api.get(`/admin/messages/${id}/content`, { signal })
+  return messageContentSchema.parse(response.data)
+}
+
 const testSendResultSchema = z.object({
   submissionState: z.enum(['accepted', 'rejected', 'unknown']),
   idSms: z.string().optional(),

@@ -2,7 +2,7 @@
 
 ## Escopo e fronteira
 
-Há vários usuários internos possíveis, inclusive mais de um administrador. A tela **Usuários** cadastra nome, e-mail, perfil (`admin`, `operator`, `viewer`) e status. Credenciais Basic Auth das APIs de SMS são outro domínio e não usam cookies, 2FA ou “Lembrar de mim” do painel. Os perfis atuais são globais à equipe interna; um futuro portal de clientes exigirá vínculo com empresa e autorização por tenant antes da ativação.
+Há vários usuários do painel possíveis, inclusive mais de um administrador. A tela **Usuários** cadastra nome, e-mail, perfil (`admin`, `operator`, `viewer`) e status. Administradores têm acesso global; operadores e usuários de consulta exigem ao menos uma empresa vinculada e ficam limitados a elas. Credenciais Basic Auth das APIs de SMS são outro domínio e não usam cookies, 2FA ou “Lembrar de mim” do painel. Um futuro portal externo de clientes permanece fora do escopo atual.
 
 ## Convite, perfil e senha
 

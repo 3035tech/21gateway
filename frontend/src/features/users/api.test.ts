@@ -7,6 +7,7 @@ const body = {
   email: 'ana@example.test',
   role: 'admin' as const,
   active: true,
+  companyIds: [],
 }
 
 it('creates an internal user by invitation without collecting a password', async () => {

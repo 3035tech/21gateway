@@ -20,6 +20,7 @@ type MessageService struct {
 	audit           *repositories.Audits
 	sender          *SMSService
 	testDestination string
+	history         *security.SMSHistoryVault
 }
 
 func NewMessageService(repo *repositories.SMSAttempts) *MessageService {
@@ -27,6 +28,40 @@ func NewMessageService(repo *repositories.SMSAttempts) *MessageService {
 }
 func NewMessageServiceWithTestSend(repo *repositories.SMSAttempts, credentials *repositories.Credentials, audit *repositories.Audits, sender *SMSService, destination string) *MessageService {
 	return &MessageService{repository: repo, credentials: credentials, audit: audit, sender: sender, testDestination: destination}
+}
+func (s *MessageService) WithHistoryVault(vault *security.SMSHistoryVault) *MessageService {
+	s.history = vault
+	return s
+}
+
+const SMSHistoryRetentionDays = 90
+
+func (s *MessageService) Content(ctx context.Context, id uint64) (dtos.MessageContentView, error) {
+	attempt, err := s.repository.MessageContent(ctx, id)
+	if err != nil {
+		return dtos.MessageContentView{}, dbError(err)
+	}
+	retentionStart := attempt.CreatedAt
+	if attempt.ScheduledAt != nil {
+		retentionStart = *attempt.ScheduledAt
+	}
+	if attempt.DispatchedAt != nil {
+		retentionStart = *attempt.DispatchedAt
+	}
+	if attempt.ContentPurgedAt != nil || time.Now().UTC().After(retentionStart.Add(SMSHistoryRetentionDays*24*time.Hour)) {
+		return dtos.MessageContentView{State: dtos.MessageContentExpired}, nil
+	}
+	if attempt.EncryptedMessage == "" || attempt.ContentRef == nil {
+		return dtos.MessageContentView{State: dtos.MessageContentUnavailable}, nil
+	}
+	if !s.history.Enabled() {
+		return dtos.MessageContentView{}, apperrors.Wrap(apperrors.CodeServiceUnavailable, nil)
+	}
+	message, err := s.history.Decrypt(attempt.CredentialID, *attempt.ContentRef, attempt.EncryptedMessage)
+	if err != nil {
+		return dtos.MessageContentView{}, apperrors.Wrap(apperrors.CodeInternal, err)
+	}
+	return dtos.MessageContentView{State: dtos.MessageContentAvailable, MessageText: message}, nil
 }
 func (s *MessageService) Messages(ctx context.Context, q dtos.ListQuery) (dtos.Page[dtos.MessageView], error) {
 	values, err := s.repository.Messages(ctx, q)

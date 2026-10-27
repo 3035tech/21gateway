@@ -9,6 +9,7 @@ export const userSchema = z.object({
   role: z.enum(roles),
   active: z.boolean(),
   createdAt: z.string(),
+  companyIds: z.array(z.number()),
 })
 export type SystemUser = z.infer<typeof userSchema>
 export async function getSession(signal?: AbortSignal) {

@@ -10,6 +10,7 @@ import (
 	"github.com/21mobile/sms-gateway/internal/security"
 	"gorm.io/gorm"
 	"net/mail"
+	"slices"
 	"strings"
 	"time"
 )
@@ -36,6 +37,10 @@ func NewUserService(repository *repositories.Users) (*UserService, error) {
 func (s *UserService) SetMFA(service *UserMFAService) { s.mfa = service }
 func (s *UserService) Allowed(role models.Role, resource security.Resource, action security.Action) bool {
 	return s.permissions.Allow(role, resource, action)
+}
+func (s *UserService) User(ctx context.Context, id uint64) (dtos.UserView, error) {
+	value, err := s.repository.User(ctx, id)
+	return dtos.UserDTO(value), dbError(err)
 }
 func (s *UserService) Login(ctx context.Context, email, password string) (models.SystemUser, error) {
 	return s.LoginWithFactor(ctx, email, password, "")
@@ -179,6 +184,16 @@ func (s *UserService) SaveUser(ctx context.Context, actor, id uint64, body dtos.
 	if err != nil || address.Address != strings.TrimSpace(body.Email) || strings.TrimSpace(body.Name) == "" || !validRole(body.Role) {
 		return dtos.UserView{}, apperrors.Wrap(apperrors.CodeInvalidRequest, nil)
 	}
+	companyIDs := append([]uint64(nil), body.CompanyIDs...)
+	slices.Sort(companyIDs)
+	if (body.Role == models.RoleAdmin && len(companyIDs) != 0) || (body.Role != models.RoleAdmin && len(companyIDs) == 0) {
+		return dtos.UserView{}, apperrors.Wrap(apperrors.CodeInvalidRequest, nil)
+	}
+	for i, companyID := range companyIDs {
+		if companyID == 0 || (i > 0 && companyID == companyIDs[i-1]) {
+			return dtos.UserView{}, apperrors.Wrap(apperrors.CodeInvalidRequest, nil)
+		}
+	}
 	hash := ""
 	if body.Password != "" {
 		if !security.ValidNewSystemPassword(body.Password) {
@@ -194,6 +209,11 @@ func (s *UserService) SaveUser(ctx context.Context, actor, id uint64, body dtos.
 	err = s.repository.Transaction(ctx, func(repo *repositories.Users) error {
 		if err := repo.LockUsers(ctx); err != nil {
 			return err
+		}
+		if len(companyIDs) > 0 {
+			if err := repo.ValidateCompanies(ctx, companyIDs); err != nil {
+				return err
+			}
 		}
 		action := auditCreated
 		if id != 0 {
@@ -215,7 +235,7 @@ func (s *UserService) SaveUser(ctx context.Context, actor, id uint64, body dtos.
 		} else {
 			result.SessionVersion = initialSessionVersion
 		}
-		if id != 0 && (hash != "" || result.Role != body.Role || result.Active != body.Active) {
+		if id != 0 && (hash != "" || result.Role != body.Role || result.Active != body.Active || !slices.Equal(result.CompanyIDs, companyIDs)) {
 			result.SessionVersion++
 		}
 		if hash != "" {
@@ -234,6 +254,10 @@ func (s *UserService) SaveUser(ctx context.Context, actor, id uint64, body dtos.
 		if err != nil {
 			return err
 		}
+		if err := repo.ReplaceCompanyIDs(ctx, result.ID, companyIDs); err != nil {
+			return err
+		}
+		result.CompanyIDs = companyIDs
 		return repo.Audit(ctx, &actor, action, string(security.ResourceUsers), &result.ID)
 	})
 	return dtos.UserDTO(result), dbError(err)

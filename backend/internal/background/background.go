@@ -17,18 +17,20 @@ import (
 )
 
 type Workers struct {
-	callback  *services.CallbackWorker
-	mo        *services.MOWorker
-	retention *services.MaintenanceService
-	scheduled *services.ScheduledSMSWorker
-	pipeline  *services.DispatchPipeline
-	sender    *callback.Client
-	queue     *dispatchqueue.Client
-	days      int
+	callback         *services.CallbackWorker
+	mo               *services.MOWorker
+	retention        *services.MaintenanceService
+	messageRetention *services.MessageRetentionWorker
+	scheduled        *services.ScheduledSMSWorker
+	pipeline         *services.DispatchPipeline
+	sender           *callback.Client
+	queue            *dispatchqueue.Client
+	days             int
 }
 
 func New(ctx context.Context, cfg config.Config, db *gorm.DB, provider *whitelabel.Client, tokenVault *security.TokenVault, moVault *security.MOContentVault) (*Workers, error) {
 	w := &Workers{sender: callback.New(), days: cfg.MORetentionDays}
+	w.messageRetention = services.NewMessageRetentionWorker(repositories.NewSMSAttempts(db))
 	w.callback = services.NewCallbackWorker(repositories.NewCallbacks(db), w.sender)
 	if moVault.Enabled() {
 		w.mo = services.NewMOWorker(repositories.NewMOs(db), w.sender, moVault)
@@ -74,6 +76,9 @@ func (w *Workers) Run(ctx context.Context) {
 	}
 	if w.retention != nil {
 		start(func(ctx context.Context) { w.retention.RunRetention(ctx, w.days) })
+	}
+	if w.messageRetention != nil {
+		start(w.messageRetention.Run)
 	}
 	slog.Info("Callback worker started")
 	w.callback.Run(ctx)

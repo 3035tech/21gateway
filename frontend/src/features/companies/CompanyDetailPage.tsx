@@ -10,6 +10,7 @@ import { useUser } from '../auth/context'
 import { CredentialsPage } from '../credentials/CredentialsPage'
 import { CompanyForm } from './CompanyForm'
 import { getCompany } from './api'
+import { UsersPage } from '../users/UsersPage'
 
 export function CompanyDetailPage() {
   const { t } = useTranslation()
@@ -17,6 +18,7 @@ export function CompanyDetailPage() {
   const companyId = Number(id)
   const [editing, setEditing] = useState(false)
   const canEdit = useUser()?.role !== 'viewer'
+  const canViewUsers = useUser()?.role === 'admin'
   const query = useQuery({
     queryKey: ['admin', 'company', companyId],
     queryFn: ({ signal }) => getCompany(companyId, signal),
@@ -100,6 +102,11 @@ export function CompanyDetailPage() {
               companyName={query.data.name}
             />
           </section>
+          {canViewUsers ? (
+            <section aria-label={t('users.companyUsersTitle')}>
+              <UsersPage companyId={companyId} companyName={query.data.name} />
+            </section>
+          ) : null}
           {editing ? (
             <CompanyForm
               company={query.data}

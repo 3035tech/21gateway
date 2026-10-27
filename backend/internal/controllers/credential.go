@@ -18,6 +18,13 @@ func NewCredentialController(service *services.CredentialService, guard *Session
 	return &CredentialController{SessionGuard: guard, service: service}
 }
 func (c *CredentialController) Register(api huma.API) {
+	huma.Register(api, c.operation(api, "getCredential", http.MethodGet, "/credentials/{id}", "Consultar credencial", security.ResourceCredentials, security.ActionRead), func(ctx context.Context, input *dtos.IDInput) (*dtos.CredentialOutput, error) {
+		value, err := c.service.Credential(ctx, input.ID)
+		if err != nil {
+			return nil, HTTPError(err)
+		}
+		return &dtos.CredentialOutput{Body: value}, nil
+	})
 	huma.Register(api, c.operation(api, "listCredentials", http.MethodGet, "/credentials", "Listar credenciais", security.ResourceCredentials, security.ActionRead), func(ctx context.Context, input *dtos.ListQuery) (*dtos.CredentialsOutput, error) {
 		values, err := c.service.Credentials(ctx, *input)
 		if err != nil {

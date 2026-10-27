@@ -38,6 +38,9 @@ type SMSAttempt struct {
 	FailureCode       apperrors.Code
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
+	ContentRef        *string
+	EncryptedMessage  string
+	ContentPurgedAt   *time.Time
 }
 
 func (SMSAttempt) TableName() string { return "sms_attempts" }

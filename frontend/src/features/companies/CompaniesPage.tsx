@@ -16,6 +16,7 @@ export function CompaniesPage() {
   const { t } = useTranslation()
   const user = useUser()
   const writable = user?.role !== 'viewer'
+  const canCreate = user?.role === 'admin'
   const [editor, setEditor] = useState<Company | null | undefined>()
   const [archive, setArchive] = useState<Company | null>(null)
   const mutation = useAdminMutation(archiveCompany, () => setArchive(null))
@@ -85,7 +86,7 @@ export function CompaniesPage() {
         queryKey="companies"
         columns={columns}
         load={listCompanies}
-        onCreate={writable ? () => setEditor(null) : undefined}
+        onCreate={canCreate ? () => setEditor(null) : undefined}
         createLabel={t('companies.new')}
         filterName="active"
         filterOptions={[

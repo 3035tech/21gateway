@@ -132,6 +132,7 @@
     "passwordMinimumTrimmed": "Use at least 15 characters, excluding spaces at the ends.",
     "passwordDifferent": "Choose a password different from your current one.",
     "selectCompany": "Select a company.",
+    "companyAccess": "Select at least one company for this role and do not repeat assignments.",
     "invalidUsername": "Invalid username.",
     "invalidToken": "Invalid token.",
     "httpsUrl": "Use a valid HTTPS URL.",
@@ -200,6 +201,11 @@
   },
   "messages": {
     "description": "Provider acceptance and delivery are separate steps. Do not automatically retry uncertain results.",
+    "contentLabel": "Message text",
+    "content": {
+      "expired": "Text removed after 90 days.",
+      "unavailable": "Text unavailable for this message recorded before retention."
+    },
     "pending": "Pending",
     "accepted": "Accepted",
     "rejected": "Rejected",
@@ -284,13 +290,18 @@
     "activePlural": "Active",
     "blockedPlural": "Blocked",
     "archiveTitle": "Archive user",
-    "archiveDescription": "Archiving {{name}} will end their sessions. History will be retained."
+    "archiveDescription": "Archiving {{name}} will end their sessions. History will be retained.",
+    "companyAccess": "Authorized companies",
+    "companyAccessHint": "This user can only see the selected companies and data linked to them.",
+    "companyUsersTitle": "Linked users",
+    "companyUsersDescription": "Operator and read only users with access to {{name}}. Administrators have global access and are not shown here.",
+    "removeCompany": "Remove company #{{id}}"
   },
   "credentials": {
     "editTitle": "Edit credential",
     "newTitle": "New API credential",
     "formDescription": "Configure client access, message sending, and notification destinations.",
-    "clientAccess": "Client access",
+    "clientAccess": "Client access · Basic Auth",
     "searchCompany": "Search company",
     "companySearchPlaceholder": "Name or reference",
     "loadingCompanies": "Loading companies…",
@@ -350,9 +361,12 @@
     "secretHint": "The password is shown only now. Keep it safe before closing.",
     "username": "Username",
     "savedPassword": "I have saved the password",
-    "generateUsername": "Generate random username",
+    "generateUsername": "Generate random Basic Auth username",
+    "basicAuthHint": "This username and password authenticate the client on /v1 endpoints with HTTP Basic Auth. They are separate from the Zoug provider sending token.",
+    "generatedUsernamePlaceholder": "Generated on save",
+    "passwordStoredHint": "The Basic Auth password is already set and cannot be displayed again. To replace it, use Change API password in the list and update the client's integration.",
     "generatedUsernameHint": "A unique username will be generated and shown after saving.",
-    "passwordSetup": "Credential password",
+    "passwordSetup": "API Basic Auth password",
     "passwordMode": {
       "generated": "Generate random password",
       "manual": "Set password manually",
@@ -457,6 +471,7 @@
     "disclaimer": "The connection check does not confirm message sending or delivery."
   },
   "demo": {
+    "sampleMessage": "Hello! This is a sample message for {{company}}.",
     "simulatedOperation": "Simulated operation",
     "recentMessages": "Recent messages",
     "viewAll": "View all",
@@ -481,7 +496,8 @@
     "invitationSimulated": "Invitation simulated. No email was sent.",
     "recordSaved": "Record saved in the demo.",
     "viewRecord": "Record details",
-    "adminUsersGlobal": "Panel users are internal and are not linked to a company. The active technical API accounts in this preview are listed below.",
+    "adminUsersGlobal": "Administrators have global access. Operators and viewers can be linked to one or more companies. The API credentials below are technical accounts.",
+    "sampleSecretHint": "Sample password generated only for this preview. In the real panel, it is shown once after saving and used for API Basic Auth.",
     "archiveTitle": "Archive record",
     "archiveHint": "Archive {{name}}? This record will be removed from the preview list.",
     "archived": "Record archived in this preview.",
@@ -540,9 +556,9 @@
     "operator": "Operator",
     "viewer": "Read only",
     "adminDescription": "Manages users and access, reads the audit log, and can send a test message.",
-    "operatorDescription": "Manages companies and credentials, rotates API passwords, and retries failed callbacks.",
-    "viewerDescription": "Reads metrics, companies, credentials, messages, schedules, and callbacks.",
-    "globalAccess": "These roles are for internal staff and can view all companies."
+    "operatorDescription": "Manages data and credentials for linked companies, rotates API passwords, and retries failed callbacks.",
+    "viewerDescription": "Reads metrics, companies, credentials, messages, schedules, and callbacks for linked companies.",
+    "globalAccess": "Administrators have global access to all companies."
   },
   "errors": {
     "UNAUTHORIZED": "Your session has expired. Sign in again.",

@@ -102,6 +102,9 @@ export function CredentialForm({
             title={t('credentials.clientAccess')}
             icon={Building2}
           >
+            <p className="mb-4 text-sm leading-6 text-slate-600">
+              {t('credentials.basicAuthHint')}
+            </p>
             <div className="grid gap-5 sm:grid-cols-2">
               <div className="space-y-4">
                 {!selectedCompanyId ? (
@@ -174,24 +177,28 @@ export function CredentialForm({
                     {t('credentials.generateUsername')}
                   </label>
                 ) : null}
-                {!generateUsername ? (
-                  <label className="field">
-                    {t('common.apiUsername')}
-                    <input
-                      className="form-control"
-                      autoComplete="off"
-                      readOnly={!!credential}
-                      {...form.register('username')}
-                    />
-                    <FieldError
-                      message={form.formState.errors.username?.message}
-                    />
-                  </label>
-                ) : (
-                  <p className="text-xs leading-5 text-slate-500">
-                    {t('credentials.generatedUsernameHint')}
-                  </p>
-                )}
+                <label className="field">
+                  {t('common.apiUsername')}
+                  <input
+                    className="form-control"
+                    autoComplete="off"
+                    readOnly={!!credential || !!generateUsername}
+                    placeholder={
+                      generateUsername
+                        ? t('credentials.generatedUsernamePlaceholder')
+                        : undefined
+                    }
+                    {...form.register('username')}
+                  />
+                  <FieldError
+                    message={form.formState.errors.username?.message}
+                  />
+                  {generateUsername ? (
+                    <span className="text-xs font-normal leading-5 text-slate-500">
+                      {t('credentials.generatedUsernameHint')}
+                    </span>
+                  ) : null}
+                </label>
                 <label className="field">
                   {t('credentials.legacyId')}{' '}
                   <span className="-mt-1 text-xs font-normal text-slate-500">
@@ -209,7 +216,16 @@ export function CredentialForm({
                 </label>
               </div>
             </div>
-            {!credential ? (
+            {credential ? (
+              <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-sm font-semibold text-slate-900">
+                  {t('credentials.passwordSetup')}
+                </p>
+                <p className="mt-1 text-sm leading-6 text-slate-600">
+                  {t('credentials.passwordStoredHint')}
+                </p>
+              </div>
+            ) : (
               <div className="mt-5 space-y-4 border-t border-slate-100 pt-4">
                 <fieldset className="space-y-2">
                   <legend className="text-sm font-semibold">
@@ -278,7 +294,7 @@ export function CredentialForm({
                   </p>
                 )}
               </div>
-            ) : null}
+            )}
             <label className="mt-4 flex min-h-11 items-center gap-3 text-sm font-medium">
               <input
                 className="size-4 accent-brand-purple"

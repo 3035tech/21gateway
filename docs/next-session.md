@@ -1,5 +1,7 @@
 # Ponto de retomada — 15/10/2026
 
+Atualização de 27/10/2026: aplicar migrações 018 (vínculos usuário/empresa) e 019 (histórico SMS cifrado) antes da imagem nova. Configurar chave independente `SMS_HISTORY_CONTENT_KEY` em segredo de produção; a API falha ao iniciar sem ela. O conteúdo novo fica visível somente no detalhe administrativo por até 90 dias; histórico antigo não contém texto. O worker integrado expurga em lotes. Confirmar coleta/backup de chaves e política de acesso antes do deployment; nenhum SMS real foi enviado.
+
 ## Estado atual
 
 Go/React com camadas por domínio, credenciais externas preserváveis, tokens criptografados por conta, whitelist e URLs separadas DLR/MO. Envio imediato unitário/lote até 200 e limitador compartilhado PostgreSQL. Normalização de acentos/emojis implementada; regra do nono dígito ainda aguarda corte e exemplos completos.

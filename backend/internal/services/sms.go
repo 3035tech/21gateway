@@ -17,6 +17,8 @@ import (
 	apperrors "github.com/21mobile/sms-gateway/internal/errors"
 	"github.com/21mobile/sms-gateway/internal/integrations/whitelabel"
 	"github.com/21mobile/sms-gateway/internal/models"
+	"github.com/21mobile/sms-gateway/internal/security"
+	"github.com/google/uuid"
 )
 
 const (
@@ -49,10 +51,26 @@ type SMSService struct {
 	repository AttemptRepository
 	provider   SMSProvider
 	limits     sync.Map
+	history    *security.SMSHistoryVault
 }
 
 func NewSMSService(repository AttemptRepository, provider SMSProvider) *SMSService {
 	return &SMSService{repository: repository, provider: provider}
+}
+func (s *SMSService) SetHistoryVault(vault *security.SMSHistoryVault) { s.history = vault }
+
+func (s *SMSService) encryptAttempt(attempt *models.SMSAttempt, message string) error {
+	if s.history == nil {
+		return nil
+	}
+	reference := uuid.NewString()
+	encrypted, err := s.history.Encrypt(attempt.CredentialID, reference, message)
+	if err != nil {
+		return err
+	}
+	attempt.ContentRef = &reference
+	attempt.EncryptedMessage = encrypted
+	return nil
 }
 
 func (s *SMSService) Send(ctx context.Context, credentialID uint64, messages []dtos.LegacySMS) ([]dtos.LegacySendResult, error) {
@@ -102,6 +120,9 @@ func (s *SMSService) Send(ctx context.Context, credentialID uint64, messages []d
 	attempt := models.SMSAttempt{CredentialID: credentialID, Destination: brazilCountryCode + input.Destination, CorrelationID: input.CorrelationID, Encoding: encoding, State: models.SubmissionPending}
 	if credential, ok := CredentialFromContext(ctx); ok && credential.ID == credentialID {
 		attempt.CompanyID = credential.CompanyID
+	}
+	if err := s.encryptAttempt(&attempt, input.MessageText); err != nil {
+		return nil, err
 	}
 	if err := s.repository.Create(ctx, &attempt); err != nil {
 		return nil, apperrors.Wrap(apperrors.CodeServiceUnavailable, err)

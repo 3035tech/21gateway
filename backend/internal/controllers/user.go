@@ -19,6 +19,13 @@ func NewUserController(service *services.UserService, guard *SessionGuard) *User
 	return &UserController{SessionGuard: guard, service: service}
 }
 func (c *UserController) Register(api huma.API) {
+	huma.Register(api, c.operation(api, "getUser", http.MethodGet, "/users/{id}", "Consultar usuário", security.ResourceUsers, security.ActionRead), func(ctx context.Context, input *dtos.IDInput) (*dtos.UserOutput, error) {
+		value, err := c.service.User(ctx, input.ID)
+		if err != nil {
+			return nil, HTTPError(err)
+		}
+		return &dtos.UserOutput{Body: value}, nil
+	})
 	changePassword := c.operation(api, "changeOwnPassword", http.MethodPost, "/auth/password", "Trocar a própria senha", "", security.ActionRead)
 	changePassword.DefaultStatus = http.StatusNoContent
 	huma.Register(api, changePassword, func(ctx context.Context, input *dtos.ChangeOwnPasswordInput) (*struct{}, error) {

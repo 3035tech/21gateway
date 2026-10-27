@@ -20,7 +20,7 @@ func NewUserInvitationController(service *services.UserRecoveryService, guard *S
 }
 func (c *UserInvitationController) Register(api huma.API) {
 	huma.Register(api, c.operation(api, "inviteUser", http.MethodPost, "/users/invite", "Convidar usuário interno", security.ResourceUsers, security.ActionWrite), func(ctx context.Context, input *dtos.InviteUserInput) (*dtos.UserOutput, error) {
-		user, err := c.service.Invite(ctx, actor(ctx), dtos.UserBody{Name: input.Body.Name, Email: input.Body.Email, Role: input.Body.Role, Active: input.Body.Active})
+		user, err := c.service.Invite(ctx, actor(ctx), dtos.UserBody{Name: input.Body.Name, Email: input.Body.Email, Role: input.Body.Role, Active: input.Body.Active, CompanyIDs: input.Body.CompanyIDs})
 		if err != nil {
 			return nil, HTTPError(err)
 		}

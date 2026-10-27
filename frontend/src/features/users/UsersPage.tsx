@@ -1,6 +1,7 @@
 import { DateCell } from '../../components/admin/DateCell'
 import { useState } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Listing } from '../../components/admin/Listing'
 import { StatusBadge } from '../../components/admin/StatusBadge'
@@ -8,13 +9,27 @@ import { Confirmation } from '../../components/admin/Confirmation'
 import { useAdminMutation } from '../../components/admin/useAdminMutation'
 import { useUser } from '../auth/context'
 import { errorMessage, roleLabels } from '../../lib/admin'
-import { listUsers, archiveUser, resendInvitation } from './api'
+import { listUsers, getUser, archiveUser, resendInvitation } from './api'
 import type { SystemUser } from './api'
 import { UserForm } from './UserForm'
 import { useTranslation } from 'react-i18next'
 import { RecordDetailsDialog } from '../../components/admin/RecordDetailsDialog'
-export function UsersPage() {
+export function UsersPage({
+  companyId,
+  companyName,
+}: { companyId?: number; companyName?: string } = {}) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const fromCompany = searchParams.get('fromCompany')
+  const { recordId } = useParams()
+  const linkedRecordId = Number(recordId)
+  const linkedRecord = useQuery({
+    queryKey: ['admin', 'user', linkedRecordId],
+    queryFn: ({ signal }) => getUser(linkedRecordId, signal),
+    enabled:
+      !!recordId && Number.isSafeInteger(linkedRecordId) && linkedRecordId > 0,
+  })
   const user = useUser()
   const writable = user?.role === 'admin'
   const [editor, setEditor] = useState<SystemUser | null | undefined>()
@@ -28,7 +43,21 @@ export function UsersPage() {
   })
   const columns: ColumnDef<SystemUser>[] = [
     { accessorKey: 'id', header: 'ID' },
-    { accessorKey: 'name', header: t('common.name') },
+    {
+      accessorKey: 'name',
+      header: t('common.name'),
+      cell: ({ row }) =>
+        companyId ? (
+          <Link
+            className="font-semibold text-brand-purple underline-offset-2 hover:underline"
+            to={`/usuarios/${row.original.id}?fromCompany=${companyId}`}
+          >
+            {row.original.name}
+          </Link>
+        ) : (
+          row.original.name
+        ),
+    },
     { accessorKey: 'email', header: t('common.email') },
     {
       accessorKey: 'role',
@@ -108,10 +137,16 @@ export function UsersPage() {
         </p>
       ) : null}
       <Listing
-        title={t('nav.users')}
-        description={t('users.description')}
+        title={companyId ? t('users.companyUsersTitle') : t('nav.users')}
+        description={
+          companyId
+            ? t('users.companyUsersDescription', { name: companyName })
+            : t('users.description')
+        }
         searchPlaceholder={t('users.searchPlaceholder')}
         queryKey="users"
+        fixedCompanyId={companyId}
+        headingLevel={companyId ? 2 : 1}
         columns={columns}
         load={listUsers}
         onCreate={writable ? () => setEditor(null) : undefined}
@@ -125,25 +160,59 @@ export function UsersPage() {
       {editor !== undefined ? (
         <UserForm
           user={editor ?? undefined}
+          initialCompanyId={companyId}
           onClose={() => setEditor(undefined)}
         />
       ) : null}
-      {viewing ? (
+      {recordId && linkedRecord.isError ? (
+        <p role="alert" className="mt-4 text-rose-700">
+          {errorMessage(linkedRecord.error)}
+        </p>
+      ) : null}
+      {(viewing ?? linkedRecord.data) ? (
         <RecordDetailsDialog
-          title={viewing.name}
-          onClose={() => setViewing(null)}
+          title={(viewing ?? linkedRecord.data)!.name}
+          onClose={() => {
+            if (viewing) setViewing(null)
+            else
+              navigate(fromCompany ? `/empresas/${fromCompany}` : '/usuarios')
+          }}
           fields={[
-            { label: 'ID', value: viewing.id },
-            { label: t('common.name'), value: viewing.name },
-            { label: t('common.email'), value: viewing.email },
-            { label: t('roles.label'), value: t(roleLabels[viewing.role]) },
+            { label: 'ID', value: (viewing ?? linkedRecord.data)!.id },
+            {
+              label: t('common.name'),
+              value: (viewing ?? linkedRecord.data)!.name,
+            },
+            {
+              label: t('common.email'),
+              value: (viewing ?? linkedRecord.data)!.email,
+            },
+            {
+              label: t('roles.label'),
+              value: t(roleLabels[(viewing ?? linkedRecord.data)!.role]),
+            },
+            {
+              label: t('users.companyAccess'),
+              value:
+                (viewing ?? linkedRecord.data)!.role === 'admin'
+                  ? t('roles.globalAccess')
+                  : (viewing ?? linkedRecord.data)!.companyIds
+                      .map((id) => t('common.companyNumber', { id }))
+                      .join(', '),
+            },
             {
               label: t('common.status'),
-              value: t(viewing.active ? 'status.active' : 'status.blocked'),
+              value: t(
+                (viewing ?? linkedRecord.data)!.active
+                  ? 'status.active'
+                  : 'status.blocked',
+              ),
             },
             {
               label: t('common.createdAt'),
-              value: <DateCell value={viewing.createdAt} />,
+              value: (
+                <DateCell value={(viewing ?? linkedRecord.data)!.createdAt} />
+              ),
             },
           ]}
         />

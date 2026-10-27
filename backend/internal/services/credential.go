@@ -29,6 +29,10 @@ func (s *CredentialService) Credentials(ctx context.Context, q dtos.ListQuery) (
 	values, err := s.repository.Credentials(ctx, q)
 	return mapPage(values, dtos.CredentialDTO), dbError(err)
 }
+func (s *CredentialService) Credential(ctx context.Context, id uint64) (dtos.CredentialView, error) {
+	value, err := s.repository.CredentialView(ctx, id)
+	return dtos.CredentialDTO(value), dbError(err)
+}
 func ValidateCallbackURL(raw string) bool {
 	if raw == "" {
 		return true

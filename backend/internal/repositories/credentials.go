@@ -18,6 +18,12 @@ func (r *Credentials) FindByUsername(ctx context.Context, username string) (mode
 	return result, err
 }
 func (r *Credentials) Create(ctx context.Context, credential *models.APICredential) error {
+	if credential.CompanyID == nil {
+		return requireCompany(ctx, 0)
+	}
+	if err := requireCompany(ctx, *credential.CompanyID); err != nil {
+		return err
+	}
 	return r.db.WithContext(ctx).Create(credential).Error
 }
 
@@ -34,8 +40,13 @@ func (r *Credentials) ForTestSend(ctx context.Context, id uint64) (models.APICre
 	err := r.credentialQuery(ctx).Where("api_credentials.id = ?", id).First(&credential).Error
 	return credential, err
 }
+func (r *Credentials) CredentialView(ctx context.Context, id uint64) (models.APICredential, error) {
+	var credential models.APICredential
+	err := r.credentialQuery(ctx).Where("api_credentials.id = ?", id).First(&credential).Error
+	return credential, err
+}
 func (r *Credentials) credentialQuery(ctx context.Context) *gorm.DB {
-	return r.db.WithContext(ctx).Model(&models.APICredential{}).Select("api_credentials.*, companies.name AS company_name, companies.active AS company_active").Joins("LEFT JOIN companies ON companies.id = api_credentials.company_id").Where("api_credentials.archived_at IS NULL")
+	return scopedCompanies(r.db.WithContext(ctx).Model(&models.APICredential{}).Select("api_credentials.*, companies.name AS company_name, companies.active AS company_active").Joins("LEFT JOIN companies ON companies.id = api_credentials.company_id").Where("api_credentials.archived_at IS NULL"), ctx, "api_credentials.company_id")
 }
 func (r *Credentials) Credentials(ctx context.Context, q dtos.ListQuery) (dtos.Page[models.APICredential], error) {
 	result := dtos.Page[models.APICredential]{Items: []models.APICredential{}, Page: q.Page, PageSize: q.PageSize}

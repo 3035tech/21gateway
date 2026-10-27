@@ -6,6 +6,7 @@ export type DemoRow = {
   company: string
   status: string
   date: string
+  companyAccess?: string[]
 }
 export type Section =
   | 'empresas'
@@ -151,6 +152,12 @@ export const initialRows: Record<Section, DemoRow[]> = Object.fromEntries(
             key === 'usuarios'
               ? ['admin', 'operator', 'viewer'][i % 3]
               : company,
+          companyAccess:
+            key === 'usuarios' && i % 3 !== 0
+              ? i === 1
+                ? [company, companies[0]]
+                : [company]
+              : [],
           status,
           date:
             key === 'agendamentos'

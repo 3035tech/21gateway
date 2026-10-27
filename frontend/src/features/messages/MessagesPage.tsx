@@ -2,11 +2,71 @@ import { DateCell } from '../../components/admin/DateCell'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Listing } from '../../components/admin/Listing'
 import { StatusBadge } from '../../components/admin/StatusBadge'
-import { listMessages } from './api'
+import { listMessages, getMessageContent } from './api'
 import type { Message } from './api'
 import { useTranslation } from 'react-i18next'
 import { useState } from 'react'
 import { RecordDetailsDialog } from '../../components/admin/RecordDetailsDialog'
+import { useQuery } from '@tanstack/react-query'
+import { errorMessage } from '../../lib/admin'
+
+function MessageDetails({
+  message,
+  onClose,
+}: {
+  message: Message
+  onClose: () => void
+}) {
+  const { t } = useTranslation()
+  const content = useQuery({
+    queryKey: ['admin', 'message-content', message.id],
+    queryFn: ({ signal }) => getMessageContent(message.id, signal),
+    gcTime: 0,
+    staleTime: 0,
+  })
+  const contentValue = content.isPending ? (
+    t('common.loading')
+  ) : content.isError ? (
+    errorMessage(content.error)
+  ) : content.data.state === 'available' ? (
+    <span className="whitespace-pre-wrap">{content.data.messageText}</span>
+  ) : (
+    t(`messages.content.${content.data.state}`)
+  )
+  return (
+    <RecordDetailsDialog
+      title={t('common.messageId')}
+      onClose={onClose}
+      fields={[
+        { label: t('common.messageId'), value: message.id },
+        {
+          label: t('common.company'),
+          value: message.companyName || message.companyId,
+        },
+        { label: t('common.destination'), value: message.destination },
+        { label: t('common.reference'), value: message.correlationId },
+        {
+          label: t('common.sending'),
+          value: <StatusBadge status={message.state} />,
+        },
+        {
+          label: t('common.delivery'),
+          value: message.deliveryStatus ? (
+            <StatusBadge status={message.deliveryStatus} />
+          ) : (
+            t('common.unconfirmed')
+          ),
+        },
+        { label: t('common.failureCode'), value: message.failureCode },
+        {
+          label: t('common.createdAt'),
+          value: <DateCell value={message.createdAt} />,
+        },
+        { label: t('messages.contentLabel'), value: contentValue, wide: true },
+      ]}
+    />
+  )
+}
 export function MessagesPage() {
   const { t } = useTranslation()
   const [viewing, setViewing] = useState<Message | null>(null)
@@ -79,36 +139,7 @@ export function MessagesPage() {
         ]}
       />
       {viewing ? (
-        <RecordDetailsDialog
-          title={t('common.messageId')}
-          onClose={() => setViewing(null)}
-          fields={[
-            { label: t('common.messageId'), value: viewing.id },
-            {
-              label: t('common.company'),
-              value: viewing.companyName || viewing.companyId,
-            },
-            { label: t('common.destination'), value: viewing.destination },
-            { label: t('common.reference'), value: viewing.correlationId },
-            {
-              label: t('common.sending'),
-              value: <StatusBadge status={viewing.state} />,
-            },
-            {
-              label: t('common.delivery'),
-              value: viewing.deliveryStatus ? (
-                <StatusBadge status={viewing.deliveryStatus} />
-              ) : (
-                t('common.unconfirmed')
-              ),
-            },
-            { label: t('common.failureCode'), value: viewing.failureCode },
-            {
-              label: t('common.createdAt'),
-              value: <DateCell value={viewing.createdAt} />,
-            },
-          ]}
-        />
+        <MessageDetails message={viewing} onClose={() => setViewing(null)} />
       ) : null}
     </>
   )

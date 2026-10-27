@@ -146,6 +146,11 @@ const secretSchema = z.object({
 })
 export const listCredentials = (params: ListParams, signal?: AbortSignal) =>
   list('credentials', credentialSchema, params, signal)
+export async function getCredential(id: number, signal?: AbortSignal) {
+  return credentialSchema.parse(
+    (await api.get(`/admin/credentials/${id}`, { signal })).data,
+  )
+}
 export async function saveCredential(
   id: number | undefined,
   body: CredentialBody,

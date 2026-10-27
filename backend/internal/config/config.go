@@ -28,6 +28,9 @@ type Config struct {
 	ScheduledContentKey      string `env:"SCHEDULED_CONTENT_KEY"`
 	ScheduledActiveKeyID     string `env:"SCHEDULED_ACTIVE_KEY_ID"`
 	ScheduledEncryptionKeys  string `env:"SCHEDULED_ENCRYPTION_KEYS"`
+	SMSHistoryContentKey     string `env:"SMS_HISTORY_CONTENT_KEY"`
+	SMSHistoryActiveKeyID    string `env:"SMS_HISTORY_ACTIVE_KEY_ID"`
+	SMSHistoryEncryptionKeys string `env:"SMS_HISTORY_ENCRYPTION_KEYS"`
 	APIAuthenticationIPLimit int    `env:"API_AUTH_IP_LIMIT_PER_MINUTE" envDefault:"600"`
 	OperationsEnabled        bool   `env:"OPERATIONS_ENABLED" envDefault:"false"`
 	OperationsToken          string `env:"OPERATIONS_TOKEN"`
@@ -78,9 +81,9 @@ func Load() (Config, error) {
 	}
 	if cfg.RecoverySMTPHost != "" || cfg.RecoverySMTPPort != "" || cfg.RecoverySMTPUser != "" || cfg.RecoverySMTPPassword != "" || cfg.RecoverySMTPFrom != "" || cfg.PublicAppURL != "" {
 		app, err := url.Parse(cfg.PublicAppURL)
-		port,portErr:=strconv.Atoi(cfg.RecoverySMTPPort)
-		from,fromErr:=mail.ParseAddress(cfg.RecoverySMTPFrom)
-		if err != nil || app.Scheme != "https" || app.Host == "" || app.User != nil || app.RawQuery != "" || app.Fragment != "" || !smtpHost.MatchString(cfg.RecoverySMTPHost) || portErr!=nil || port<1 || port>65535 || cfg.RecoverySMTPUser == "" || cfg.RecoverySMTPPassword == "" || fromErr!=nil || from.Address!=cfg.RecoverySMTPFrom || strings.ContainsAny(cfg.RecoverySMTPUser+cfg.RecoverySMTPPassword, "\r\n") {
+		port, portErr := strconv.Atoi(cfg.RecoverySMTPPort)
+		from, fromErr := mail.ParseAddress(cfg.RecoverySMTPFrom)
+		if err != nil || app.Scheme != "https" || app.Host == "" || app.User != nil || app.RawQuery != "" || app.Fragment != "" || !smtpHost.MatchString(cfg.RecoverySMTPHost) || portErr != nil || port < 1 || port > 65535 || cfg.RecoverySMTPUser == "" || cfg.RecoverySMTPPassword == "" || fromErr != nil || from.Address != cfg.RecoverySMTPFrom || strings.ContainsAny(cfg.RecoverySMTPUser+cfg.RecoverySMTPPassword, "\r\n") {
 			return cfg, apperrors.Wrap(apperrors.CodeConfigurationInvalid, nil)
 		}
 	}
@@ -128,6 +131,9 @@ func Load() (Config, error) {
 	if _, err := cfg.MOVault(); err != nil {
 		return cfg, err
 	}
+	if _, err := cfg.SMSHistoryVault(); err != nil {
+		return cfg, err
+	}
 	return cfg, nil
 }
 
@@ -162,4 +168,11 @@ func (c Config) ScheduledVault() (*security.ScheduledContentVault, error) {
 		return nil, err
 	}
 	return security.NewScheduledContentVault(c.ScheduledContentKey, c.ScheduledActiveKeyID, keys)
+}
+func (c Config) SMSHistoryVault() (*security.SMSHistoryVault, error) {
+	keys, err := parseEncryptionKeys(c.SMSHistoryEncryptionKeys)
+	if err != nil {
+		return nil, err
+	}
+	return security.NewSMSHistoryVault(c.SMSHistoryContentKey, c.SMSHistoryActiveKeyID, keys)
 }

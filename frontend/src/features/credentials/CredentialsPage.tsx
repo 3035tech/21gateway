@@ -1,5 +1,7 @@
 import { DateCell } from '../../components/admin/DateCell'
 import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Listing } from '../../components/admin/Listing'
 import { StatusBadge } from '../../components/admin/StatusBadge'
@@ -7,7 +9,12 @@ import { Confirmation } from '../../components/admin/Confirmation'
 import { Dialog } from '../../components/admin/Dialog'
 import { useAdminMutation } from '../../components/admin/useAdminMutation'
 import { useUser } from '../auth/context'
-import { listCredentials, archiveCredential, rotateCredential } from './api'
+import {
+  listCredentials,
+  getCredential,
+  archiveCredential,
+  rotateCredential,
+} from './api'
 import type { Credential } from './api'
 import { CredentialForm } from './CredentialForm'
 import { CredentialTestDialog } from './CredentialTestDialog'
@@ -18,6 +25,17 @@ export function CredentialsPage({
   companyName,
 }: { companyId?: number; companyName?: string } = {}) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const fromCompany = searchParams.get('fromCompany')
+  const { recordId } = useParams()
+  const linkedRecordId = Number(recordId)
+  const linkedRecord = useQuery({
+    queryKey: ['admin', 'credential', linkedRecordId],
+    queryFn: ({ signal }) => getCredential(linkedRecordId, signal),
+    enabled:
+      !!recordId && Number.isSafeInteger(linkedRecordId) && linkedRecordId > 0,
+  })
   const role = useUser()?.role
   const writable = role !== 'viewer'
   const canTest = role === 'admin'
@@ -35,6 +53,21 @@ export function CredentialsPage({
     password: string
   } | null>(null)
   const [testCredential, setTestCredential] = useState<Credential | null>(null)
+  const [openedAt] = useState(() => Date.now())
+  const linkedCredential = linkedRecord.data
+  const activeViewing =
+    viewing ??
+    (linkedCredential
+      ? {
+          credential: linkedCredential,
+          status: !linkedCredential.active
+            ? ('blocked' as const)
+            : linkedCredential.expiresAt &&
+                new Date(linkedCredential.expiresAt).getTime() <= openedAt
+              ? ('expired' as const)
+              : ('active' as const),
+        }
+      : null)
   const mutation = useAdminMutation<{
     credential: Credential
     rotate: boolean
@@ -52,7 +85,21 @@ export function CredentialsPage({
   )
   const columns: ColumnDef<Credential>[] = [
     { accessorKey: 'id', header: 'ID' },
-    { accessorKey: 'username', header: t('common.apiUsername') },
+    {
+      accessorKey: 'username',
+      header: t('common.apiUsername'),
+      cell: ({ row }) =>
+        companyId ? (
+          <Link
+            className="font-semibold text-brand-purple underline-offset-2 hover:underline"
+            to={`/credenciais/${row.original.id}?fromCompany=${companyId}`}
+          >
+            {row.original.username}
+          </Link>
+        ) : (
+          row.original.username
+        ),
+    },
     { accessorKey: 'companyName', header: t('common.company') },
     {
       accessorKey: 'providerTokenConfigured',
@@ -225,60 +272,74 @@ export function CredentialsPage({
           onSecret={(username, password) => setSecret({ username, password })}
         />
       ) : null}
-      {viewing ? (
+      {recordId && linkedRecord.isError ? (
+        <p role="alert" className="mt-4 text-rose-700">
+          {t('app.notFoundTitle')}
+        </p>
+      ) : null}
+      {activeViewing ? (
         <RecordDetailsDialog
-          title={viewing.credential.username}
-          onClose={() => setViewing(null)}
+          title={activeViewing.credential.username}
+          onClose={() => {
+            if (viewing) setViewing(null)
+            else
+              navigate(
+                fromCompany ? `/empresas/${fromCompany}` : '/credenciais',
+              )
+          }}
           fields={[
-            { label: 'ID', value: viewing.credential.id },
+            { label: 'ID', value: activeViewing.credential.id },
             {
               label: t('common.company'),
-              value: viewing.credential.companyName,
+              value: activeViewing.credential.companyName,
             },
             {
               label: t('common.apiUsername'),
-              value: viewing.credential.username,
+              value: activeViewing.credential.username,
             },
-            { label: t('common.status'), value: t(`status.${viewing.status}`) },
+            {
+              label: t('common.status'),
+              value: t(`status.${activeViewing.status}`),
+            },
             {
               label: t('credentials.expiresAt'),
-              value: viewing.credential.expiresAt ? (
-                <DateCell value={viewing.credential.expiresAt} />
+              value: activeViewing.credential.expiresAt ? (
+                <DateCell value={activeViewing.credential.expiresAt} />
               ) : (
                 t('credentials.noExpiry')
               ),
             },
             {
               label: t('credentials.legacyId'),
-              value: viewing.credential.legacyAccountId,
+              value: activeViewing.credential.legacyAccountId,
             },
             {
               label: t('credentials.providerToken'),
-              value: viewing.credential.providerTokenConfigured
+              value: activeViewing.credential.providerTokenConfigured
                 ? t('credentials.tokenConfigured')
                 : t('credentials.noToken'),
             },
             {
               label: t('credentials.ipAccess'),
-              value: viewing.credential.whitelistEnabled
-                ? viewing.credential.allowedIPs.join(', ')
+              value: activeViewing.credential.whitelistEnabled
+                ? activeViewing.credential.allowedIPs.join(', ')
                 : t('credentials.unrestricted'),
             },
             {
               label: 'DLR',
-              value: viewing.credential.callbacksEnabled
-                ? viewing.credential.callbackUrl
+              value: activeViewing.credential.callbacksEnabled
+                ? activeViewing.credential.callbackUrl
                 : t('credentials.disabled'),
             },
             {
               label: 'MO',
-              value: viewing.credential.moCallbacksEnabled
-                ? viewing.credential.moCallbackUrl
+              value: activeViewing.credential.moCallbacksEnabled
+                ? activeViewing.credential.moCallbackUrl
                 : t('credentials.disabled'),
             },
             {
               label: t('common.createdAt'),
-              value: <DateCell value={viewing.credential.createdAt} />,
+              value: <DateCell value={activeViewing.credential.createdAt} />,
             },
           ]}
         />

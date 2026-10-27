@@ -1,5 +1,17 @@
 # Estado da implementação
 
+## Escopo administrativo e histórico de SMS — 27/10/2026
+
+Administradores têm acesso global, sem vínculo de empresa; usuários `operator` e `viewer` exigem uma ou mais empresas ativas e suas consultas ficam restritas a elas no backend. Alterar vínculos revoga sessões antigas. A migração 018 cria os vínculos. A prévia exibe “Lembrar de mim”; o login real já possui essa opção, restrita à sessão `/admin`.
+
+Na visão da empresa, nomes de credenciais e usuários são links para detalhes em URL própria com consulta GET do registro, e o fechamento retorna à empresa de origem. Os links da prévia seguem o mesmo fluxo com dados fictícios.
+
+O formulário de credencial identifica explicitamente usuário e senha como HTTP Basic Auth dos endpoints `/v1`, separados do token Zoug. A senha pode ser gerada, manual ou legada na criação, é armazenada como hash e só aparece quando gerada ou rotacionada. A edição mostra que ela já existe e orienta a troca pela ação própria; teste PostgreSQL confirma autenticação com senhas gerada e manual.
+
+Validação local: build Go dos comandos API/admin/maintenance, `go test -race ./...` com PostgreSQL, `go vet ./...`, frontend lint/build/20 testes e `docker compose config --quiet` passaram. A prévia no Chrome confirmou links de credencial/usuário, retorno à empresa, campo “Lembrar de mim”, texto fictício do SMS e opções Basic Auth. A suíte precisou ser repetida após falta temporária de espaço no Docker; a segunda execução passou. Nenhum fornecedor, SQS ou SMS real foi exercitado.
+
+O painel permite visualizar o texto de novos envios na ação Visualizar. O texto normalizado é cifrado com chave exclusiva de histórico SMS, armazenado separado dos metadados e não entra na listagem nem nos endpoints legados. A migração 019 acrescenta os campos; envios anteriores continuam sem texto recuperável. O endpoint exige sessão, permissão de mensagens e escopo de empresa. Após 90 dias do envio (ou da data agendada, se ainda não despachado), a API deixa de mostrar o conteúdo e um worker no mesmo processo expurga o ciphertext em lotes. Não houve envio SMS real nesta validação. Configurar `SMS_HISTORY_CONTENT_KEY` ou keyring equivalente antes de iniciar o backend novo; preservar chaves antigas até expurgar todo conteúdo cifrado por elas.
+
 ## Atualização de 27/10/2026 — contas administrativas
 
 Cadastro de usuários internos pela tela agora envia convite por e-mail para definição da senha; suporta vários administradores e perfis admin/operator/viewer. Perfil permite troca da própria senha, MFA TOTP com QR code e códigos de recuperação. Login oferece “Lembrar de mim”; recuperação por e-mail exige MFA se ativo. Migrações 015/016 e configuração SMTP/chave MFA em [admin-security.md](admin-security.md). Sessões `/admin` são independentes da autenticação Basic Auth dos endpoints `/v1` de SMS. Portal de clientes ainda não implementado.

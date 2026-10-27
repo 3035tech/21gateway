@@ -94,7 +94,19 @@ export default function AdminApp() {
                       </AdminOnly>
                     }
                   />
+                  <Route
+                    path="/usuarios/:recordId"
+                    element={
+                      <AdminOnly>
+                        <Users />
+                      </AdminOnly>
+                    }
+                  />
                   <Route path="/credenciais" element={<Credentials />} />
+                  <Route
+                    path="/credenciais/:recordId"
+                    element={<Credentials />}
+                  />
                   <Route path="/envios" element={<Messages />} />
                   <Route path="/agendamentos" element={<Schedules />} />
                   <Route path="/perfil" element={<Profile />} />

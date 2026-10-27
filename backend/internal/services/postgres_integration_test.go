@@ -34,13 +34,13 @@ func TestPostgresBackofficeAndOutbox(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = users.SaveUser(ctx, admin.ID, admin.ID, dtos.UserBody{Name: admin.Name, Email: admin.Email, Role: models.RoleViewer, Active: true})
-	assertCode(t, err, apperrors.CodeLastAdmin)
 	companies := NewCompanyService(repositories.NewCompanies(isolated))
 	company, err := companies.SaveCompany(ctx, admin.ID, 0, dtos.CompanyBody{Name: "Example", Reference: "REF", Active: true})
 	if err != nil {
 		t.Fatal(err)
 	}
+	_, err = users.SaveUser(ctx, admin.ID, admin.ID, dtos.UserBody{Name: admin.Name, Email: admin.Email, Role: models.RoleViewer, Active: true, CompanyIDs: []uint64{company.ID}})
+	assertCode(t, err, apperrors.CodeLastAdmin)
 	vault, err := security.NewTokenVault(base64.StdEncoding.EncodeToString([]byte(strings.Repeat("k", 32))))
 	if err != nil {
 		t.Fatal(err)
@@ -158,7 +158,7 @@ func TestPostgresBackofficeAndOutbox(t *testing.T) {
 	if err != nil || messages.Total != 3 || messages.Items[0].CompanyID == nil || *messages.Items[0].CompanyID != company.ID {
 		t.Fatal("history lost", err)
 	}
-	operator, err := users.SaveUser(ctx, admin.ID, 0, dtos.UserBody{Name: "Operator", Email: "operator@example.test", Role: models.RoleOperator, Active: true, Password: "another-strong-password"})
+	operator, err := users.SaveUser(ctx, admin.ID, 0, dtos.UserBody{Name: "Operator", Email: "operator@example.test", Role: models.RoleOperator, Active: true, Password: "another-strong-password", CompanyIDs: []uint64{company.ID}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -166,7 +166,7 @@ func TestPostgresBackofficeAndOutbox(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := users.SaveUser(ctx, admin.ID, operator.ID, dtos.UserBody{Name: operator.Name, Email: operator.Email, Role: operator.Role, Active: false}); err != nil {
+	if _, err := users.SaveUser(ctx, admin.ID, operator.ID, dtos.UserBody{Name: operator.Name, Email: operator.Email, Role: operator.Role, Active: false, CompanyIDs: []uint64{company.ID}}); err != nil {
 		t.Fatal(err)
 	}
 	_, err = users.SessionUser(ctx, operator.ID, logged.SessionVersion)
