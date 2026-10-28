@@ -40,6 +40,22 @@ func TestDecodeDocumentedCallbackTypes(t *testing.T) {
 	}
 }
 
+func TestDecodeLiveZougExamplesWithoutOptionalFields(t *testing.T) {
+	for _, raw := range []string{
+		`{"send_type":"SMS","message_id":"db7f4df3-5daf-4234-9c37-56c549c7876f","submit_status_code":"UNKNOWN_ERROR","submit_date":"2026-10-28T12:44:12.624Z","size":1,"callback_type":1}`,
+		`{"send_type":"SMS","message_id":"3c8ce10f-c9fc-4a36-b407-e944b5b9e537","reference_id":"","report_status":"DELIVRD","report_date":"2026-10-28T13:12:45.000Z","err":"120","esm_class":4,"callback_type":2}`,
+		`{"send_type":"SMS","message_id":"3c8ce10f-c9fc-4a36-b407-e944b5b9e537","reference_id":"","short_message":"Obrigado","report_date":"2026-10-28T13:14:08.000Z","esm_class":0,"callback_type":3}`,
+	} {
+		if _, err := DecodeCallback([]byte(raw)); err != nil {
+			t.Fatalf("live callback example rejected: %v", err)
+		}
+	}
+	input, err := NormalizeDeliveryCallback([]byte(`{"send_type":"SMS","message_id":"db7f4df3-5daf-4234-9c37-56c549c7876f","submit_status_code":"UNKNOWN_ERROR","submit_date":"2026-10-28T12:44:12.624Z","size":1,"callback_type":1}`))
+	if err != nil || input.Body.Status != models.DeliveryNotDelivered {
+		t.Fatalf("rejected submission was not classified: %+v %v", input, err)
+	}
+}
+
 func TestNormalizeOnlyKnownDeliveryStatuses(t *testing.T) {
 	for _, tc := range []struct {
 		code string
@@ -88,10 +104,8 @@ func TestDecodeRejectsMissingOrInvalidRequiredFields(t *testing.T) {
 		`null`,
 		strings.Replace(submissionPayload, `"send_type":"SMS"`, `"send_type":"MMS"`, 1),
 		strings.Replace(submissionPayload, `"message_id":"`+callbackMessageID+`"`, `"message_id":"invalid"`, 1),
-		strings.Replace(submissionPayload, `"reference_id":"147852",`, "", 1),
 		strings.Replace(submissionPayload, `"submit_date":"2024-01-15T10:30:00.000Z"`, `"submit_date":"2024-01-15T10:30:00-03:00"`, 1),
 		strings.Replace(deliveryPayload, `"esm_class":4`, `"esm_class":0`, 1),
-		strings.Replace(moPayload, `"source_addr":"5511999999999",`, "", 1),
 		deliveryPayload + deliveryPayload,
 		strings.Repeat("x", maximumCallbackBytes+1),
 	} {

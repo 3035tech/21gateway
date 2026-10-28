@@ -58,7 +58,7 @@ func DecodeCallback(raw []byte) (CallbackPayload, error) {
 		return CallbackPayload{}, ErrInvalidCallback
 	}
 	id, err := uuid.Parse(strings.TrimSpace(payload.MessageID))
-	if err != nil || id == uuid.Nil || payload.SendType != string(MessageTypeSMS) || payload.ReferenceID == nil {
+	if err != nil || id == uuid.Nil || payload.SendType != string(MessageTypeSMS) {
 		return CallbackPayload{}, ErrInvalidCallback
 	}
 	payload.MessageID = id.String()
@@ -72,7 +72,7 @@ func DecodeCallback(raw []byte) (CallbackPayload, error) {
 			return CallbackPayload{}, ErrInvalidCallback
 		}
 	case CallbackMO:
-		if payload.ShortMessage == nil || *payload.ShortMessage == "" || payload.SourceAddress == nil || *payload.SourceAddress == "" || payload.ESMClass == nil || parseCallbackTime(payload.ReportDate).IsZero() {
+		if payload.ShortMessage == nil || *payload.ShortMessage == "" || payload.ESMClass == nil || parseCallbackTime(payload.ReportDate).IsZero() {
 			return CallbackPayload{}, ErrInvalidCallback
 		}
 	default:
@@ -101,10 +101,14 @@ func NormalizeDeliveryCallback(raw []byte) (dtos.DeliveryInput, error) {
 	var occurredAt time.Time
 	switch payload.CallbackType {
 	case CallbackSubmission:
-		if payload.SubmitStatusCode != "ESME_ROK" {
+		switch payload.SubmitStatusCode {
+		case "ESME_ROK":
+			status = models.DeliverySent
+		case "UNKNOWN_ERROR":
+			status = models.DeliveryNotDelivered
+		default:
 			return input, ErrUnsupportedCallback
 		}
-		status = models.DeliverySent
 		occurredAt = parseCallbackTime(payload.SubmitDate)
 	case CallbackDelivery:
 		occurredAt = parseCallbackTime(payload.ReportDate)
