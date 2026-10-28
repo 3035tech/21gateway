@@ -57,7 +57,7 @@ Para os testes de integração com PostgreSQL local:
 docker compose --profile verification run --rm backend-test
 ```
 
-O serviço de teste usa schema isolado. Sem `TEST_DATABASE_URL`, a suíte de banco executada fora do Compose é pulada; resultados apenas de unidade não demonstram PostgreSQL real. Os workflows [backend](.github/workflows/backend.yml) e [frontend](.github/workflows/frontend.yml) validam as aplicações e publicam imagens no push de `main`.
+O serviço de teste usa schema isolado. Sem `TEST_DATABASE_URL`, a suíte de banco executada fora do Compose é pulada; resultados apenas de unidade não demonstram PostgreSQL real. O workflow de [backend](.github/workflows/backend.yml) inicia PostgreSQL 18 e exige a suíte de integração, incluindo isolamento entre duas empresas; o workflow de [frontend](.github/workflows/frontend.yml) valida a interface. Ambos publicam imagens no push de `main`.
 
 ## Configuração e operação
 
