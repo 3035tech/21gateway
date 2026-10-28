@@ -17,7 +17,6 @@ import (
 	"gorm.io/gorm"
 )
 
-const passwordResetLifetime = 15 * time.Minute
 const passwordResetTokenBytes = 32
 const passwordResetRequestLimit = 3
 const passwordResetIPLimit = 10
@@ -174,7 +173,11 @@ func (s *UserRecoveryService) issueToken(ctx context.Context, id uint64, purpose
 	}
 	token := hex.EncodeToString(raw)
 	hash := sha256.Sum256([]byte(token))
-	if err := s.repo.Store(ctx, id, hash[:], purpose, time.Now().UTC().Add(passwordResetLifetime)); err != nil {
+	lifetime := security.PasswordResetLifetime
+	if purpose == recoveryPurposeInvite {
+		lifetime = security.InvitationLifetime
+	}
+	if err := s.repo.Store(ctx, id, hash[:], purpose, time.Now().UTC().Add(lifetime)); err != nil {
 		return "", dbError(err)
 	}
 	return token, nil

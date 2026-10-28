@@ -10,6 +10,9 @@ import (
 	"net/mail"
 	"net/textproto"
 	"strings"
+	"time"
+
+	"github.com/21mobile/sms-gateway/internal/security"
 )
 
 type messageContent struct {
@@ -18,6 +21,7 @@ type messageContent struct {
 	title   string
 	intro   string
 	action  string
+	validity time.Duration
 	note    string
 }
 
@@ -27,6 +31,7 @@ var invitationMessage = messageContent{
 	title:   "Seu acesso começa aqui.",
 	intro:   "Seu acesso ao painel 21 Mobile foi criado. Defina uma senha para entrar com segurança.",
 	action:  "Definir minha senha",
+	validity: security.InvitationLifetime,
 	note:    "Se você não esperava este convite, pode ignorar esta mensagem.",
 }
 
@@ -36,6 +41,7 @@ var passwordResetMessage = messageContent{
 	title:   "Vamos recuperar seu acesso.",
 	intro:   "Recebemos um pedido para redefinir a senha da sua conta administrativa. Use o botão abaixo para escolher uma nova senha.",
 	action:  "Redefinir senha",
+	validity: security.PasswordResetLifetime,
 	note:    "Se você não solicitou a redefinição, ignore esta mensagem. Sua senha atual continuará válida.",
 }
 
@@ -62,7 +68,7 @@ var emailHTML = template.Must(template.New("email").Parse(`<!doctype html>
       </td></tr></table>
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:30px;background:#f8f4fa;border:1px solid #eee5f1;border-radius:10px;"><tr><td style="padding:17px 19px;">
         <p style="margin:0 0 5px;color:#540064;font-size:13px;font-weight:700;line-height:1.4;">Link pessoal e temporário</p>
-        <p style="margin:0;color:#5f5667;font-size:13px;line-height:1.55;">Expira em 15 minutos e pode ser usado uma única vez.</p>
+        <p style="margin:0;color:#5f5667;font-size:13px;line-height:1.55;">Expira em {{.Validity}} e pode ser usado uma única vez.</p>
       </td></tr></table>
       <p style="margin:25px 0 7px;color:#5f5667;font-size:13px;line-height:1.55;">Se o botão não abrir, copie este endereço no navegador:</p>
       <p style="margin:0;word-break:break-all;color:#720078;font-size:12px;line-height:1.65;"><a href="{{.Link}}" style="color:#720078;text-decoration:underline;">{{.Link}}</a></p>
@@ -78,9 +84,16 @@ var emailHTML = template.Must(template.New("email").Parse(`<!doctype html>
 func renderEmailHTML(link string, content messageContent) (string, error) {
 	var output bytes.Buffer
 	err := emailHTML.Execute(&output, struct {
-		Subject, Preheader, Eyebrow, Title, Intro, Action, Note, Link string
-	}{content.subject, content.intro, content.eyebrow, content.title, content.intro, content.action, content.note, link})
+		Subject, Preheader, Eyebrow, Title, Intro, Action, Validity, Note, Link string
+	}{content.subject, content.intro, content.eyebrow, content.title, content.intro, content.action, validityLabel(content.validity), content.note, link})
 	return output.String(), err
+}
+
+func validityLabel(duration time.Duration) string {
+	if duration < time.Hour {
+		return fmt.Sprintf("%d minutos", duration/time.Minute)
+	}
+	return fmt.Sprintf("%d horas", duration/time.Hour)
 }
 
 func renderMessage(from, to, link string, content messageContent) ([]byte, error) {
@@ -97,7 +110,7 @@ func renderMessage(from, to, link string, content messageContent) ([]byte, error
 	if err != nil {
 		return nil, err
 	}
-	plain := fmt.Sprintf("%s\n\n%s\n\n%s: %s\n\nO link expira em 15 minutos e pode ser usado uma única vez.\n\n%s\n", content.title, content.intro, content.action, link, content.note)
+	plain := fmt.Sprintf("%s\n\n%s\n\n%s: %s\n\nO link expira em %s e pode ser usado uma única vez.\n\n%s\n", content.title, content.intro, content.action, link, validityLabel(content.validity), content.note)
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
 	for _, part := range []struct{ kind, text string }{{"text/plain", plain}, {"text/html", html}} {

@@ -16,9 +16,10 @@ func TestEmailTemplatesIncludeAccessibleAlternatives(t *testing.T) {
 		name    string
 		content messageContent
 		button  string
+		validity string
 	}{
-		{"invitation", invitationMessage, "Definir minha senha"},
-		{"password reset", passwordResetMessage, "Redefinir senha"},
+		{"invitation", invitationMessage, "Definir minha senha", "24 horas"},
+		{"password reset", passwordResetMessage, "Redefinir senha", "15 minutos"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			message, err := renderMessage("gateway@example.com", "person@example.com", link, test.content)
@@ -47,7 +48,7 @@ func TestEmailTemplatesIncludeAccessibleAlternatives(t *testing.T) {
 					t.Fatal(err)
 				}
 				body := string(decoded)
-				if !strings.Contains(body, link) || !strings.Contains(body, test.button) || !strings.Contains(body, "15 minutos") {
+				if !strings.Contains(body, link) || !strings.Contains(body, test.button) || !strings.Contains(body, test.validity) {
 					t.Fatalf("missing action, link or expiration in %s part", expectedType)
 				}
 			}

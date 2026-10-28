@@ -95,6 +95,17 @@ func TestPostgresUserMFAEnrollmentAndRecovery(t *testing.T) {
 	mailer := &recoveryMailFake{tokens: make(chan string, 10)}
 	recovery := NewUserRecoveryService(repositories.NewUserRecovery(db), repositories.NewUsers(db), mfa, mailer)
 	recovery.SetUserService(users)
+	assertTokenLifetime := func(userID uint64, purpose string, lifetime time.Duration) {
+		t.Helper()
+		var token models.UserPasswordReset
+		if err := db.Where("user_id = ?", userID).First(&token).Error; err != nil {
+			t.Fatal(err)
+		}
+		remaining := time.Until(token.ExpiresAt)
+		if token.Purpose != purpose || remaining < lifetime-5*time.Second || remaining > lifetime {
+			t.Fatalf("purpose=%s remaining=%s, want %s", token.Purpose, remaining, lifetime)
+		}
+	}
 	if err := recovery.Request(ctx, "unknown@example.test"); err != nil || len(mailer.tokens) != 0 {
 		t.Fatal("unknown account disclosed", err)
 	}
@@ -102,6 +113,7 @@ func TestPostgresUserMFAEnrollmentAndRecovery(t *testing.T) {
 		t.Fatal("recovery request", err)
 	}
 	resetToken := mailer.next(t)
+	assertTokenLifetime(admin.ID, recoveryPurposeReset, security.PasswordResetLifetime)
 	if len(resetToken) != 64 {
 		t.Fatal("invalid reset token")
 	}
@@ -122,10 +134,12 @@ func TestPostgresUserMFAEnrollmentAndRecovery(t *testing.T) {
 		t.Fatal("invite", err)
 	}
 	oldToken := mailer.next(t)
+	assertTokenLifetime(invited.ID, recoveryPurposeInvite, security.InvitationLifetime)
 	if err := recovery.ResendInvitation(ctx, invited.ID); err != nil {
 		t.Fatal("resend", err)
 	}
 	invitationToken := mailer.next(t)
+	assertTokenLifetime(invited.ID, recoveryPurposeInvite, security.InvitationLifetime)
 	if invitationToken == oldToken {
 		t.Fatal("invitation token reused")
 	}
