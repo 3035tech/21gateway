@@ -13,6 +13,13 @@ import (
 type SMSAttempts struct{ db *gorm.DB }
 
 func NewSMSAttempts(db *gorm.DB) *SMSAttempts { return &SMSAttempts{db: db} }
+func (r *SMSAttempts) Submission(ctx context.Context, credentialID, sendID uint64) (models.SMSAttempt, error) {
+	var attempt models.SMSAttempt
+	err := r.db.WithContext(ctx).Model(&models.SMSAttempt{}).
+		Select("id,state,failure_code,delivery_status,created_at,dispatched_at").
+		Where("id=? AND credential_id=?", sendID, credentialID).First(&attempt).Error
+	return attempt, err
+}
 func (r *SMSAttempts) Create(ctx context.Context, attempt *models.SMSAttempt) error {
 	return r.db.WithContext(ctx).Create(attempt).Error
 }

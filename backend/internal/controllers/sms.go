@@ -34,7 +34,7 @@ func (c *SMSController) Register(api huma.API) {
 		Method:      http.MethodPost,
 		Path:        LegacySendPath,
 		Summary:     "Enviar SMS",
-		Description: "Aceita de 1 a 200 itens em sms, com resultado individual e ordem preservada. Texto encaminhado sem diacríticos e emojis, limitado a 160 caracteres na entrada. Aceite não confirma entrega. scheduledDate futuro pode ser aceito na fila local quando o scheduler estiver habilitado; OK confirma aceite, não envio ou entrega.",
+		Description: "Aceita de 1 a 200 itens em sms, com resultado individual e ordem preservada. Texto encaminhado sem diacríticos e emojis, limitado a 160 caracteres na entrada. No modo assíncrono, cada item válido é persistido e recebe id_sms antes da publicação da referência na SQS. OK confirma aceite para processamento; não confirma envio ao gateway nem entrega. O painel mostra o resultado de submissão; /v1/status lista somente eventos DLR. scheduledDate futuro define quando a referência poderá ser publicada.",
 		Tags:        []string{"SMS"},
 		// Preserve NOK per-item responses while Huma still handles JSON decoding and schema documentation.
 		SkipValidateBody: true,

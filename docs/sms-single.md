@@ -2,6 +2,8 @@
 
 # Envio simples unitário
 
+O envio síncrono descrito neste documento continua como modo legado. A implementação opt-in de aceite durável para todos os envios e fila SQS por `id_sms` está em [sms-send-queue.md](sms-send-queue.md); nesse modo a resposta não confirma aceite do fornecedor.
+
 ## Escopo desta etapa
 
 Uma mensagem imediata por requisição, preservando POST /v1/send e a lista sms do legado. O fornecedor recebe POST /api/send. Unitário significa um destinatário por chamada; não garante um único segmento físico ou uma única cobrança por SMS. Não há lotes, agendamento, saldo, MO ou consulta legada de status. O módulo interno de callbacks/outbox está em docs/backoffice.md; o envio não solicita DLR ao white label até homologar seu contrato.

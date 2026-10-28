@@ -20,6 +20,11 @@ const ScheduleLease = 30 * time.Second
 
 type ScheduledSMS struct {
 	DispatchBatchID  *string
+	PublishAfter     *time.Time
+	PublishToken     *string
+	PublishedAt      *time.Time
+	PublishAttempts  int
+	SendReference    bool
 	ID               uint64
 	AttemptID        uint64
 	CredentialID     uint64

@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"log/slog"
 	"strconv"
 	"time"
 
@@ -32,6 +33,14 @@ func NewScheduledSMSService(repo ScheduledQueueWriter, vault *security.Scheduled
 }
 func (s *ScheduledSMSService) SetHistoryVault(vault *security.SMSHistoryVault) { s.history = vault }
 func (s *ScheduledSMSService) Enqueue(ctx context.Context, credentialID uint64, messages []dtos.LegacySMS) ([]dtos.LegacySendResult, error) {
+	return s.enqueue(ctx, credentialID, messages, false)
+}
+
+// EnqueueAll persists immediate and future messages before any provider call.
+func (s *ScheduledSMSService) EnqueueAll(ctx context.Context, credentialID uint64, messages []dtos.LegacySMS) ([]dtos.LegacySendResult, error) {
+	return s.enqueue(ctx, credentialID, messages, true)
+}
+func (s *ScheduledSMSService) enqueue(ctx context.Context, credentialID uint64, messages []dtos.LegacySMS, allowImmediate bool) ([]dtos.LegacySendResult, error) {
 	if !s.vault.Enabled() {
 		return nil, apperrors.Wrap(apperrors.CodeServiceUnavailable, nil)
 	}
@@ -44,7 +53,11 @@ func (s *ScheduledSMSService) Enqueue(ctx context.Context, credentialID uint64, 
 	now := time.Now().UTC()
 	for i, input := range messages {
 		code := apperrors.CodeNone
-		if input.ScheduledDate == nil || *input.ScheduledDate <= now.Unix() || *input.ScheduledDate > maximumScheduleTimestamp {
+		if input.ScheduledDate != nil && *input.ScheduledDate != 0 {
+			if *input.ScheduledDate <= now.Unix() || *input.ScheduledDate > maximumScheduleTimestamp {
+				code = apperrors.CodeInvalidRequest
+			}
+		} else if !allowImmediate {
 			code = apperrors.CodeInvalidRequest
 		}
 		normalized, normalizationCode := prepareSMSText(input.MessageText)
@@ -65,8 +78,13 @@ func (s *ScheduledSMSService) Enqueue(ctx context.Context, credentialID uint64, 
 		if err != nil {
 			return nil, err
 		}
-		due := time.Unix(*input.ScheduledDate, 0).UTC()
-		attempt := models.SMSAttempt{CredentialID: credentialID, Destination: brazilCountryCode + input.Destination, CorrelationID: input.CorrelationID, Encoding: whitelabel.SelectEncoding(normalized), State: models.SubmissionPending, ScheduledAt: &due}
+		due := now
+		var scheduledAt *time.Time
+		if input.ScheduledDate != nil && *input.ScheduledDate != 0 {
+			due = time.Unix(*input.ScheduledDate, 0).UTC()
+			scheduledAt = &due
+		}
+		attempt := models.SMSAttempt{CredentialID: credentialID, Destination: brazilCountryCode + input.Destination, CorrelationID: input.CorrelationID, Encoding: whitelabel.SelectEncoding(normalized), State: models.SubmissionPending, ScheduledAt: scheduledAt}
 		if credential, ok := CredentialFromContext(ctx); ok && credential.ID == credentialID {
 			attempt.CompanyID = credential.CompanyID
 		}
@@ -79,7 +97,7 @@ func (s *ScheduledSMSService) Enqueue(ctx context.Context, credentialID uint64, 
 			attempt.ContentRef = &reference
 			attempt.EncryptedMessage = historyCiphertext
 		}
-		jobs = append(jobs, models.ScheduledSMS{CredentialID: credentialID, EventKey: key, EncryptedMessage: ciphertext, DueAt: due, AvailableAt: due, State: models.ScheduleQueued, Attempt: attempt})
+		jobs = append(jobs, models.ScheduledSMS{CredentialID: credentialID, EventKey: key, EncryptedMessage: ciphertext, DueAt: due, AvailableAt: due, State: models.ScheduleQueued, SendReference: allowImmediate, Attempt: attempt})
 		positions = append(positions, i)
 	}
 	if len(jobs) == 0 {
@@ -95,12 +113,20 @@ func (s *ScheduledSMSService) Enqueue(ctx context.Context, credentialID uint64, 
 	for i, job := range saved {
 		position := positions[i]
 		result[position] = dtos.LegacySendResult{Status: dtos.LegacyStatusOK, Code: dtos.LegacyCodeAccepted, IDSMS: strconv.FormatUint(job.AttemptID, 10), CorrelationID: messages[position].CorrelationID}
+		if allowImmediate {
+			slog.Info("SMS queued for SQS", "send_id", job.AttemptID, "scheduled", job.Attempt.ScheduledAt != nil)
+		}
 	}
 	return result, nil
 }
 
 // Called only during startup. Each HTTP request reserves the shared budget once.
 func (s *SMSService) SetScheduler(queue ScheduleAcceptor) { s.scheduler = queue }
+func (s *SMSService) SetDispatchQueue(queue interface {
+	EnqueueAll(context.Context, uint64, []dtos.LegacySMS) ([]dtos.LegacySendResult, error)
+}) {
+	s.asyncQueue = queue
+}
 
 type reservedSendBudget struct{}
 

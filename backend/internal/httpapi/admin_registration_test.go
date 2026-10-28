@@ -25,7 +25,7 @@ func TestPublicOpenAPIOnlyShowsClientIntegration(t *testing.T) {
 		Users: users, Sessions: scs.New(), Companies: services.NewCompanyService(nil), Credentials: services.NewCredentialService(nil),
 		Messages: services.NewMessageService(nil), Audit: services.NewAuditService(nil), Summary: services.NewSummaryService(nil),
 		Callbacks: services.NewCallbackService(nil), CallbackIngressEnabled: true, CallbackIngressToken: "test-token-only-for-schema-registration",
-		SMS: services.NewSMSService(nil, nil), Auth: auth, LegacyStatuses: services.NewLegacyStatusService(nil),
+		SMS: services.NewSMSService(nil, nil), Submissions: services.NewSubmissionService(nil), Auth: auth, LegacyStatuses: services.NewLegacyStatusService(nil),
 		LegacyMO: services.NewLegacyMOService(nil, nil),
 	})
 	w := httptest.NewRecorder()
@@ -46,7 +46,7 @@ func TestPublicOpenAPIOnlyShowsClientIntegration(t *testing.T) {
 	if err := json.Unmarshal(w.Body.Bytes(), &document); err != nil {
 		t.Fatal(err)
 	}
-	expected := map[string]bool{"/v1/send": true, "/v1/status": true, "/v1/consultmo": true, "/v1/auth/check": true}
+	expected := map[string]bool{"/v1/send": true, "/v1/send/result": true, "/v1/status": true, "/v1/consultmo": true, "/v1/auth/check": true}
 	if len(document.Paths) != len(expected) {
 		t.Fatalf("public paths: %v", document.Paths)
 	}
@@ -66,7 +66,7 @@ func TestPublicOpenAPIOnlyShowsClientIntegration(t *testing.T) {
 			t.Fatalf("internal schema name leaked into client documentation: %s", name)
 		}
 	}
-	for _, name := range []string{"SMSSendRequest", "SMSRequestMessage", "SMSSendResult", "SMSDeliveryStatusResponse", "MORepliesResponse"} {
+	for _, name := range []string{"SMSSendRequest", "SMSRequestMessage", "SMSSendResult", "SMSSubmissionStatus", "SMSDeliveryStatusResponse", "MORepliesResponse"} {
 		if document.Components.Schemas[name] == nil {
 			t.Fatalf("client-facing schema name missing: %s", name)
 		}

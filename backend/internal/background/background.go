@@ -7,9 +7,11 @@ import (
 	"sync"
 
 	"github.com/21mobile/sms-gateway/internal/config"
+	apperrors "github.com/21mobile/sms-gateway/internal/errors"
 	"github.com/21mobile/sms-gateway/internal/integrations/callback"
 	"github.com/21mobile/sms-gateway/internal/integrations/dispatchqueue"
 	"github.com/21mobile/sms-gateway/internal/integrations/whitelabel"
+	"github.com/21mobile/sms-gateway/internal/models"
 	"github.com/21mobile/sms-gateway/internal/repositories"
 	"github.com/21mobile/sms-gateway/internal/security"
 	"github.com/21mobile/sms-gateway/internal/services"
@@ -23,6 +25,7 @@ type Workers struct {
 	messageRetention *services.MessageRetentionWorker
 	scheduled        *services.ScheduledSMSWorker
 	pipeline         *services.DispatchPipeline
+	sendReferences   *services.SendReferencePipeline
 	sender           *callback.Client
 	queue            *dispatchqueue.Client
 	days             int
@@ -30,6 +33,17 @@ type Workers struct {
 
 func New(ctx context.Context, cfg config.Config, db *gorm.DB, provider *whitelabel.Client, tokenVault *security.TokenVault, moVault *security.MOContentVault) (*Workers, error) {
 	w := &Workers{sender: callback.New(), days: cfg.MORetentionDays}
+	if cfg.SMSSQSEnabled {
+		var open int64
+		if err := db.WithContext(ctx).Model(&models.DispatchBatch{}).Where("completed_at IS NULL").Count(&open).Error; err != nil {
+			w.Close()
+			return nil, err
+		}
+		if open != 0 {
+			w.Close()
+			return nil, apperrors.Wrap(apperrors.CodeConfigurationInvalid, nil)
+		}
+	}
 	w.messageRetention = services.NewMessageRetentionWorker(repositories.NewSMSAttempts(db))
 	w.callback = services.NewCallbackWorker(repositories.NewCallbacks(db), w.sender)
 	if moVault.Enabled() {
@@ -45,15 +59,23 @@ func New(ctx context.Context, cfg config.Config, db *gorm.DB, provider *whitelab
 			return nil, err
 		}
 		w.scheduled = services.NewScheduledSMSWorker(repositories.NewScheduledSMS(db), services.NewAccountSMSProvider(provider, tokenVault), repositories.NewDispatchSendLimits(db), scheduledVault)
-		if cfg.ScheduledSQSEnabled {
+		if cfg.ScheduledSQSEnabled || cfg.SMSSQSEnabled {
 			startup, cancel := context.WithTimeout(ctx, config.StartupTimeout)
-			w.queue, err = dispatchqueue.New(startup, cfg.AWSRegion, cfg.ScheduledSQSQueueURL)
+			queueURL := cfg.ScheduledSQSQueueURL
+			if cfg.SMSSQSEnabled {
+				queueURL = cfg.SMSSQSQueueURL
+			}
+			w.queue, err = dispatchqueue.New(startup, cfg.AWSRegion, queueURL)
 			cancel()
 			if err != nil {
 				w.Close()
 				return nil, err
 			}
-			w.pipeline = services.NewDispatchPipeline(repositories.NewDispatchBatches(db), w.queue, w.scheduled)
+			if cfg.SMSSQSEnabled {
+				w.sendReferences = services.NewSendReferencePipeline(repositories.NewSendReferences(db), w.queue, w.scheduled)
+			} else {
+				w.pipeline = services.NewDispatchPipeline(repositories.NewDispatchBatches(db), w.queue, w.scheduled)
+			}
 		}
 	}
 	return w, nil
@@ -66,7 +88,10 @@ func (w *Workers) Run(ctx context.Context) {
 		group.Add(1)
 		go func() { defer group.Done(); run(ctx) }()
 	}
-	if w.pipeline != nil {
+	if w.sendReferences != nil {
+		slog.Info("SMS reference worker started")
+		start(w.sendReferences.Run)
+	} else if w.pipeline != nil {
 		start(w.pipeline.Run)
 	} else if w.scheduled != nil {
 		start(w.scheduled.Run)

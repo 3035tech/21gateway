@@ -49,6 +49,29 @@ func futureSMS() dtos.LegacySMS {
 	input.MessageText = "Olá, ação! 😊"
 	return input
 }
+func TestAllSendsAreAcceptedBeforeProviderCallInQueueMode(t *testing.T) {
+	repo := &scheduleMemory{}
+	provider := &stubProvider{enabled: true}
+	limiter := &countLimiter{allowed: true}
+	service := NewSMSServiceWithLimiter(&memoryAttempts{}, provider, limiter)
+	service.SetDispatchQueue(NewScheduledSMSService(repo, scheduledVault(t)))
+	inputs := []dtos.LegacySMS{validSMS(), futureSMS()}
+	results, err := service.Send(context.Background(), 7, inputs)
+	if err != nil || len(results) != 2 || len(repo.jobs) != 2 || len(provider.inputs) != 0 || limiter.count != 0 {
+		t.Fatal("queue admission called provider or lost receipt", err)
+	}
+	for i, result := range results {
+		if result.IDSMS != strconv.FormatUint(repo.jobs[i].AttemptID, 10) || result.Code != dtos.LegacyCodeAccepted || repo.jobs[i].Attempt.State != models.SubmissionPending {
+			t.Fatal("incorrect queued receipt")
+		}
+	}
+	if repo.jobs[0].Attempt.ScheduledAt != nil || repo.jobs[1].Attempt.ScheduledAt == nil || repo.jobs[0].DueAt.After(time.Now()) {
+		t.Fatal("incorrect immediate/future due time")
+	}
+	if text, err := scheduledVault(t).Decrypt(7, repo.jobs[0].EventKey, repo.jobs[0].EncryptedMessage); err != nil || text != inputs[0].MessageText {
+		t.Fatal("queued content encryption")
+	}
+}
 func TestScheduledAdmissionEncrypts200AndReservesNoProviderBudget(t *testing.T) {
 	repo := &scheduleMemory{}
 	vault := scheduledVault(t)

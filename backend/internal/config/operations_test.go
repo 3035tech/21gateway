@@ -12,6 +12,28 @@ func operationEnvironment(t *testing.T) {
 		t.Setenv(name, value)
 	}
 	t.Setenv("HEALTH_DEPENDENCIES_TOKEN_SHA256", "")
+	t.Setenv("SMS_SQS_ENABLED", "false")
+	t.Setenv("SMS_SQS_QUEUE_URL", "")
+}
+func TestAllSendQueueRequiresSeparateValidTransport(t *testing.T) {
+	operationEnvironment(t)
+	t.Setenv("SMS_SQS_ENABLED", "true")
+	if _, err := Load(); err == nil {
+		t.Fatal("queue enabled without encryption and transport")
+	}
+	t.Setenv("SCHEDULER_ENABLED", "true")
+	t.Setenv("WORKERS_IN_API", "false")
+	t.Setenv("SCHEDULED_CONTENT_KEY", base64.StdEncoding.EncodeToString([]byte(strings.Repeat("s", 32))))
+	t.Setenv("AWS_REGION", "us-east-1")
+	t.Setenv("SMS_SQS_QUEUE_URL", "https://sqs.us-east-1.amazonaws.com/123456789012/all-sms")
+	if _, err := Load(); err != nil {
+		t.Fatal("valid all-send queue rejected", err)
+	}
+	t.Setenv("SCHEDULED_SQS_ENABLED", "true")
+	t.Setenv("SCHEDULED_SQS_QUEUE_URL", "https://sqs.us-east-1.amazonaws.com/123456789012/old-batches")
+	if _, err := Load(); err == nil {
+		t.Fatal("two queue formats activated together")
+	}
 }
 func TestOperationalConfigurationFailsClosed(t *testing.T) {
 	operationEnvironment(t)

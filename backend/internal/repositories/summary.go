@@ -66,7 +66,7 @@ func (r *Summary) Summary(ctx context.Context, companyID ...uint64) (dtos.Summar
 		Next24Hours int64
 		Active      int64
 	}
-	if err := db.Raw(`SELECT COUNT(*) FILTER (WHERE state='queued') AS queued,COUNT(*) FILTER (WHERE state='queued' AND due_at<=NOW()) AS due,COUNT(*) FILTER (WHERE state='queued' AND due_at>NOW() AND due_at<=NOW()+INTERVAL '24 hours') AS next24_hours,COUNT(*) FILTER (WHERE state IN ('claimed','dispatching')) AS active FROM scheduled_sms WHERE state IN ('queued','claimed','dispatching')`).Scan(&scheduled).Error; err != nil {
+	if err := db.Raw(`SELECT COUNT(*) FILTER (WHERE s.state='queued') AS queued,COUNT(*) FILTER (WHERE s.state='queued' AND s.due_at<=NOW()) AS due,COUNT(*) FILTER (WHERE s.state='queued' AND s.due_at>NOW() AND s.due_at<=NOW()+INTERVAL '24 hours') AS next24_hours,COUNT(*) FILTER (WHERE s.state IN ('claimed','dispatching')) AS active FROM scheduled_sms s JOIN sms_attempts a ON a.id=s.attempt_id WHERE a.scheduled_at IS NOT NULL AND s.state IN ('queued','claimed','dispatching')`).Scan(&scheduled).Error; err != nil {
 		return result, err
 	}
 	result.ScheduledQueued = scheduled.Queued
@@ -100,7 +100,7 @@ func scopedSummary(db *gorm.DB, companyIDs []uint64) (dtos.Summary, error) {
 	}
 	result.PendingMOCallbacks, result.FailedMOCallbacks = callbacks.Pending, callbacks.Failed
 	var scheduled struct{ Queued, Due, Next24Hours, Active int64 }
-	if err := db.Table("scheduled_sms AS s").Joins("JOIN sms_attempts AS a ON a.id=s.attempt_id").Where("a.company_id IN ? AND s.state IN ('queued','claimed','dispatching')", companyIDs).Select("COUNT(*) FILTER (WHERE s.state='queued') AS queued, COUNT(*) FILTER (WHERE s.state='queued' AND s.due_at<=NOW()) AS due, COUNT(*) FILTER (WHERE s.state='queued' AND s.due_at>NOW() AND s.due_at<=NOW()+INTERVAL '24 hours') AS next24_hours, COUNT(*) FILTER (WHERE s.state IN ('claimed','dispatching')) AS active").Scan(&scheduled).Error; err != nil {
+	if err := db.Table("scheduled_sms AS s").Joins("JOIN sms_attempts AS a ON a.id=s.attempt_id").Where("a.company_id IN ? AND a.scheduled_at IS NOT NULL AND s.state IN ('queued','claimed','dispatching')", companyIDs).Select("COUNT(*) FILTER (WHERE s.state='queued') AS queued, COUNT(*) FILTER (WHERE s.state='queued' AND s.due_at<=NOW()) AS due, COUNT(*) FILTER (WHERE s.state='queued' AND s.due_at>NOW() AND s.due_at<=NOW()+INTERVAL '24 hours') AS next24_hours, COUNT(*) FILTER (WHERE s.state IN ('claimed','dispatching')) AS active").Scan(&scheduled).Error; err != nil {
 		return result, err
 	}
 	result.ScheduledQueued, result.ScheduledDue, result.ScheduledNext24h, result.ScheduledActive = scheduled.Queued, scheduled.Due, scheduled.Next24Hours, scheduled.Active

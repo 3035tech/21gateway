@@ -1,5 +1,7 @@
 # Arquitetura
 
+O novo modo de envio assíncrono por ID está descrito em [sms-send-queue.md](sms-send-queue.md). A API admite todos os SMS no PostgreSQL; `/worker` publica apenas `id_sms` na SQS v2 e processa o envio. O modo permanece desligado até provisionamento e corte controlado.
+
 > Escopo respondido em 14/10/2026: consulte docs/scope-answers.md. Este documento descreve o código existente; token por cliente e whitelist já foram implementados; MO e compatibilidade V1 completa ainda exigem ajustes. Painel solicitado pela 21 é focado em credenciais/configurações com perfil administrativo único. Não confundir recursos extras implementados com requisitos confirmados.
 ## Regra obrigatória: separação por domínio
 
@@ -27,7 +29,7 @@ PostgreSQL/GORM, pool limitado, migrações versionadas Gormigrate com transaç�
 
 API administrativa: Huma/Chi, schemas/OpenAPI e Problem Details com código estável. Erros e constantes tipados; causas internas não entram em resposta/log público. Filtros parametrizados, ordenação por whitelist e desempate estável. Paginação de 1 a 100 itens por página. Huma ParamWrapper/ParamReactor distingue filtro booleano ausente de false.
 
-O OpenAPI público apresenta schemas de integração com nomes como `SMSSendRequest`, `SMSRequestMessage`, `SMSSendResult`, `SMSDeliveryStatusResponse` e `MORepliesResponse`, além do esquema `basicAuth`. Aliases internos mantêm o código de compatibilidade sem expor o termo `Legacy` ao cliente. A nomenclatura da documentação muda, mas caminhos, campos JSON, autenticação HTTP e códigos de resposta permanecem os mesmos; geradores de SDK podem produzir novos nomes de tipos ao regenerar clientes.
+O OpenAPI público apresenta schemas de integração com nomes como `SMSSendRequest`, `SMSRequestMessage`, `SMSSendResult`, `SMSSubmissionStatus`, `SMSDeliveryStatusResponse` e `MORepliesResponse`, além do esquema `basicAuth`. Aliases internos mantêm o código de compatibilidade sem expor o termo `Legacy` ao cliente. A nomenclatura da documentação muda, mas caminhos, campos JSON, autenticação HTTP e códigos de resposta permanecem os mesmos; geradores de SDK podem produzir novos nomes de tipos ao regenerar clientes.
 
 API SMS preserva sua tradução legada. Fluxo: Basic Auth → validação/rate limit → tentativa durável → HTTP white label → resultado durável → resposta. Empresa é registrada na tentativa, mantendo histórico mesmo se a credencial for arquivada. Conteúdo SMS não é persistido. Timeout pode significar aceite: nunca retry automático. Runtime usa limite compartilhado no PostgreSQL: requisição por credencial e orçamento agregado de mensagens.
 

@@ -47,6 +47,9 @@ type SendLimiter interface {
 
 type SMSService struct {
 	scheduler  ScheduleAcceptor
+	asyncQueue interface {
+		EnqueueAll(context.Context, uint64, []dtos.LegacySMS) ([]dtos.LegacySendResult, error)
+	}
 	limiter    SendLimiter
 	repository AttemptRepository
 	provider   SMSProvider
@@ -58,6 +61,7 @@ func NewSMSService(repository AttemptRepository, provider SMSProvider) *SMSServi
 	return &SMSService{repository: repository, provider: provider}
 }
 func (s *SMSService) SetHistoryVault(vault *security.SMSHistoryVault) { s.history = vault }
+func (s *SMSService) Queued() bool                                    { return s.asyncQueue != nil }
 
 func (s *SMSService) encryptAttempt(attempt *models.SMSAttempt, message string) error {
 	if s.history == nil {
@@ -76,6 +80,20 @@ func (s *SMSService) encryptAttempt(attempt *models.SMSAttempt, message string) 
 func (s *SMSService) Send(ctx context.Context, credentialID uint64, messages []dtos.LegacySMS) ([]dtos.LegacySendResult, error) {
 	if len(messages) < 1 || len(messages) > whitelabel.MaximumBatchMessages {
 		return []dtos.LegacySendResult{failure(dtos.LegacySMS{}, apperrors.CodeInvalidRequest)}, nil
+	}
+	if s.asyncQueue != nil {
+		allowed, err := s.allow(ctx, credentialID, 0)
+		if err != nil {
+			return nil, apperrors.Wrap(apperrors.CodeServiceUnavailable, err)
+		}
+		if !allowed {
+			results := make([]dtos.LegacySendResult, len(messages))
+			for i, input := range messages {
+				results[i] = failure(input, apperrors.CodeRateLimited)
+			}
+			return results, nil
+		}
+		return s.asyncQueue.EnqueueAll(ctx, credentialID, messages)
 	}
 	if s.scheduler != nil {
 		for _, m := range messages {

@@ -97,7 +97,11 @@ func run() error {
 		}
 		scheduler := services.NewScheduledSMSService(repositories.NewScheduledSMS(db), scheduledVault)
 		scheduler.SetHistoryVault(historyVault)
-		sender.SetScheduler(scheduler)
+		if cfg.SMSSQSEnabled {
+			sender.SetDispatchQueue(scheduler)
+		} else {
+			sender.SetScheduler(scheduler)
+		}
 	}
 	workers, err := background.New(ctx, cfg, db, provider, vault, moVault)
 	if err != nil {
@@ -110,23 +114,25 @@ func run() error {
 	}
 	server := &http.Server{
 		Addr:              cfg.Address,
-		Handler:           httpapi.New(cfg.AllowedOrigins, cfg.DocsEnabled, pool.PingContext, httpapi.Dependencies{ClientIPResolver: clientIPs, SMTPProbe: smtpProbe, SQSProbe: workers.QueueProbe(), Operations: services.NewOperationsService(repositories.NewOperations(db)), OperationsEnabled: cfg.OperationsEnabled, OperationsToken: cfg.OperationsToken, HealthDependenciesTokenSHA256: cfg.HealthDependenciesTokenSHA256, LegacyMO: services.NewLegacyMOService(repositories.NewMOs(db), moVault), MO: services.NewMOService(repositories.NewMOs(db), moVault), MOIngressEnabled: cfg.MOIngressEnabled, LegacyStatuses: services.NewLegacyStatusService(repositories.NewLegacyStatuses(db)), SMS: sender, Auth: auth, Users: users, UserMFA: mfa, UserRecovery: recovery, Companies: services.NewCompanyServiceWithVault(repositories.NewCompanies(db), vault), Credentials: services.NewCredentialServiceWithVault(repositories.NewCredentials(db), vault), Messages: services.NewMessageServiceWithTestSend(repositories.NewSMSAttempts(db), repositories.NewCredentials(db), repositories.NewAudits(db), sender, cfg.TestSMSDestination, cfg.TestSMSAllowAnyDestination).WithHistoryVault(historyVault), Schedules: services.NewScheduledListService(repositories.NewScheduledSMS(db)), Audit: services.NewAuditService(repositories.NewAudits(db)), Summary: services.NewSummaryService(repositories.NewSummary(db)), Sessions: sessions, Callbacks: services.NewCallbackService(repositories.NewCallbacks(db)), CallbackIngressEnabled: cfg.CallbackIngressEnabled, CallbackIngressToken: cfg.CallbackIngressToken}),
+		Handler:           httpapi.New(cfg.AllowedOrigins, cfg.DocsEnabled, pool.PingContext, httpapi.Dependencies{ClientIPResolver: clientIPs, SMTPProbe: smtpProbe, SQSProbe: workers.QueueProbe(), Operations: services.NewOperationsService(repositories.NewOperations(db)), OperationsEnabled: cfg.OperationsEnabled, OperationsToken: cfg.OperationsToken, HealthDependenciesTokenSHA256: cfg.HealthDependenciesTokenSHA256, LegacyMO: services.NewLegacyMOService(repositories.NewMOs(db), moVault), MO: services.NewMOService(repositories.NewMOs(db), moVault), MOIngressEnabled: cfg.MOIngressEnabled, LegacyStatuses: services.NewLegacyStatusService(repositories.NewLegacyStatuses(db)), SMS: sender, Submissions: services.NewSubmissionService(repositories.NewSMSAttempts(db)), Auth: auth, Users: users, UserMFA: mfa, UserRecovery: recovery, Companies: services.NewCompanyServiceWithVault(repositories.NewCompanies(db), vault), Credentials: services.NewCredentialServiceWithVault(repositories.NewCredentials(db), vault), Messages: services.NewMessageServiceWithTestSend(repositories.NewSMSAttempts(db), repositories.NewCredentials(db), repositories.NewAudits(db), sender, cfg.TestSMSDestination, cfg.TestSMSAllowAnyDestination).WithHistoryVault(historyVault), Schedules: services.NewScheduledListService(repositories.NewScheduledSMS(db)), Audit: services.NewAuditService(repositories.NewAudits(db)), Summary: services.NewSummaryService(repositories.NewSummary(db)), Sessions: sessions, Callbacks: services.NewCallbackService(repositories.NewCallbacks(db)), CallbackIngressEnabled: cfg.CallbackIngressEnabled, CallbackIngressToken: cfg.CallbackIngressToken}),
 		ReadHeaderTimeout: config.ReadHeaderTimeout,
 		ReadTimeout:       config.ReadTimeout,
 		WriteTimeout:      config.WriteTimeout,
 		IdleTimeout:       config.IdleTimeout,
 		MaxHeaderBytes:    config.MaxHeaderBytes,
 	}
-	workerCtx, stopWorkers := context.WithCancel(ctx)
-	workersDone := make(chan struct{})
-	go func() {
-		defer close(workersDone)
-		workers.Run(workerCtx)
-	}()
-	defer func() {
-		stopWorkers()
-		<-workersDone
-	}()
+	if cfg.WorkersInAPI {
+		workerCtx, stopWorkers := context.WithCancel(ctx)
+		workersDone := make(chan struct{})
+		go func() {
+			defer close(workersDone)
+			workers.Run(workerCtx)
+		}()
+		defer func() {
+			stopWorkers()
+			<-workersDone
+		}()
+	}
 	failures := make(chan error, 1)
 	go func() { slog.Info("API started", "address", cfg.Address); failures <- server.ListenAndServe() }()
 	select {

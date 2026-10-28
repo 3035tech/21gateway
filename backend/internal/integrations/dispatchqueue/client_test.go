@@ -102,6 +102,28 @@ func TestReferenceRejectsPoisonPayloads(t *testing.T) {
 		t.Fatal("invalid reference reached SDK")
 	}
 }
+func TestSendReferenceContainsOnlyAttemptID(t *testing.T) {
+	api := &fakeSQS{}
+	client := NewWithAPI(api, testURL)
+	if err := client.PublishSend(context.Background(), 12345); err != nil {
+		t.Fatal(err)
+	}
+	canonical := `{"version":2,"sendId":"12345"}`
+	if aws.ToString(api.sent.MessageBody) != canonical {
+		t.Fatal("unexpected SMS queue payload")
+	}
+	if id, err := ParseSendReference(canonical); err != nil || id != 12345 {
+		t.Fatal("valid SMS reference rejected", err)
+	}
+	for _, body := range []string{`{"version":1,"sendId":"12345"}`, `{"version":2,"sendId":"0"}`, `{"version":2,"sendId":"-1"}`, `{"version":2,"sendId":"12345","destination":"11987654321"}`, canonical + ` {}`, strings.Repeat("a", 257)} {
+		if _, err := ParseSendReference(body); err == nil {
+			t.Fatal("invalid SMS reference accepted")
+		}
+	}
+	if err := client.PublishSend(context.Background(), 0); err == nil {
+		t.Fatal("zero ID published")
+	}
+}
 
 type sdkHTTP func(*http.Request) (*http.Response, error)
 
