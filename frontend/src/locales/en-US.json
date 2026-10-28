@@ -351,7 +351,8 @@
   "credentials": {
     "editTitle": "Edit credential",
     "newTitle": "New API credential",
-    "formDescription": "Select the company and generate Basic Auth credentials. To set them manually, turn off username generation and choose the manual password option. Then adjust notifications and IPs if needed.",
+    "formDescription": "Set up company access. Generated username and password are shown only once after saving.",
+    "editFormDescription": "Update access, expiration, notifications, and IPs. To change the password, use the action in the credential list.",
     "formSections": "Credential sections",
     "tabs": {
       "access": "Access",
@@ -438,7 +439,8 @@
     "username": "Username",
     "savedPassword": "I have saved the password",
     "generateUsername": "Generate random Basic Auth username",
-    "basicAuthHint": "This credential belongs to the selected company. Generate a unique username or turn off the option to enter one manually. The access details will be shown after saving so you can share them with the client.",
+    "basicAuthHint": "Choose the company and how to set the Basic Auth username. The details will be shown after saving so you can share them with the client.",
+    "editBasicAuthHint": "The Basic Auth username belongs to this company and cannot be changed here.",
     "basicUsername": "Basic Auth username",
     "generatedUsernamePlaceholder": "Generated on save",
     "passwordStoredHint": "The Basic Auth password is already set and cannot be displayed again. To replace it, use Change API password in the list and update the client's integration.",

@@ -151,8 +151,12 @@ export function CredentialForm({
       busy={mutation.isPending}
       wide
     >
-      <p className="mb-6 hidden max-w-xl text-sm leading-6 text-slate-600 sm:block">
-        {t('credentials.formDescription')}
+      <p className="mb-6 max-w-2xl text-sm leading-6 text-slate-600">
+        {t(
+          credential
+            ? 'credentials.editFormDescription'
+            : 'credentials.formDescription',
+        )}
       </p>
       <form
         noValidate
@@ -256,7 +260,11 @@ export function CredentialForm({
               icon={Building2}
             >
               <p className="mb-4 text-sm leading-6 text-slate-600 sm:mb-5">
-                {t('credentials.basicAuthHint')}
+                {t(
+                  credential
+                    ? 'credentials.editBasicAuthHint'
+                    : 'credentials.basicAuthHint',
+                )}
               </p>
               {!selectedCompanyId ? (
                 <label className="field mb-5">
@@ -441,12 +449,12 @@ export function CredentialForm({
                     <legend className="mb-3 text-base font-bold text-slate-900">
                       {t('credentials.passwordSetup')}
                     </legend>
-                    <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="grid gap-3 sm:grid-cols-2">
                       {(['generated', 'manual', 'legacy'] as const).map(
                         (mode) => (
                           <label
                             key={mode}
-                            className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 text-sm transition-colors ${passwordMode === mode ? 'border-brand-purple bg-purple-50/70' : 'border-slate-200 bg-white hover:border-slate-300'}`}
+                            className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 text-sm transition-colors ${mode === 'legacy' ? 'sm:col-span-2' : ''} ${passwordMode === mode ? 'border-brand-purple bg-purple-50/70' : 'border-slate-200 bg-white hover:border-slate-300'}`}
                           >
                             <input
                               type="radio"
@@ -517,10 +525,11 @@ export function CredentialForm({
                 </div>
               )}
               <div className="mt-6 grid gap-4 border-t border-slate-200 pt-6 sm:grid-cols-2 sm:items-start">
-                <div>
-                  <label className="flex min-h-11 items-center gap-3 text-sm font-semibold">
+                <div className="field">
+                  <span>{t('common.status')}</span>
+                  <label className="form-control flex items-center gap-3 text-sm font-semibold">
                     <input
-                      className="size-4 accent-brand-purple"
+                      className="size-4 shrink-0 accent-brand-purple"
                       type="checkbox"
                       {...form.register('active')}
                     />
@@ -529,12 +538,12 @@ export function CredentialForm({
                   {!active ? (
                     <p
                       role="status"
-                      className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900"
+                      className="rounded-lg bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900"
                     >
                       {t('credentials.inactiveHint')}
                     </p>
                   ) : (
-                    <p className="text-xs leading-5 text-slate-500">
+                    <p className="text-xs font-normal leading-5 text-slate-500">
                       {t('credentials.activeHint')}
                     </p>
                   )}

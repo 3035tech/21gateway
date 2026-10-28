@@ -351,7 +351,8 @@
   "credentials": {
     "editTitle": "Editar credencial",
     "newTitle": "Nova credencial da API",
-    "formDescription": "Selecione a empresa e gere as credenciais Basic Auth. Para defini-las manualmente, desmarque a geração de usuário e escolha a opção de senha manual. Depois, ajuste notificações e IPs se necessário.",
+    "formDescription": "Defina o acesso da empresa. O usuário e a senha gerados serão exibidos uma única vez após salvar.",
+    "editFormDescription": "Atualize o acesso, a validade, as notificações e os IPs. Para trocar a senha, use a ação na listagem de credenciais.",
     "formSections": "Seções da credencial",
     "tabs": {
       "access": "Acesso",
@@ -438,7 +439,8 @@
     "username": "Usuário",
     "savedPassword": "Já guardei a senha",
     "generateUsername": "Gerar usuário Basic Auth aleatório",
-    "basicAuthHint": "Esta credencial pertence à empresa escolhida. Gere um usuário único ou desmarque a opção para informá-lo manualmente. Os dados serão exibidos após salvar para você repassar ao cliente.",
+    "basicAuthHint": "Escolha a empresa e como definir o usuário Basic Auth. Os dados serão exibidos após salvar para você repassar ao cliente.",
+    "editBasicAuthHint": "O usuário Basic Auth está vinculado à empresa e não pode ser alterado nesta edição.",
     "basicUsername": "Usuário Basic Auth",
     "generatedUsernamePlaceholder": "Gerado ao salvar",
     "passwordStoredHint": "A senha Basic Auth já está definida e não pode ser exibida novamente. Para substituí-la, use Trocar senha da API na listagem e atualize a integração do cliente.",
