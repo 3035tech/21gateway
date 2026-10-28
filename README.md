@@ -8,12 +8,13 @@ Gateway de SMS compatível com a API V1 da 21 Mobile e painel interno para empre
 - API: <https://21gateway-back.3035service.com>
 - Referência interativa Scalar: <https://21gateway-back.3035service.com/docs>
 - OpenAPI público: <https://21gateway-back.3035service.com/openapi.json>
+- [Coleção Postman para clientes](postman/21mobile-api-clientes.postman_collection.json): importe no Postman, preencha as variáveis Basic Auth e o telefone autorizado, valide o acesso e execute os exemplos de envio e consulta.
 
 O OpenAPI documenta somente os endpoints de integração de clientes: `POST /v1/send`, `GET /v1/send/result`, `GET /v1/status`, `GET /v1/consultmo` e `GET /v1/auth/check`. A **21 Mobile gera e entrega** o usuário e a senha Basic Auth de cada empresa. O token Zoug é cadastrado na ficha da empresa e permanece no backend; clientes não o enviam no Basic Auth. Senhas são armazenadas como hash Argon2id, e tokens do fornecedor são cifrados. Uma credencial gerada deve ser copiada no momento da criação; a senha não é exibida novamente.
 
 As URLs do painel para empresas, usuários e credenciais usam `public_ref` UUID, sem mostrar o ID sequencial do banco. A migração 021 já foi aplicada em HML. O backend e o frontend são publicados pelo GitHub Actions; o Argo CD acompanha as novas imagens e atualiza HML. O GitOps fica no repositório separado `3035tech/gitops`, em `dublin/21gateway-back` e `dublin/21gateway-front`.
 
-O [relatório de segurança de HML](docs/reviews/hml-pentest-2026-10-27.md) registra testes, correções e pendências. O IP real do cliente atrás do Cloudflare Tunnel ainda requer configuração e validação da cadeia de proxies antes de ativar whitelists de clientes. Callback DLR/MO real, SQS e scheduler continuam opt-in/desligados em HML até homologação. Nenhum teste deste relatório enviou SMS.
+O [relatório de segurança de HML](docs/reviews/hml-pentest-2026-10-27.md) registra testes, correções e pendências. O IP real do cliente atrás do Cloudflare Tunnel ainda requer configuração e validação da cadeia de proxies antes de ativar whitelists de clientes. O envio normal por SQS está habilitado em HML; callback DLR/MO real e scheduler ainda dependem de homologação. Nenhum teste daquele relatório enviou SMS.
 
 ## Desenvolvimento local
 

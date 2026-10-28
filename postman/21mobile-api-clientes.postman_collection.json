@@ -1,0 +1,573 @@
+{
+  "info": {
+    "_postman_id": "cdd0bb3e-31b7-43d8-98d3-813735faac4c",
+    "name": "21 Mobile | API de clientes (HML)",
+    "description": {
+      "content": "# Como usar\n\n1. A **21 Mobile gera e entrega** o usuário e a senha Basic Auth da empresa. Preencha `usuarioBasicAuth` e `senhaBasicAuth` em **Variables**; use preferencialmente valores locais/Current Value e não exporte segredos ao compartilhar a coleção. Não use o token Zoug.\n2. Preencha `telefoneTeste` com um celular autorizado de **11 dígitos** (DDD + número). O envio é real e pode gerar cobrança.\n3. Execute **Validar acesso** a partir da rede liberada, depois **Enviar 1 SMS** e **Consultar resultado da submissão**. O script do envio salva `id_sms` em `idSms` quando recebido.\n4. Use as consultas de DLR/MO conforme necessário. A consulta de DLR **consome** os eventos retornados.\n\n`baseUrl` aponta para HML; altere-o apenas para o host HTTPS informado pela 21 Mobile. Não há usuário/senha padrão. No fluxo com SQS, o aceite inicial não comprova envio ao fornecedor ou entrega. Confira o estado da submissão antes de concluir. `correlationId` ajuda a rastrear e não impede duplicação. Não reenvie automaticamente resultados incertos.\n\nDocumentação interativa: https://21gateway-back.3035service.com/docs · OpenAPI: https://21gateway-back.3035service.com/openapi.json",
+      "type": "text/markdown"
+    },
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "basic",
+    "basic": [
+      {
+        "key": "username",
+        "value": "{{usuarioBasicAuth}}",
+        "type": "string"
+      },
+      {
+        "key": "password",
+        "value": "{{senhaBasicAuth}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://21gateway-back.3035service.com",
+      "type": "string",
+      "description": "Host HTTPS de HML. Substitua pelo host fornecido pela 21 Mobile para outro ambiente."
+    },
+    {
+      "key": "usuarioBasicAuth",
+      "value": "",
+      "type": "string",
+      "description": "Usuário técnico gerado pela 21 Mobile para a empresa."
+    },
+    {
+      "key": "senhaBasicAuth",
+      "value": "",
+      "type": "string",
+      "description": "Senha técnica entregue pela 21 Mobile. Mantenha apenas localmente no Postman."
+    },
+    {
+      "key": "telefoneTeste",
+      "value": "",
+      "type": "string",
+      "description": "Celular autorizado: 11 dígitos, DDD + número, por exemplo 11987654321. Envio real."
+    },
+    {
+      "key": "textoSMS",
+      "value": "Teste de integracao 21 Mobile",
+      "type": "string",
+      "description": "Texto de exemplo; até 160 caracteres na entrada."
+    },
+    {
+      "key": "idSms",
+      "value": "",
+      "type": "string",
+      "description": "ID interno devolvido por POST /v1/send; preenchido automaticamente pelo teste da requisição."
+    },
+    {
+      "key": "dataMOUnix",
+      "value": "",
+      "type": "string",
+      "description": "Unix timestamp em segundos. Vazio usa agora, para consultar o dia atual no fuso America/Sao_Paulo."
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Acesso e envio",
+      "description": {
+        "content": "Execute em ordem. Validar acesso não envia SMS; o segundo item envia uma mensagem real.",
+        "type": "text/markdown"
+      },
+      "item": [
+        {
+          "name": "Validar acesso Basic Auth e IP",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/v1/auth/check",
+            "description": {
+              "content": "Primeiro teste: execute da **mesma rede/IP** usada pela integração. HTTP **204 sem corpo** confirma usuário, senha, validade e IP; não envia SMS. HTTP 401 indica autenticação inválida, 403 indica IP não autorizado, 429 indica limite e 503 indisponibilidade. Usuário e senha Basic Auth são **gerados e entregues pela 21 Mobile**; o token Zoug não é usado aqui.",
+              "type": "text/markdown"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 204: credencial e IP autorizados', function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Acesso autorizado",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/v1/auth/check",
+                "description": {
+                  "content": "Primeiro teste: execute da **mesma rede/IP** usada pela integração. HTTP **204 sem corpo** confirma usuário, senha, validade e IP; não envia SMS. HTTP 401 indica autenticação inválida, 403 indica IP não autorizado, 429 indica limite e 503 indisponibilidade. Usuário e senha Basic Auth são **gerados e entregues pela 21 Mobile**; o token Zoug não é usado aqui.",
+                  "type": "text/markdown"
+                }
+              },
+              "status": "No Content",
+              "code": 204,
+              "header": [],
+              "body": ""
+            }
+          ]
+        },
+        {
+          "name": "Enviar 1 SMS",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sms\": [\n    {\n      \"destination\": \"{{telefoneTeste}}\",\n      \"messageText\": \"{{textoSMS}}\",\n      \"correlationId\": \"teste-{{$guid}}\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/v1/send",
+            "description": {
+              "content": "Envia um SMS real e pode gerar cobrança. Preencha `telefoneTeste` com **11 dígitos** (DDD + celular), sem `+55`, espaços ou pontuação. Texto: 1 a 160 caracteres. `sms` aceita 1 a 200 itens; a resposta tem um resultado por item na mesma ordem. `correlationId` aceita até 50 caracteres, é gerado neste exemplo pelo Postman e **não é chave de idempotência**. Para agendar, inclua `scheduledDate` no item com Unix timestamp futuro em segundos, somente se o agendador do ambiente estiver habilitado.\n\nHTTP 200 pode conter `status: NOK`. Verifique cada item: `OK`/`code: 5` no fluxo com SQS indica aceite para processamento, sem confirmar envio à Zoug ou entrega ao celular. `SEND_OUTCOME_UNKNOWN` exige conciliação; não reenvie automaticamente. O limite é de uma requisição por segundo por credencial, além do orçamento compartilhado de mensagens.",
+              "type": "text/markdown"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "let items = [];",
+                  "try { items = pm.response.json(); } catch (error) { console.warn('Resposta não é JSON:', error); }",
+                  "pm.test('Um resultado para o SMS enviado', function () { pm.expect(items).to.be.an('array').with.lengthOf(1); });",
+                  "if (Array.isArray(items) && items[0] && items[0].id_sms) { pm.collectionVariables.set('idSms', String(items[0].id_sms)); }",
+                  "pm.test('Item aceito para processamento', function () { pm.expect(items[0] && items[0].status).to.eql('OK'); });",
+                  "if (items[0] && items[0].message === 'SEND_OUTCOME_UNKNOWN') { console.warn('Resultado incerto: concilie antes de reenviar.'); }"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Aceito para processamento",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sms\": [\n    {\n      \"destination\": \"{{telefoneTeste}}\",\n      \"messageText\": \"{{textoSMS}}\",\n      \"correlationId\": \"teste-{{$guid}}\"\n    }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/v1/send",
+                "description": {
+                  "content": "Envia um SMS real e pode gerar cobrança. Preencha `telefoneTeste` com **11 dígitos** (DDD + celular), sem `+55`, espaços ou pontuação. Texto: 1 a 160 caracteres. `sms` aceita 1 a 200 itens; a resposta tem um resultado por item na mesma ordem. `correlationId` aceita até 50 caracteres, é gerado neste exemplo pelo Postman e **não é chave de idempotência**. Para agendar, inclua `scheduledDate` no item com Unix timestamp futuro em segundos, somente se o agendador do ambiente estiver habilitado.\n\nHTTP 200 pode conter `status: NOK`. Verifique cada item: `OK`/`code: 5` no fluxo com SQS indica aceite para processamento, sem confirmar envio à Zoug ou entrega ao celular. `SEND_OUTCOME_UNKNOWN` exige conciliação; não reenvie automaticamente. O limite é de uma requisição por segundo por credencial, além do orçamento compartilhado de mensagens.",
+                  "type": "text/markdown"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "[\n  {\n    \"status\": \"OK\",\n    \"code\": 5,\n    \"id_sms\": \"123\",\n    \"correlationId\": \"teste-550e8400-e29b-41d4-a716-446655440000\"\n  }\n]"
+            },
+            {
+              "name": "Telefone inválido no item",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sms\": [\n    {\n      \"destination\": \"{{telefoneTeste}}\",\n      \"messageText\": \"{{textoSMS}}\",\n      \"correlationId\": \"teste-{{$guid}}\"\n    }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/v1/send",
+                "description": {
+                  "content": "Envia um SMS real e pode gerar cobrança. Preencha `telefoneTeste` com **11 dígitos** (DDD + celular), sem `+55`, espaços ou pontuação. Texto: 1 a 160 caracteres. `sms` aceita 1 a 200 itens; a resposta tem um resultado por item na mesma ordem. `correlationId` aceita até 50 caracteres, é gerado neste exemplo pelo Postman e **não é chave de idempotência**. Para agendar, inclua `scheduledDate` no item com Unix timestamp futuro em segundos, somente se o agendador do ambiente estiver habilitado.\n\nHTTP 200 pode conter `status: NOK`. Verifique cada item: `OK`/`code: 5` no fluxo com SQS indica aceite para processamento, sem confirmar envio à Zoug ou entrega ao celular. `SEND_OUTCOME_UNKNOWN` exige conciliação; não reenvie automaticamente. O limite é de uma requisição por segundo por credencial, além do orçamento compartilhado de mensagens.",
+                  "type": "text/markdown"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "[\n  {\n    \"status\": \"NOK\",\n    \"code\": -5,\n    \"message\": \"INVALID_NUMBER_FORMAT\"\n  }\n]"
+            },
+            {
+              "name": "Resultado incerto",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sms\": [\n    {\n      \"destination\": \"{{telefoneTeste}}\",\n      \"messageText\": \"{{textoSMS}}\",\n      \"correlationId\": \"teste-{{$guid}}\"\n    }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/v1/send",
+                "description": {
+                  "content": "Envia um SMS real e pode gerar cobrança. Preencha `telefoneTeste` com **11 dígitos** (DDD + celular), sem `+55`, espaços ou pontuação. Texto: 1 a 160 caracteres. `sms` aceita 1 a 200 itens; a resposta tem um resultado por item na mesma ordem. `correlationId` aceita até 50 caracteres, é gerado neste exemplo pelo Postman e **não é chave de idempotência**. Para agendar, inclua `scheduledDate` no item com Unix timestamp futuro em segundos, somente se o agendador do ambiente estiver habilitado.\n\nHTTP 200 pode conter `status: NOK`. Verifique cada item: `OK`/`code: 5` no fluxo com SQS indica aceite para processamento, sem confirmar envio à Zoug ou entrega ao celular. `SEND_OUTCOME_UNKNOWN` exige conciliação; não reenvie automaticamente. O limite é de uma requisição por segundo por credencial, além do orçamento compartilhado de mensagens.",
+                  "type": "text/markdown"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "[\n  {\n    \"status\": \"NOK\",\n    \"code\": -5,\n    \"id_sms\": \"124\",\n    \"message\": \"SEND_OUTCOME_UNKNOWN\",\n    \"correlationId\": \"teste-550e8400-e29b-41d4-a716-446655440001\"\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Consultar resultado por id_sms",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/v1/send/result?id_sms={{idSms}}",
+            "description": {
+              "content": "Consulta o estado da submissão **sem consumir** o registro. `idSms` é preenchido automaticamente após o exemplo de envio quando a resposta contém `id_sms`; também pode ser informado manualmente. `pending`: na fila ou agendado; `accepted`: aceito pelo fornecedor, sem confirmação de entrega; `rejected`: falha conhecida; `unknown`: resultado incerto, que exige conciliação antes de reenviar. `deliveryStatus` só aparece quando há DLR. O ID de outra credencial retorna 404.",
+              "type": "text/markdown"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const result = pm.response.json();",
+                  "pm.test('Estado de submissão válido', function () { pm.expect(['pending', 'accepted', 'rejected', 'unknown']).to.include(result.state); });",
+                  "pm.test('ID consultado corresponde à resposta', function () { pm.expect(String(result.id_sms)).to.eql(pm.collectionVariables.get('idSms')); });"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Aguardando processamento",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/v1/send/result?id_sms={{idSms}}",
+                "description": {
+                  "content": "Consulta o estado da submissão **sem consumir** o registro. `idSms` é preenchido automaticamente após o exemplo de envio quando a resposta contém `id_sms`; também pode ser informado manualmente. `pending`: na fila ou agendado; `accepted`: aceito pelo fornecedor, sem confirmação de entrega; `rejected`: falha conhecida; `unknown`: resultado incerto, que exige conciliação antes de reenviar. `deliveryStatus` só aparece quando há DLR. O ID de outra credencial retorna 404.",
+                  "type": "text/markdown"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id_sms\": \"123\",\n  \"state\": \"pending\",\n  \"createdAt\": \"2026-10-28T10:00:00Z\"\n}"
+            },
+            {
+              "name": "Aceito pelo fornecedor",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/v1/send/result?id_sms={{idSms}}",
+                "description": {
+                  "content": "Consulta o estado da submissão **sem consumir** o registro. `idSms` é preenchido automaticamente após o exemplo de envio quando a resposta contém `id_sms`; também pode ser informado manualmente. `pending`: na fila ou agendado; `accepted`: aceito pelo fornecedor, sem confirmação de entrega; `rejected`: falha conhecida; `unknown`: resultado incerto, que exige conciliação antes de reenviar. `deliveryStatus` só aparece quando há DLR. O ID de outra credencial retorna 404.",
+                  "type": "text/markdown"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id_sms\": \"123\",\n  \"state\": \"accepted\",\n  \"createdAt\": \"2026-10-28T10:00:00Z\",\n  \"dispatchedAt\": \"2026-10-28T10:00:01Z\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Retornos DLR e MO",
+      "description": {
+        "content": "DLR é leitura destrutiva dos eventos retornados; MO é consulta por dia e não consome registros. A recepção real desses eventos ainda depende de homologação com o fornecedor.",
+        "type": "text/markdown"
+      },
+      "item": [
+        {
+          "name": "Consultar novos status de entrega (consome DLR)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/v1/status",
+            "description": {
+              "content": "**Atenção: esta leitura consome os estados de entrega retornados.** Guarde a resposta no seu sistema antes de repetir a consulta. Retorna até 100 DLRs novos da própria credencial, somente para envios com `correlationId`. `code: 6` com `sent_status: []` significa que não há estados novos; isso não confirma entrega nem falha. `SENT` não equivale a `DELIVERED`. Datas estão em America/Sao_Paulo; campos Unix são strings. O ingresso real de DLR da Zoug ainda depende de homologação.",
+              "type": "text/markdown"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const result = pm.response.json();",
+                  "pm.test('Lista DLR presente', function () { pm.expect(result.sent_status).to.be.an('array'); });",
+                  "pm.test('Código de consulta válido', function () { pm.expect([5, 6]).to.include(result.code); });"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Sem novos estados",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/v1/status",
+                "description": {
+                  "content": "**Atenção: esta leitura consome os estados de entrega retornados.** Guarde a resposta no seu sistema antes de repetir a consulta. Retorna até 100 DLRs novos da própria credencial, somente para envios com `correlationId`. `code: 6` com `sent_status: []` significa que não há estados novos; isso não confirma entrega nem falha. `SENT` não equivale a `DELIVERED`. Datas estão em America/Sao_Paulo; campos Unix são strings. O ingresso real de DLR da Zoug ainda depende de homologação.",
+                  "type": "text/markdown"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"OK\",\n  \"code\": 6,\n  \"message\": \"NO_RECORDS\",\n  \"sent_status\": []\n}"
+            },
+            {
+              "name": "Com estado de entrega",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/v1/status",
+                "description": {
+                  "content": "**Atenção: esta leitura consome os estados de entrega retornados.** Guarde a resposta no seu sistema antes de repetir a consulta. Retorna até 100 DLRs novos da própria credencial, somente para envios com `correlationId`. `code: 6` com `sent_status: []` significa que não há estados novos; isso não confirma entrega nem falha. `SENT` não equivale a `DELIVERED`. Datas estão em America/Sao_Paulo; campos Unix são strings. O ingresso real de DLR da Zoug ainda depende de homologação.",
+                  "type": "text/markdown"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"OK\",\n  \"code\": 5,\n  \"message\": \"REQUIRED_OK\",\n  \"sent_status\": [\n    {\n      \"correlationId\": \"pedido-123\",\n      \"destination\": \"5511987654321\",\n      \"sentDate\": \"2026-10-27 18:00:00-03\",\n      \"unixSentDate\": \"1793134800\",\n      \"status\": \"DELIVERED\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Consultar respostas MO por dia",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/v1/consultmo?date={{dataMOUnix}}",
+            "description": {
+              "content": "Consulta respostas MO do dia inteiro correspondente a `date`, um Unix timestamp **em segundos**, interpretado no fuso America/Sao_Paulo. Se `dataMOUnix` estiver vazio, o Postman usa a data atual. A consulta **não consome** respostas. `code: 6` e `list_mo: []` indicam ausência de registros no dia. O campo `fromAdress` mantém essa grafia por compatibilidade. Acima de 1000 respostas, o gateway devolve indisponibilidade em vez de truncar. O ingresso real de MO da Zoug ainda depende de homologação.",
+              "type": "text/markdown"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('dataMOUnix')) {",
+                  "  pm.variables.set('dataMOUnix', String(Math.floor(Date.now() / 1000)));",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const result = pm.response.json();",
+                  "pm.test('Lista MO presente', function () { pm.expect(result.list_mo).to.be.an('array'); });",
+                  "pm.test('Código de consulta válido', function () { pm.expect([5, 6]).to.include(result.code); });"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "Sem respostas no dia",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/v1/consultmo?date={{dataMOUnix}}",
+                "description": {
+                  "content": "Consulta respostas MO do dia inteiro correspondente a `date`, um Unix timestamp **em segundos**, interpretado no fuso America/Sao_Paulo. Se `dataMOUnix` estiver vazio, o Postman usa a data atual. A consulta **não consome** respostas. `code: 6` e `list_mo: []` indicam ausência de registros no dia. O campo `fromAdress` mantém essa grafia por compatibilidade. Acima de 1000 respostas, o gateway devolve indisponibilidade em vez de truncar. O ingresso real de MO da Zoug ainda depende de homologação.",
+                  "type": "text/markdown"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"OK\",\n  \"code\": 6,\n  \"message\": \"NO_RECORDS\",\n  \"list_mo\": []\n}"
+            },
+            {
+              "name": "Com resposta recebida",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/v1/consultmo?date={{dataMOUnix}}",
+                "description": {
+                  "content": "Consulta respostas MO do dia inteiro correspondente a `date`, um Unix timestamp **em segundos**, interpretado no fuso America/Sao_Paulo. Se `dataMOUnix` estiver vazio, o Postman usa a data atual. A consulta **não consome** respostas. `code: 6` e `list_mo: []` indicam ausência de registros no dia. O campo `fromAdress` mantém essa grafia por compatibilidade. Acima de 1000 respostas, o gateway devolve indisponibilidade em vez de truncar. O ingresso real de MO da Zoug ainda depende de homologação.",
+                  "type": "text/markdown"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"OK\",\n  \"code\": 5,\n  \"message\": \"REQUIRED_OK\",\n  \"list_mo\": [\n    {\n      \"fromAdress\": \"5511987654321\",\n      \"receivedDate\": \"2026-10-27 18:00:00-03\",\n      \"unixReceivedDate\": \"1793134800\",\n      \"msg\": \"Confirmo\",\n      \"idMo\": \"45\",\n      \"idMt\": \"123\"\n    }\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
