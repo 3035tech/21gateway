@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -107,21 +108,27 @@ func (c *Client) Send(ctx context.Context, input SendRequest) (SendResponse, err
 	request.Header.Set(tokenHeader, c.token)
 	response, err := c.http.Do(request)
 	if err != nil {
+		slog.Warn("Zoug SMS response unavailable", "reason", "transport")
 		return result, apperrors.Wrap(apperrors.CodeUnknownOutcome, err)
 	}
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
-		return result, apperrors.Wrap(codeForResponse(response.StatusCode), nil)
+		code := codeForResponse(response.StatusCode)
+		slog.Warn("Zoug SMS request not accepted", "http_status", response.StatusCode, "code", code)
+		return result, apperrors.Wrap(code, nil)
 	}
 	data, err := io.ReadAll(io.LimitReader(response.Body, maxResponseBytes+1))
 	if err != nil || len(data) > maxResponseBytes {
+		slog.Warn("Zoug SMS response unavailable", "reason", "response_body_unreadable_or_too_large")
 		return result, apperrors.Wrap(apperrors.CodeUnknownOutcome, err)
 	}
 	if err := json.Unmarshal(data, &result); err != nil {
+		slog.Warn("Zoug SMS response unavailable", "reason", "invalid_json")
 		return result, apperrors.Wrap(apperrors.CodeUnknownOutcome, err)
 	}
 	parsedID, err := uuid.Parse(result.MessageID)
 	if err != nil || parsedID == uuid.Nil || result.Status != StatusSent {
+		slog.Warn("Zoug SMS response unavailable", "reason", "invalid_acknowledgement", "message_id_valid", err == nil && parsedID != uuid.Nil, "status_sent", result.Status == StatusSent)
 		return SendResponse{}, apperrors.Wrap(apperrors.CodeUnknownOutcome, errors.New("invalid provider acknowledgement"))
 	}
 	result.MessageID = parsedID.String()

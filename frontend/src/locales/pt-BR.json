@@ -479,6 +479,7 @@
     "confirmCharge": "Confirmo que este número foi autorizado e que o teste pode gerar cobrança de um SMS.",
     "uncertainHint": "Se a chamada ficou sem resposta, consulte Envios antes de tentar novamente.",
     "companyUncertainHint": "Se a chamada ficou sem resposta, confirme com a Zoug antes de tentar novamente; este teste direto não aparece em Envios.",
+    "companyUnknownToast": "A Zoug pode ter recebido o SMS, mas não confirmou o resultado. Verifique o celular antes de tentar novamente.",
     "accepted": "Fornecedor aceitou o SMS",
     "queued": "SMS na fila para envio",
     "unknown": "Resultado incerto: não reenvie automaticamente",

@@ -479,6 +479,7 @@
     "confirmCharge": "I confirm this number is authorized and the test may incur the cost of one SMS.",
     "uncertainHint": "If the request received no response, check Messages before trying again.",
     "companyUncertainHint": "If the request received no response, confirm with Zoug before retrying; this direct test does not appear in Messages.",
+    "companyUnknownToast": "Zoug may have received the SMS but did not confirm the outcome. Check the phone before retrying.",
     "accepted": "Provider accepted the SMS",
     "queued": "SMS queued for sending",
     "unknown": "Uncertain result: do not retry automatically",

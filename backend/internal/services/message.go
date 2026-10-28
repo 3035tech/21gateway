@@ -2,12 +2,14 @@ package services
 
 import (
 	"context"
+	"errors"
 	"github.com/21mobile/sms-gateway/internal/dtos"
 	apperrors "github.com/21mobile/sms-gateway/internal/errors"
 	"github.com/21mobile/sms-gateway/internal/models"
 	"github.com/21mobile/sms-gateway/internal/repositories"
 	"github.com/21mobile/sms-gateway/internal/security"
 	"github.com/google/uuid"
+	"log/slog"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -157,8 +159,18 @@ func (s *MessageService) SendCompanyTest(ctx context.Context, actor uint64, publ
 	correlationID := "test-" + uuid.NewString()
 	providerID, err := s.sender.SendCompanyTest(ctx, company, destination, messageText, correlationID)
 	if err != nil {
+		var appError *apperrors.Error
+		code := apperrors.CodeInternal
+		if errors.As(err, &appError) {
+			code = appError.Code
+		}
+		slog.Warn("Company SMS token test failed", "company_id", company.ID, "correlation_id", correlationID, "code", code)
+		if code == apperrors.CodeUnknownOutcome {
+			return dtos.TestSendResult{SubmissionState: models.SubmissionUnknown, CorrelationID: correlationID, FailureCode: string(code)}, nil
+		}
 		return empty, err
 	}
+	slog.Info("Company SMS token test accepted", "company_id", company.ID, "correlation_id", correlationID, "provider_message_id", providerID)
 	return dtos.TestSendResult{SubmissionState: models.SubmissionAccepted, IDSMS: providerID, CorrelationID: correlationID}, nil
 }
 

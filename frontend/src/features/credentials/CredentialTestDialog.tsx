@@ -58,7 +58,13 @@ export function CredentialTestDialog({
       else if (result.submissionState === 'accepted')
         feedback.success(t('feedback.sendAccepted'))
       else if (result.submissionState === 'unknown')
-        feedback.error(t('feedback.sendUncertain'))
+        feedback.error(
+          t(
+            company
+              ? 'credentialTest.companyUnknownToast'
+              : 'feedback.sendUncertain',
+          ),
+        )
       else feedback.error(t('feedback.sendRejected'))
     },
     onError: (error) =>

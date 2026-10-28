@@ -88,6 +88,8 @@ func HTTPError(err error) huma.StatusError {
 			return huma.NewError(http.StatusNotFound, "")
 		case apperrors.CodeRateLimited:
 			return huma.NewError(http.StatusTooManyRequests, "")
+		case apperrors.CodeProviderUnauthorized, apperrors.CodeInsufficientBalance, apperrors.CodeProviderRejected, apperrors.CodeUnknownOutcome:
+			return &dtos.ErrorOutput{ErrorModel: huma.ErrorModel{Status: http.StatusBadGateway, Title: http.StatusText(http.StatusBadGateway), Detail: appError.Code.Message()}, Code: appError.Code}
 		}
 	}
 	return huma.NewError(http.StatusInternalServerError, "")

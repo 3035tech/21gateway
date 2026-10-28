@@ -66,6 +66,12 @@ func TestPostgresCompanyTokenTestUsesPublicRefAndAudits(t *testing.T) {
 	if err := db.Model(&models.SMSAttempt{}).Count(&count).Error; err != nil || count != 0 {
 		t.Fatalf("unexpected SMS attempts: %d, %v", count, err)
 	}
+	provider.err = apperrors.Wrap(apperrors.CodeUnknownOutcome, nil)
+	service.sender = NewSMSService(repositories.NewSMSAttempts(db), provider)
+	uncertain, err := service.SendCompanyTest(ctx, user.ID, company.PublicRef, "11987654321", "")
+	if err != nil || uncertain.SubmissionState != models.SubmissionUnknown || uncertain.CorrelationID == "" || uncertain.FailureCode != string(apperrors.CodeUnknownOutcome) {
+		t.Fatalf("unknown provider outcome was lost: result=%+v err=%v", uncertain, err)
+	}
 }
 
 func TestPostgresCredentialTestSendUsesExistingLimitsAndAudit(t *testing.T) {
