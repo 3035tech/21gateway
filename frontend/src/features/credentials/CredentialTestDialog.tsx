@@ -141,7 +141,7 @@ export function CredentialTestDialog({
           <label className="mt-4 block text-sm font-semibold">
             {t('credentialTest.testNumber')}
             <input
-              className="form-control mt-2 w-full max-w-xs"
+              className="form-control mt-2 block w-full max-w-xs"
               type="tel"
               inputMode="tel"
               autoComplete="off"
@@ -176,7 +176,7 @@ export function CredentialTestDialog({
             <label className="mt-4 block text-sm font-semibold">
               {t('credentialTest.messageText')}
               <textarea
-                className="form-control mt-2 min-h-28 w-full resize-y"
+                className="form-control mt-2 block min-h-28 w-full resize-y"
                 rows={4}
                 maxLength={160}
                 value={customMessage}
