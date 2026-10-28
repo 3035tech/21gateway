@@ -272,6 +272,16 @@ export function CredentialForm({
                   />
                 </label>
               ) : null}
+              {!credential ? (
+                <label className="mb-5 flex min-h-11 items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-800">
+                  <input
+                    className="size-4 shrink-0 accent-brand-purple"
+                    type="checkbox"
+                    {...form.register('generateUsername')}
+                  />
+                  {t('credentials.generateUsername')}
+                </label>
+              ) : null}
               <div className="grid gap-5 sm:grid-cols-2">
                 <div>
                   {selectedCompanyId ? (
@@ -386,17 +396,7 @@ export function CredentialForm({
                     </p>
                   ) : null}
                 </div>
-                <div className="space-y-4">
-                  {!credential ? (
-                    <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
-                      <input
-                        className="size-4 accent-brand-purple"
-                        type="checkbox"
-                        {...form.register('generateUsername')}
-                      />
-                      {t('credentials.generateUsername')}
-                    </label>
-                  ) : null}
+                <div>
                   {generateUsername ? (
                     <div className="field">
                       <span>{t('credentials.basicUsername')}</span>
