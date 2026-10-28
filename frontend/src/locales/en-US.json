@@ -508,7 +508,7 @@
     "processing": "Processing",
     "queuedTotal": "Total queued",
     "recordedMessages": "Recorded messages",
-    "historyTotal": "Total retained in the database",
+    "historyTotal": "Includes token test SMS; view those tests on the company page.",
     "open": "Open",
     "accepted": "Accepted",
     "rejected": "Rejected",

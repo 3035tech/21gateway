@@ -508,7 +508,7 @@
     "processing": "Em processamento",
     "queuedTotal": "Total na fila",
     "recordedMessages": "Envios registrados",
-    "historyTotal": "Acumulado do histórico mantido no banco",
+    "historyTotal": "Inclui SMS de teste do token; consulte esses testes na ficha da empresa.",
     "open": "Abrir",
     "accepted": "Aceitos",
     "rejected": "Rejeitados",
