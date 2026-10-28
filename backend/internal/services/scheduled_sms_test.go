@@ -1,10 +1,12 @@
 package services
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strconv"
 	"strings"
 	"testing"
@@ -143,6 +145,26 @@ func TestScheduledAdmissionRejectsPastInvalidDateAndPhone(t *testing.T) {
 		if err != nil || result[0].Status != dtos.LegacyStatusNOK || len(repo.jobs) != 0 {
 			t.Fatal("invalid schedule persisted", err)
 		}
+	}
+}
+
+func TestQueuedSendLogsInvalidScheduleReasonWithoutMessageContent(t *testing.T) {
+	var logs bytes.Buffer
+	previous := slog.Default()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(&logs, nil)))
+	t.Cleanup(func() { slog.SetDefault(previous) })
+	input := validSMS()
+	input.MessageText = "private message text"
+	date := time.Now().Add(-time.Minute).Unix()
+	input.ScheduledDate = &date
+	repo := &scheduleMemory{}
+	result, err := NewScheduledSMSService(repo, scheduledVault(t)).EnqueueAll(context.Background(), 7, []dtos.LegacySMS{input})
+	if err != nil || len(result) != 1 || result[0].Message != dtos.LegacyInvalidRequest || len(repo.jobs) != 0 {
+		t.Fatalf("invalid schedule admitted: result=%+v err=%v", result, err)
+	}
+	output := logs.String()
+	if !strings.Contains(output, `"reason":"scheduled_date_out_of_range"`) || !strings.Contains(output, `"item_index":0`) || strings.Contains(output, input.MessageText) {
+		t.Fatalf("unsafe or incomplete validation log: %s", output)
 	}
 }
 

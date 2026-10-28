@@ -53,12 +53,15 @@ func (s *ScheduledSMSService) enqueue(ctx context.Context, credentialID uint64, 
 	now := time.Now().UTC()
 	for i, input := range messages {
 		code := apperrors.CodeNone
+		reason := ""
 		if input.ScheduledDate != nil && *input.ScheduledDate != 0 {
 			if *input.ScheduledDate <= now.Unix() || *input.ScheduledDate > maximumScheduleTimestamp {
 				code = apperrors.CodeInvalidRequest
+				reason = "scheduled_date_out_of_range"
 			}
 		} else if !allowImmediate {
 			code = apperrors.CodeInvalidRequest
+			reason = "scheduled_date_required"
 		}
 		normalized, normalizationCode := prepareSMSText(input.MessageText)
 		plain := input
@@ -66,10 +69,17 @@ func (s *ScheduledSMSService) enqueue(ctx context.Context, credentialID uint64, 
 		plain.ScheduledDate = nil
 		if normalizationCode != apperrors.CodeNone {
 			code = normalizationCode
+			reason = "message_normalization"
 		} else if validation := validateMessage(plain); validation != apperrors.CodeNone {
 			code = validation
+			if validation == apperrors.CodeInvalidRequest {
+				reason = "correlation_id_too_long"
+			} else {
+				reason = string(validation)
+			}
 		}
 		if code != apperrors.CodeNone {
+			slog.Warn("SMS item rejected before enqueue", "credential_id", credentialID, "item_index", i, "code", code, "reason", reason)
 			result[i] = failure(input, code)
 			continue
 		}
@@ -105,9 +115,11 @@ func (s *ScheduledSMSService) enqueue(ctx context.Context, credentialID uint64, 
 	}
 	saved, err := s.repo.Enqueue(ctx, jobs)
 	if err != nil {
+		slog.Error("SMS enqueue failed", "credential_id", credentialID, "items", len(jobs), "error", dbError(err))
 		return nil, dbError(err)
 	}
 	if len(saved) != len(jobs) {
+		slog.Error("SMS enqueue result incomplete", "credential_id", credentialID, "expected", len(jobs), "actual", len(saved))
 		return nil, apperrors.Wrap(apperrors.CodeServiceUnavailable, nil)
 	}
 	for i, job := range saved {

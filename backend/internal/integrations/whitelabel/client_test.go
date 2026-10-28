@@ -1,10 +1,13 @@
 package whitelabel
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/jarcoal/httpmock"
@@ -97,14 +100,27 @@ func TestRedirectDoesNotLeakProviderToken(t *testing.T) {
 }
 
 func TestNetworkFailureIsUncertainAndNotRetried(t *testing.T) {
+	var logs bytes.Buffer
+	previous := slog.Default()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(&logs, nil)))
+	t.Cleanup(func() { slog.SetDefault(previous) })
 	transport := httpmock.NewMockTransport()
 	transport.RegisterResponder(http.MethodPost, testBaseURL+"/api/send", func(*http.Request) (*http.Response, error) { return nil, context.DeadlineExceeded })
-	client, _ := NewWithTransport(testBaseURL, "test-token", transport)
+	client, _ := NewWithTransport(testBaseURL, "private-token", transport)
 	defer client.Close()
-	_, err := client.Send(context.Background(), SendRequest{})
+	_, err := client.Send(context.Background(), SendRequest{Index: "42", Message: "private-message", Destination: "5511999999999"})
 	var typed *apperrors.Error
 	if !errors.As(err, &typed) || typed.Code != apperrors.CodeUnknownOutcome || transport.GetTotalCallCount() != 1 {
 		t.Fatalf("err=%v calls=%d", err, transport.GetTotalCallCount())
+	}
+	output := logs.String()
+	if !strings.Contains(output, `"provider_index":"42"`) || !strings.Contains(output, `"reason":"transport"`) || !strings.Contains(output, `"error":`) {
+		t.Fatalf("missing diagnostic fields: %s", output)
+	}
+	for _, secret := range []string{"private-token", "private-message", "5511999999999"} {
+		if strings.Contains(output, secret) {
+			t.Fatalf("sensitive data logged: %s", secret)
+		}
 	}
 }
 

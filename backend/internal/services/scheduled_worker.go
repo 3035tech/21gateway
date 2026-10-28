@@ -72,15 +72,27 @@ func (w *ScheduledSMSWorker) processGroup(ctx context.Context, jobs []models.Sch
 	if len(jobs) == 0 {
 		return false, nil
 	}
+	logStage := func(stage string, err error) {
+		slog.Warn("SMS processing deferred before provider request", "send_id", jobs[0].AttemptID, "credential_id", jobs[0].CredentialID, "stage", stage, "error", err)
+	}
 	release := func() (bool, error) {
 		finish, cancel := context.WithTimeout(context.WithoutCancel(ctx), completionTimeout)
 		defer cancel()
-		return false, w.repo.Release(finish, jobs)
+		err := w.repo.Release(finish, jobs)
+		if err != nil {
+			slog.Error("SMS release failed", "send_id", jobs[0].AttemptID, "error", err)
+		}
+		return false, err
 	}
 	reject := func(code apperrors.Code) (bool, error) {
 		finish, cancel := context.WithTimeout(context.WithoutCancel(ctx), completionTimeout)
 		defer cancel()
 		err := w.repo.Reject(finish, jobs, code)
+		if err != nil {
+			slog.Error("SMS rejection persistence failed", "send_id", jobs[0].AttemptID, "code", code, "error", err)
+		} else {
+			slog.Warn("SMS rejected before provider request", "send_id", jobs[0].AttemptID, "code", code)
+		}
 		return err == nil, err
 	}
 	credential, err := w.repo.Credential(ctx, jobs[0].CredentialID)
@@ -88,6 +100,7 @@ func (w *ScheduledSMSWorker) processGroup(ctx context.Context, jobs []models.Sch
 		return reject(apperrors.CodeForbidden)
 	}
 	if err != nil {
+		logStage("credential_lookup", err)
 		return release()
 	}
 	if !credential.ValidAt(time.Now()) || (credential.CompanyID != nil && (credential.CompanyActive == nil || !*credential.CompanyActive)) {
@@ -101,6 +114,7 @@ func (w *ScheduledSMSWorker) processGroup(ctx context.Context, jobs []models.Sch
 		}
 		text, err := w.vault.Decrypt(job.CredentialID, job.EventKey, job.EncryptedMessage)
 		if err != nil {
+			logStage("message_decryption", err)
 			return release()
 		}
 		messages[i] = dtos.LegacySMS{Destination: strings.TrimPrefix(job.Attempt.Destination, brazilCountryCode), MessageText: text, CorrelationID: job.Attempt.CorrelationID}
@@ -111,11 +125,13 @@ func (w *ScheduledSMSWorker) processGroup(ctx context.Context, jobs []models.Sch
 	}); ok {
 		resolved, err := scoped.Prepare(WithCredential(ctx, credential))
 		if err != nil {
+			logStage("provider_configuration", err)
 			return release()
 		}
 		provider = resolved
 	}
 	if !provider.Enabled() {
+		logStage("provider_disabled", nil)
 		return release()
 	}
 	budget := w.limiter
@@ -124,6 +140,7 @@ func (w *ScheduledSMSWorker) processGroup(ctx context.Context, jobs []models.Sch
 	}); ok {
 		granted, err := partial.ReserveUpTo(ctx, credential.ID, len(jobs))
 		if err != nil || granted <= 0 {
+			logStage("send_budget", err)
 			return release()
 		}
 		if granted > len(jobs) {
@@ -149,9 +166,11 @@ func (w *ScheduledSMSWorker) processGroup(ctx context.Context, jobs []models.Sch
 	}
 	// Before Begin there was no provider request: deferral is safe, not an SMS retry.
 	if sendErr != nil {
+		logStage("begin_submission", sendErr)
 		return release()
 	}
 	if len(result) > 0 && result[0].Code == dtos.LegacyCodeRateLimited {
+		logStage("rate_limited", nil)
 		return release()
 	}
 	return reject(apperrors.CodeInvalidRequest)

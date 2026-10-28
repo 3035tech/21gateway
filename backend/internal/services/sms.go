@@ -189,6 +189,7 @@ func (s *SMSService) Send(ctx context.Context, credentialID uint64, messages []d
 		if code == apperrors.CodeUnknownOutcome {
 			attempt.State = models.SubmissionUnknown
 		}
+		slog.Warn("SMS provider submission failed", "send_id", attempt.ID, "credential_id", credentialID, "state", attempt.State, "code", code)
 		attempt.FailureCode = code
 		s.complete(ctx, attempt)
 		result := failure(input, code)
@@ -199,6 +200,7 @@ func (s *SMSService) Send(ctx context.Context, credentialID uint64, messages []d
 	}
 	attempt.State = models.SubmissionAccepted
 	attempt.ProviderMessageID = &sent.MessageID
+	slog.Info("SMS provider submission accepted", "send_id", attempt.ID, "credential_id", credentialID, "provider_message_id", sent.MessageID)
 	s.complete(ctx, attempt)
 	return []dtos.LegacySendResult{{Status: dtos.LegacyStatusOK, Code: dtos.LegacyCodeAccepted, IDSMS: id, CorrelationID: input.CorrelationID}}, nil
 }
@@ -209,7 +211,7 @@ func (s *SMSService) complete(ctx context.Context, attempt models.SMSAttempt) {
 	defer cancel()
 	if err := s.repository.Complete(completion, attempt); err != nil {
 		// An accepted SMS remains accepted to the caller, even if the local update failed.
-		slog.Error("SMS outcome persistence failed", "attempt_id", attempt.ID, "state", attempt.State, "provider_message_id", attempt.ProviderMessageID)
+		slog.Error("SMS outcome persistence failed", "send_id", attempt.ID, "state", attempt.State, "provider_message_id", attempt.ProviderMessageID, "error", err)
 	}
 }
 

@@ -108,27 +108,27 @@ func (c *Client) Send(ctx context.Context, input SendRequest) (SendResponse, err
 	request.Header.Set(tokenHeader, c.token)
 	response, err := c.http.Do(request)
 	if err != nil {
-		slog.Warn("Zoug SMS response unavailable", "reason", "transport")
+		slog.Warn("Zoug SMS response unavailable", "reason", "transport", "provider_index", input.Index, "error", err)
 		return result, apperrors.Wrap(apperrors.CodeUnknownOutcome, err)
 	}
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
 		code := codeForResponse(response.StatusCode)
-		slog.Warn("Zoug SMS request not accepted", "http_status", response.StatusCode, "code", code)
+		slog.Warn("Zoug SMS request not accepted", "provider_index", input.Index, "http_status", response.StatusCode, "code", code)
 		return result, apperrors.Wrap(code, nil)
 	}
 	data, err := io.ReadAll(io.LimitReader(response.Body, maxResponseBytes+1))
 	if err != nil || len(data) > maxResponseBytes {
-		slog.Warn("Zoug SMS response unavailable", "reason", "response_body_unreadable_or_too_large")
+		slog.Warn("Zoug SMS response unavailable", "reason", "response_body_unreadable_or_too_large", "provider_index", input.Index, "error", err)
 		return result, apperrors.Wrap(apperrors.CodeUnknownOutcome, err)
 	}
 	if err := json.Unmarshal(data, &result); err != nil {
-		slog.Warn("Zoug SMS response unavailable", "reason", "invalid_json")
+		slog.Warn("Zoug SMS response unavailable", "reason", "invalid_json", "provider_index", input.Index, "error", err)
 		return result, apperrors.Wrap(apperrors.CodeUnknownOutcome, err)
 	}
 	parsedID, err := uuid.Parse(result.MessageID)
 	if err != nil || parsedID == uuid.Nil || result.Status != StatusSent {
-		slog.Warn("Zoug SMS response unavailable", "reason", "invalid_acknowledgement", "message_id_valid", err == nil && parsedID != uuid.Nil, "status_sent", result.Status == StatusSent)
+		slog.Warn("Zoug SMS response unavailable", "reason", "invalid_acknowledgement", "provider_index", input.Index, "message_id_valid", err == nil && parsedID != uuid.Nil, "status_sent", result.Status == StatusSent)
 		if err == nil && parsedID != uuid.Nil {
 			result.MessageID = parsedID.String()
 		} else {

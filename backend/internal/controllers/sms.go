@@ -2,9 +2,11 @@ package controllers
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/go-chi/chi/v5/middleware"
 
 	"github.com/21mobile/sms-gateway/internal/dtos"
 	apperrors "github.com/21mobile/sms-gateway/internal/errors"
@@ -50,9 +52,20 @@ func (c *SMSController) Send(ctx context.Context, input *dtos.LegacySendInput) (
 	if !ok {
 		return nil, HTTPError(apperrors.Wrap(apperrors.CodeUnauthorized, nil))
 	}
+	requestID := middleware.GetReqID(ctx)
 	results, err := c.service.Send(ctx, credential.ID, input.Body.SMS)
 	if err != nil {
+		slog.Error("SMS send request failed", "request_id", requestID, "credential_id", credential.ID, "items", len(input.Body.SMS), "error", err)
 		return nil, HTTPError(err)
 	}
+	accepted := 0
+	sendIDs := make([]string, 0, len(results))
+	for _, result := range results {
+		if result.IDSMS != "" {
+			accepted++
+			sendIDs = append(sendIDs, result.IDSMS)
+		}
+	}
+	slog.Info("SMS send request completed", "request_id", requestID, "credential_id", credential.ID, "items", len(results), "with_send_id", accepted, "send_ids", sendIDs)
 	return &dtos.LegacySendOutput{Body: results}, nil
 }

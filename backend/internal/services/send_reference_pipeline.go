@@ -58,7 +58,7 @@ func (p *SendReferencePipeline) Run(ctx context.Context) {
 				cancel()
 				if err != nil {
 					if ctx.Err() == nil {
-						slog.Error("SMS reference receive failed")
+						slog.Error("SMS reference receive failed", "error", err)
 					}
 					if failures < 8 {
 						failures++
@@ -87,7 +87,7 @@ func (p *SendReferencePipeline) publishNext(ctx context.Context) (bool, error) {
 	job, err := p.repo.ClaimPublication(ctx)
 	if err != nil {
 		if ctx.Err() == nil {
-			slog.Error("SMS reference claim failed")
+			slog.Error("SMS reference claim failed", "error", err)
 		}
 		return false, err
 	}
@@ -100,11 +100,11 @@ func (p *SendReferencePipeline) publishNext(ctx context.Context) (bool, error) {
 	finish, stop := context.WithTimeout(context.WithoutCancel(ctx), completionTimeout)
 	defer stop()
 	if err := p.repo.PublicationResult(finish, *job, publishErr == nil, CallbackBackoff(job.PublishAttempts)); err != nil {
-		slog.Error("SMS reference publication state failed", "send_id", job.AttemptID, "publish_attempts", job.PublishAttempts)
+		slog.Error("SMS reference publication state failed", "send_id", job.AttemptID, "publish_attempts", job.PublishAttempts, "error", err)
 		return true, err
 	}
 	if publishErr != nil {
-		slog.Warn("SMS reference publish failed", "send_id", job.AttemptID, "publish_attempts", job.PublishAttempts)
+		slog.Warn("SMS reference publish failed", "send_id", job.AttemptID, "publish_attempts", job.PublishAttempts, "error", publishErr)
 	} else {
 		slog.Info("SMS reference published", "send_id", job.AttemptID, "publish_attempts", job.PublishAttempts)
 	}
@@ -113,12 +113,12 @@ func (p *SendReferencePipeline) publishNext(ctx context.Context) (bool, error) {
 func (p *SendReferencePipeline) consume(ctx context.Context, message dispatchqueue.Delivery) error {
 	id, err := dispatchqueue.ParseSendReference(message.Body)
 	if err != nil {
-		slog.Warn("SMS reference payload invalid")
+		slog.Warn("SMS reference payload invalid", "error", err)
 		return err
 	}
 	job, done, ready, err := p.repo.Claim(ctx, id)
 	if err != nil {
-		slog.Warn("SMS reference claim deferred", "send_id", id)
+		slog.Warn("SMS reference claim deferred", "send_id", id, "error", err)
 		return p.deferMessage(ctx, message, id)
 	}
 	if done {
@@ -131,7 +131,7 @@ func (p *SendReferencePipeline) consume(ctx context.Context, message dispatchque
 	}
 	progress, err := p.sender.processGroup(ctx, []models.ScheduledSMS{job})
 	if err != nil {
-		slog.Warn("SMS reference processing deferred", "send_id", id)
+		slog.Warn("SMS reference processing deferred", "send_id", id, "error", err)
 		return p.deferMessage(ctx, message, id)
 	}
 	if progress {
@@ -147,7 +147,7 @@ func (p *SendReferencePipeline) ackMessage(ctx context.Context, message dispatch
 	finish, cancel := context.WithTimeout(context.WithoutCancel(ctx), completionTimeout)
 	defer cancel()
 	if err := p.queue.Ack(finish, message); err != nil {
-		slog.Warn("SMS reference acknowledgment failed", "send_id", id)
+		slog.Warn("SMS reference acknowledgment failed", "send_id", id, "error", err)
 		return err
 	}
 	return nil
@@ -156,7 +156,7 @@ func (p *SendReferencePipeline) deferMessage(ctx context.Context, message dispat
 	finish, cancel := context.WithTimeout(context.WithoutCancel(ctx), completionTimeout)
 	defer cancel()
 	if err := p.queue.Defer(finish, message); err != nil {
-		slog.Warn("SMS reference visibility update failed", "send_id", id)
+		slog.Warn("SMS reference visibility update failed", "send_id", id, "error", err)
 		return err
 	}
 	return nil
