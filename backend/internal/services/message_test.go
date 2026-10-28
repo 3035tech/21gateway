@@ -77,13 +77,14 @@ func TestPostgresCompanyTokenTestUsesPublicRefAndAudits(t *testing.T) {
 		t.Fatalf("company test history: %+v, %v", history, err)
 	}
 	provider.err = apperrors.Wrap(apperrors.CodeUnknownOutcome, nil)
+	provider.response.MessageID = "550e8400-e29b-41d4-a716-446655440001"
 	service.sender = NewSMSService(repositories.NewSMSAttempts(db), provider)
 	uncertain, err := service.SendCompanyTest(ctx, user.ID, company.PublicRef, "11987654321", "")
 	if err != nil || uncertain.SubmissionState != models.SubmissionUnknown || uncertain.CorrelationID == "" || uncertain.FailureCode != string(apperrors.CodeUnknownOutcome) {
 		t.Fatalf("unknown provider outcome was lost: result=%+v err=%v", uncertain, err)
 	}
 	recorded = models.CompanyTestSend{}
-	if err := db.Where("correlation_id = ?", uncertain.CorrelationID).First(&recorded).Error; err != nil || recorded.State != models.SubmissionUnknown || recorded.FailureCode != apperrors.CodeUnknownOutcome {
+	if err := db.Where("correlation_id = ?", uncertain.CorrelationID).First(&recorded).Error; err != nil || recorded.State != models.SubmissionUnknown || recorded.FailureCode != apperrors.CodeUnknownOutcome || recorded.ProviderMessageID == nil || *recorded.ProviderMessageID != uncertain.IDSMS {
 		t.Fatalf("uncertain test not recorded: %+v, %v", recorded, err)
 	}
 	if summary, err := repositories.NewSummary(db).Summary(ctx, company.ID); err != nil || summary.Accepted != 1 || summary.Unknown != 1 {
