@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -41,6 +42,12 @@ type Reference struct {
 	Version int    `json:"version"`
 	BatchID string `json:"batchId"`
 }
+type SendReference struct {
+	Version int    `json:"version"`
+	SendID  string `json:"sendId"`
+}
+
+const SendReferenceVersion = 2
 
 func New(ctx context.Context, region, queueURL string) (*Client, error) {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
@@ -63,6 +70,17 @@ func (c *Client) Publish(ctx context.Context, id string) error {
 		return errors.New("invalid dispatch reference")
 	}
 	body, err := json.Marshal(Reference{Version: ReferenceVersion, BatchID: id})
+	if err != nil {
+		return err
+	}
+	_, err = c.api.SendMessage(ctx, &sqs.SendMessageInput{QueueUrl: aws.String(c.url), MessageBody: aws.String(string(body))})
+	return err
+}
+func (c *Client) PublishSend(ctx context.Context, id uint64) error {
+	if id == 0 {
+		return errors.New("invalid send reference")
+	}
+	body, err := json.Marshal(SendReference{Version: SendReferenceVersion, SendID: strconv.FormatUint(id, 10)})
 	if err != nil {
 		return err
 	}
@@ -112,6 +130,22 @@ func ParseReference(body string) (string, error) {
 		return "", errors.New("invalid dispatch reference")
 	}
 	return id.String(), nil
+}
+func ParseSendReference(body string) (uint64, error) {
+	if len(body) > maximumReferenceBytes {
+		return 0, errors.New("invalid send reference")
+	}
+	var ref SendReference
+	decoder := json.NewDecoder(strings.NewReader(body))
+	decoder.DisallowUnknownFields()
+	if decoder.Decode(&ref) != nil || decoder.Decode(new(any)) != io.EOF || ref.Version != SendReferenceVersion {
+		return 0, errors.New("invalid send reference")
+	}
+	id, err := strconv.ParseUint(ref.SendID, 10, 64)
+	if err != nil || id == 0 {
+		return 0, errors.New("invalid send reference")
+	}
+	return id, nil
 }
 
 func (c *Client) Close() { c.close() }

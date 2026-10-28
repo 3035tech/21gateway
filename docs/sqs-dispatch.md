@@ -1,5 +1,7 @@
 # Despacho agendado com SQS
 
+Este é o transporte v1 por ID de lote. O modo novo por ID individual de SMS está em [sms-send-queue.md](sms-send-queue.md) e usa outra fila. Não misturar os payloads ou ativar ambos os modos.
+
 Implementado em 15/10/2026, opt-in e sem deployment. Decisão autorizada: scheduler Go identifica mensagens vencidas no PostgreSQL, publica referências duráveis no SQS e consumidores Go encaminham ao white label. Envios imediatos continuam síncronos.
 
 ## Fluxo e concorrência

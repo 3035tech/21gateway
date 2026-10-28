@@ -97,7 +97,11 @@ func run() error {
 		}
 		scheduler := services.NewScheduledSMSService(repositories.NewScheduledSMS(db), scheduledVault)
 		scheduler.SetHistoryVault(historyVault)
-		sender.SetScheduler(scheduler)
+		if cfg.SMSSQSEnabled {
+			sender.SetDispatchQueue(scheduler)
+		} else {
+			sender.SetScheduler(scheduler)
+		}
 	}
 	workers, err := background.New(ctx, cfg, db, provider, vault, moVault)
 	if err != nil {
@@ -117,16 +121,18 @@ func run() error {
 		IdleTimeout:       config.IdleTimeout,
 		MaxHeaderBytes:    config.MaxHeaderBytes,
 	}
-	workerCtx, stopWorkers := context.WithCancel(ctx)
-	workersDone := make(chan struct{})
-	go func() {
-		defer close(workersDone)
-		workers.Run(workerCtx)
-	}()
-	defer func() {
-		stopWorkers()
-		<-workersDone
-	}()
+	if cfg.WorkersInAPI {
+		workerCtx, stopWorkers := context.WithCancel(ctx)
+		workersDone := make(chan struct{})
+		go func() {
+			defer close(workersDone)
+			workers.Run(workerCtx)
+		}()
+		defer func() {
+			stopWorkers()
+			<-workersDone
+		}()
+	}
 	failures := make(chan error, 1)
 	go func() { slog.Info("API started", "address", cfg.Address); failures <- server.ListenAndServe() }()
 	select {

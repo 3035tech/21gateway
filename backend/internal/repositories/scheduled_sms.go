@@ -27,7 +27,8 @@ func (r *ScheduledSMS) List(ctx context.Context, q dtos.ScheduledListQuery, from
 	db := r.db.WithContext(ctx).Table("scheduled_sms AS s").
 		Joins("JOIN sms_attempts AS a ON a.id=s.attempt_id").
 		Joins("JOIN api_credentials AS cred ON cred.id=s.credential_id").
-		Joins("LEFT JOIN companies AS c ON c.id=a.company_id")
+		Joins("LEFT JOIN companies AS c ON c.id=a.company_id").
+		Where("a.scheduled_at IS NOT NULL")
 	db = scopedCompanies(db, ctx, "a.company_id")
 	if q.CompanyID != 0 {
 		db = db.Where("a.company_id=?", q.CompanyID)
@@ -89,13 +90,13 @@ func (r *ScheduledSMS) Claim(ctx context.Context) ([]models.ScheduledSMS, error)
 	jobs := []models.ScheduledSMS{}
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Never replay a dispatch whose process died after crossing the send boundary.
-		if err := tx.Exec(`WITH expired AS (SELECT id FROM scheduled_sms WHERE state='dispatching' AND lease_until<NOW() ORDER BY lease_until,id LIMIT ? FOR UPDATE SKIP LOCKED), marked AS (UPDATE scheduled_sms s SET state='unknown',encrypted_message='',last_error=?,lease_token=NULL,lease_until=NULL,updated_at=NOW() FROM expired WHERE s.id=expired.id RETURNING s.attempt_id) UPDATE sms_attempts a SET state='unknown',failure_code=?,updated_at=NOW() FROM marked WHERE a.id=marked.attempt_id`, models.ScheduledBatchSize, apperrors.CodeUnknownOutcome, apperrors.CodeUnknownOutcome).Error; err != nil {
+		if err := tx.Exec(`WITH expired AS (SELECT id FROM scheduled_sms WHERE send_reference=FALSE AND state='dispatching' AND lease_until<NOW() ORDER BY lease_until,id LIMIT ? FOR UPDATE SKIP LOCKED), marked AS (UPDATE scheduled_sms s SET state='unknown',encrypted_message='',last_error=?,lease_token=NULL,lease_until=NULL,updated_at=NOW() FROM expired WHERE s.id=expired.id RETURNING s.attempt_id) UPDATE sms_attempts a SET state='unknown',failure_code=?,updated_at=NOW() FROM marked WHERE a.id=marked.attempt_id`, models.ScheduledBatchSize, apperrors.CodeUnknownOutcome, apperrors.CodeUnknownOutcome).Error; err != nil {
 			return err
 		}
 		var first models.ScheduledSMS
 		// Literal state predicates let PostgreSQL match partial indexes in generic plans.
 		eligible := `due_at<=NOW() AND available_at<=NOW() AND (state='queued' OR (state='claimed' AND lease_until<NOW()))`
-		err := tx.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"}).Where("dispatch_batch_id IS NULL").Where(eligible).Where(`NOT EXISTS (SELECT 1 FROM scheduled_sms busy WHERE busy.credential_id=scheduled_sms.credential_id AND busy.state IN ('claimed','dispatching') AND busy.lease_until>=NOW())`).Order("available_at,due_at,id").First(&first).Error
+		err := tx.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"}).Where("dispatch_batch_id IS NULL AND send_reference=FALSE").Where(eligible).Where(`NOT EXISTS (SELECT 1 FROM scheduled_sms busy WHERE busy.credential_id=scheduled_sms.credential_id AND busy.send_reference=FALSE AND busy.state IN ('claimed','dispatching') AND busy.lease_until>=NOW())`).Order("available_at,due_at,id").First(&first).Error
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil
 		}
@@ -110,13 +111,13 @@ func (r *ScheduledSMS) Claim(ctx context.Context) ([]models.ScheduledSMS, error)
 			return nil
 		}
 		var busy int64
-		if err := tx.Model(&models.ScheduledSMS{}).Where("credential_id=? AND state IN ('claimed','dispatching') AND lease_until>=NOW()", first.CredentialID).Count(&busy).Error; err != nil {
+		if err := tx.Model(&models.ScheduledSMS{}).Where("credential_id=? AND send_reference=FALSE AND state IN ('claimed','dispatching') AND lease_until>=NOW()", first.CredentialID).Count(&busy).Error; err != nil {
 			return err
 		}
 		if busy != 0 {
 			return nil
 		}
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"}).Where("credential_id=? AND dispatch_batch_id IS NULL", first.CredentialID).Where(eligible).Order("due_at,id").Limit(models.ScheduledBatchSize).Find(&jobs).Error; err != nil {
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"}).Where("credential_id=? AND dispatch_batch_id IS NULL AND send_reference=FALSE", first.CredentialID).Where(eligible).Order("due_at,id").Limit(models.ScheduledBatchSize).Find(&jobs).Error; err != nil {
 			return err
 		}
 		if len(jobs) == 0 {
@@ -156,7 +157,12 @@ func (r *ScheduledSMS) Begin(ctx context.Context, jobs []models.ScheduledSMS) er
 	})
 }
 func (r *ScheduledSMS) Release(ctx context.Context, jobs []models.ScheduledSMS) error {
-	result := r.db.WithContext(ctx).Model(&models.ScheduledSMS{}).Where("id IN ? AND state=? AND lease_token=?", scheduleIDs(jobs), models.ScheduleClaimed, jobs[0].LeaseToken).Updates(map[string]any{"state": models.ScheduleQueued, "available_at": time.Now().UTC().Add(time.Second), "lease_token": nil, "lease_until": nil})
+	delay := time.Second
+	if jobs[0].SendReference {
+		delay = 30 * time.Second
+	}
+	resume := time.Now().UTC().Add(delay)
+	result := r.db.WithContext(ctx).Model(&models.ScheduledSMS{}).Where("id IN ? AND state=? AND lease_token=?", scheduleIDs(jobs), models.ScheduleClaimed, jobs[0].LeaseToken).Updates(map[string]any{"state": models.ScheduleQueued, "available_at": resume, "publish_after": resume, "lease_token": nil, "lease_until": nil})
 	return scheduleUpdated(result, len(jobs))
 }
 func (r *ScheduledSMS) Reject(ctx context.Context, jobs []models.ScheduledSMS, code apperrors.Code) error {

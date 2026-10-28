@@ -44,7 +44,9 @@ export function CredentialTestDialog({
       ),
     onSuccess: (result) => {
       setDelivery(null)
-      if (result.submissionState === 'accepted')
+      if (result.submissionState === 'pending')
+        feedback.success(t('feedback.sendQueued'))
+      else if (result.submissionState === 'accepted')
         feedback.success(t('feedback.sendAccepted'))
       else if (result.submissionState === 'unknown')
         feedback.error(t('feedback.sendUncertain'))
@@ -177,10 +179,12 @@ export function CredentialTestDialog({
           {send.data ? (
             <div
               role="status"
-              className={`mt-4 rounded-lg p-4 text-sm ${send.data.submissionState === 'accepted' ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-900'}`}
+              className={`mt-4 rounded-lg p-4 text-sm ${send.data.submissionState === 'accepted' || send.data.submissionState === 'pending' ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-900'}`}
             >
               <p className="font-bold">
-                {send.data.submissionState === 'accepted'
+                {send.data.submissionState === 'pending'
+                  ? t('credentialTest.queued')
+                  : send.data.submissionState === 'accepted'
                   ? t('credentialTest.accepted')
                   : send.data.submissionState === 'unknown'
                     ? t('credentialTest.unknown')

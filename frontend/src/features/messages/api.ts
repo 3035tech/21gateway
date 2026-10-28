@@ -28,7 +28,7 @@ export async function getMessageContent(id: number, signal?: AbortSignal) {
 }
 
 const testSendResultSchema = z.object({
-  submissionState: z.enum(['accepted', 'rejected', 'unknown']),
+  submissionState: z.enum(['pending', 'accepted', 'rejected', 'unknown']),
   idSms: z.string().optional(),
   correlationId: z.string(),
   failureCode: z.string().optional(),

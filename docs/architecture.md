@@ -1,5 +1,7 @@
 # Arquitetura
 
+O novo modo de envio assíncrono por ID está descrito em [sms-send-queue.md](sms-send-queue.md). A API admite todos os SMS no PostgreSQL; `/worker` publica apenas `id_sms` na SQS v2 e processa o envio. O modo permanece desligado até provisionamento e corte controlado.
+
 > Escopo respondido em 14/10/2026: consulte docs/scope-answers.md. Este documento descreve o código existente; token por cliente e whitelist já foram implementados; MO e compatibilidade V1 completa ainda exigem ajustes. Painel solicitado pela 21 é focado em credenciais/configurações com perfil administrativo único. Não confundir recursos extras implementados com requisitos confirmados.
 ## Regra obrigatória: separação por domínio
 

@@ -23,7 +23,7 @@ func (r *DispatchBatches) Prepare(ctx context.Context) error {
 		var candidate struct{ ID uint64 }
 		// One open batch per account, oldest-served account first. Do not scan every
 		// due SMS belonging to accounts that already have an outstanding batch.
-		if err := tx.Raw(`SELECT c.id FROM api_credentials c WHERE NOT EXISTS (SELECT 1 FROM sms_dispatch_batches b WHERE b.credential_id=c.id AND b.completed_at IS NULL) AND EXISTS (SELECT 1 FROM scheduled_sms s WHERE s.credential_id=c.id AND s.dispatch_batch_id IS NULL AND s.due_at<=NOW() AND s.available_at<=NOW() AND (s.state='queued' OR (s.state='claimed' AND s.lease_until<NOW()))) ORDER BY COALESCE((SELECT MAX(h.created_at) FROM sms_dispatch_batches h WHERE h.credential_id=c.id),'epoch'::timestamptz),c.id LIMIT 1 FOR UPDATE OF c SKIP LOCKED`).Scan(&candidate).Error; err != nil {
+		if err := tx.Raw(`SELECT c.id FROM api_credentials c WHERE NOT EXISTS (SELECT 1 FROM sms_dispatch_batches b WHERE b.credential_id=c.id AND b.completed_at IS NULL) AND EXISTS (SELECT 1 FROM scheduled_sms s WHERE s.credential_id=c.id AND s.send_reference=FALSE AND s.dispatch_batch_id IS NULL AND s.due_at<=NOW() AND s.available_at<=NOW() AND (s.state='queued' OR (s.state='claimed' AND s.lease_until<NOW()))) ORDER BY COALESCE((SELECT MAX(h.created_at) FROM sms_dispatch_batches h WHERE h.credential_id=c.id),'epoch'::timestamptz),c.id LIMIT 1 FOR UPDATE OF c SKIP LOCKED`).Scan(&candidate).Error; err != nil {
 			return err
 		}
 		if candidate.ID == 0 {
@@ -37,7 +37,7 @@ func (r *DispatchBatches) Prepare(ctx context.Context) error {
 			return nil
 		}
 		var active int64
-		if err := tx.Raw(`SELECT COUNT(*) FROM api_credentials c WHERE EXISTS (SELECT 1 FROM scheduled_sms s WHERE s.credential_id=c.id AND s.due_at<=NOW() AND s.state IN ('queued','claimed','dispatching'))`).Scan(&active).Error; err != nil {
+		if err := tx.Raw(`SELECT COUNT(*) FROM api_credentials c WHERE EXISTS (SELECT 1 FROM scheduled_sms s WHERE s.credential_id=c.id AND s.send_reference=FALSE AND s.due_at<=NOW() AND s.state IN ('queued','claimed','dispatching'))`).Scan(&active).Error; err != nil {
 			return err
 		}
 		batchSize := models.ScheduledBatchSize
@@ -48,7 +48,7 @@ func (r *DispatchBatches) Prepare(ctx context.Context) error {
 			}
 		}
 		var jobs []models.ScheduledSMS
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"}).Where("credential_id=? AND dispatch_batch_id IS NULL AND due_at<=NOW() AND available_at<=NOW() AND (state='queued' OR (state='claimed' AND lease_until<NOW()))", candidate.ID).Order("due_at,id").Limit(batchSize).Find(&jobs).Error; err != nil {
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"}).Where("credential_id=? AND send_reference=FALSE AND dispatch_batch_id IS NULL AND due_at<=NOW() AND available_at<=NOW() AND (state='queued' OR (state='claimed' AND lease_until<NOW()))", candidate.ID).Order("due_at,id").Limit(batchSize).Find(&jobs).Error; err != nil {
 			return err
 		}
 		if len(jobs) == 0 {

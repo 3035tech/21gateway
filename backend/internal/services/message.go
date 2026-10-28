@@ -109,7 +109,9 @@ func (s *MessageService) SendTest(ctx context.Context, actor, credentialID uint6
 	}
 	result := results[0]
 	state := models.SubmissionRejected
-	if result.Status == dtos.LegacyStatusOK {
+	if result.Status == dtos.LegacyStatusOK && s.sender.Queued() {
+		state = models.SubmissionPending
+	} else if result.Status == dtos.LegacyStatusOK {
 		state = models.SubmissionAccepted
 	} else if result.Message == dtos.LegacyUnknownOutcome {
 		state = models.SubmissionUnknown
