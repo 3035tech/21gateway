@@ -89,6 +89,7 @@ func (w *Workers) Run(ctx context.Context) {
 		go func() { defer group.Done(); run(ctx) }()
 	}
 	if w.sendReferences != nil {
+		slog.Info("SMS reference worker started")
 		start(w.sendReferences.Run)
 	} else if w.pipeline != nil {
 		start(w.pipeline.Run)

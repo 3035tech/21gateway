@@ -40,9 +40,6 @@ func (p *SendReferencePipeline) Run(ctx context.Context) {
 				cycle, cancel := context.WithTimeout(ctx, workerCycleTimeout)
 				worked, err := p.publishNext(cycle)
 				cancel()
-				if err != nil && ctx.Err() == nil {
-					slog.Error("SMS reference publication failed")
-				}
 				pause := workerTick
 				if worked && err == nil {
 					pause = dispatchWorkPause
@@ -78,11 +75,8 @@ func (p *SendReferencePipeline) Run(ctx context.Context) {
 				failures = 0
 				for _, message := range messages {
 					cycle, cancel := context.WithTimeout(ctx, workerCycleTimeout)
-					err := p.consume(cycle, message)
+					_ = p.consume(cycle, message)
 					cancel()
-					if err != nil && ctx.Err() == nil {
-						slog.Error("SMS reference processing deferred")
-					}
 				}
 			}
 		}()
@@ -91,7 +85,13 @@ func (p *SendReferencePipeline) Run(ctx context.Context) {
 }
 func (p *SendReferencePipeline) publishNext(ctx context.Context) (bool, error) {
 	job, err := p.repo.ClaimPublication(ctx)
-	if err != nil || job == nil {
+	if err != nil {
+		if ctx.Err() == nil {
+			slog.Error("SMS reference claim failed")
+		}
+		return false, err
+	}
+	if job == nil {
 		return false, err
 	}
 	send, cancel := context.WithTimeout(ctx, dispatchPublishTimeout)
@@ -100,40 +100,64 @@ func (p *SendReferencePipeline) publishNext(ctx context.Context) (bool, error) {
 	finish, stop := context.WithTimeout(context.WithoutCancel(ctx), completionTimeout)
 	defer stop()
 	if err := p.repo.PublicationResult(finish, *job, publishErr == nil, CallbackBackoff(job.PublishAttempts)); err != nil {
+		slog.Error("SMS reference publication state failed", "send_id", job.AttemptID, "publish_attempts", job.PublishAttempts)
 		return true, err
+	}
+	if publishErr != nil {
+		slog.Warn("SMS reference publish failed", "send_id", job.AttemptID, "publish_attempts", job.PublishAttempts)
+	} else {
+		slog.Info("SMS reference published", "send_id", job.AttemptID, "publish_attempts", job.PublishAttempts)
 	}
 	return true, publishErr
 }
 func (p *SendReferencePipeline) consume(ctx context.Context, message dispatchqueue.Delivery) error {
 	id, err := dispatchqueue.ParseSendReference(message.Body)
 	if err != nil {
+		slog.Warn("SMS reference payload invalid")
 		return err
 	}
 	job, done, ready, err := p.repo.Claim(ctx, id)
 	if err != nil {
-		return p.deferMessage(ctx, message)
+		slog.Warn("SMS reference claim deferred", "send_id", id)
+		return p.deferMessage(ctx, message, id)
 	}
 	if done {
-		return p.ackMessage(ctx, message)
+		slog.Info("SMS reference already complete", "send_id", id)
+		return p.ackMessage(ctx, message, id)
 	}
 	if !ready {
-		return p.deferMessage(ctx, message)
+		slog.Debug("SMS reference not ready", "send_id", id)
+		return p.deferMessage(ctx, message, id)
 	}
-	_, err = p.sender.processGroup(ctx, []models.ScheduledSMS{job})
+	progress, err := p.sender.processGroup(ctx, []models.ScheduledSMS{job})
 	if err != nil {
-		return p.deferMessage(ctx, message)
+		slog.Warn("SMS reference processing deferred", "send_id", id)
+		return p.deferMessage(ctx, message, id)
+	}
+	if progress {
+		slog.Info("SMS reference processing persisted", "send_id", id)
+	} else {
+		slog.Info("SMS reference released for retry", "send_id", id)
 	}
 	// A pre-send release is durably queued for republication; acknowledge this
 	// delivery so it cannot race the new reference.
-	return p.ackMessage(ctx, message)
+	return p.ackMessage(ctx, message, id)
 }
-func (p *SendReferencePipeline) ackMessage(ctx context.Context, message dispatchqueue.Delivery) error {
+func (p *SendReferencePipeline) ackMessage(ctx context.Context, message dispatchqueue.Delivery, id uint64) error {
 	finish, cancel := context.WithTimeout(context.WithoutCancel(ctx), completionTimeout)
 	defer cancel()
-	return p.queue.Ack(finish, message)
+	if err := p.queue.Ack(finish, message); err != nil {
+		slog.Warn("SMS reference acknowledgment failed", "send_id", id)
+		return err
+	}
+	return nil
 }
-func (p *SendReferencePipeline) deferMessage(ctx context.Context, message dispatchqueue.Delivery) error {
+func (p *SendReferencePipeline) deferMessage(ctx context.Context, message dispatchqueue.Delivery, id uint64) error {
 	finish, cancel := context.WithTimeout(context.WithoutCancel(ctx), completionTimeout)
 	defer cancel()
-	return p.queue.Defer(finish, message)
+	if err := p.queue.Defer(finish, message); err != nil {
+		slog.Warn("SMS reference visibility update failed", "send_id", id)
+		return err
+	}
+	return nil
 }

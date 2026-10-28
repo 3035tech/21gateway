@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"log/slog"
 	"strconv"
 	"time"
 
@@ -112,6 +113,9 @@ func (s *ScheduledSMSService) enqueue(ctx context.Context, credentialID uint64, 
 	for i, job := range saved {
 		position := positions[i]
 		result[position] = dtos.LegacySendResult{Status: dtos.LegacyStatusOK, Code: dtos.LegacyCodeAccepted, IDSMS: strconv.FormatUint(job.AttemptID, 10), CorrelationID: messages[position].CorrelationID}
+		if allowImmediate {
+			slog.Info("SMS queued for SQS", "send_id", job.AttemptID, "scheduled", job.Attempt.ScheduledAt != nil)
+		}
 	}
 	return result, nil
 }
