@@ -32,6 +32,19 @@ func TestPostgresSendReferencePublicationAndDuplicateDelivery(t *testing.T) {
 	if duplicate, err := refs.ClaimPublication(ctx); err != nil || duplicate != nil {
 		t.Fatal("future or leased send published", err)
 	}
+	if err := refs.PublicationResult(ctx, *first, false, time.Minute); err != nil {
+		t.Fatal("failed publication result", err)
+	}
+	if next, err := refs.ClaimPublication(ctx); err != nil || next != nil {
+		t.Fatal("failed publication retried without backoff", err)
+	}
+	if err := db.Model(&models.ScheduledSMS{}).Where("id=?", first.ID).Update("publish_after", time.Now().Add(-time.Second)).Error; err != nil {
+		t.Fatal(err)
+	}
+	first, err = refs.ClaimPublication(ctx)
+	if err != nil || first == nil || first.PublishAttempts != 2 {
+		t.Fatal("failed reference not retried", err)
+	}
 	if err := refs.PublicationResult(ctx, *first, true, time.Second); err != nil {
 		t.Fatal(err)
 	}

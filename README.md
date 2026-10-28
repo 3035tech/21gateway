@@ -9,7 +9,7 @@ Gateway de SMS compatível com a API V1 da 21 Mobile e painel interno para empre
 - Referência interativa Scalar: <https://21gateway-back.3035service.com/docs>
 - OpenAPI público: <https://21gateway-back.3035service.com/openapi.json>
 
-O OpenAPI documenta somente os endpoints de integração de clientes: `POST /v1/send`, `GET /v1/status`, `GET /v1/consultmo` e `GET /v1/auth/check`. A **21 Mobile gera e entrega** o usuário e a senha Basic Auth de cada empresa. O token Zoug é cadastrado na ficha da empresa e permanece no backend; clientes não o enviam no Basic Auth. Senhas são armazenadas como hash Argon2id, e tokens do fornecedor são cifrados. Uma credencial gerada deve ser copiada no momento da criação; a senha não é exibida novamente.
+O OpenAPI documenta somente os endpoints de integração de clientes: `POST /v1/send`, `GET /v1/send/result`, `GET /v1/status`, `GET /v1/consultmo` e `GET /v1/auth/check`. A **21 Mobile gera e entrega** o usuário e a senha Basic Auth de cada empresa. O token Zoug é cadastrado na ficha da empresa e permanece no backend; clientes não o enviam no Basic Auth. Senhas são armazenadas como hash Argon2id, e tokens do fornecedor são cifrados. Uma credencial gerada deve ser copiada no momento da criação; a senha não é exibida novamente.
 
 As URLs do painel para empresas, usuários e credenciais usam `public_ref` UUID, sem mostrar o ID sequencial do banco. A migração 021 já foi aplicada em HML. O backend e o frontend são publicados pelo GitHub Actions; o Argo CD acompanha as novas imagens e atualiza HML. O GitOps fica no repositório separado `3035tech/gitops`, em `dublin/21gateway-back` e `dublin/21gateway-front`.
 

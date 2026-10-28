@@ -14,7 +14,7 @@ func TestPostgresSubmissionStatusIsScopedToCredential(t *testing.T) {
 	if err := db.Create(&credentials).Error; err != nil {
 		t.Fatal(err)
 	}
-	attempt := models.SMSAttempt{CredentialID: credentials[0].ID, Destination: "5511987654321", State: models.SubmissionPending}
+	attempt := models.SMSAttempt{CredentialID: credentials[0].ID, Destination: "5511987654321", Encoding: models.SMSEncodingGSM7, State: models.SubmissionPending}
 	if err := db.Create(&attempt).Error; err != nil {
 		t.Fatal(err)
 	}
