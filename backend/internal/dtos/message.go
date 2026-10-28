@@ -57,3 +57,18 @@ type CompanyTestSendInput struct {
 }
 
 type TestSendOutput struct{ Body TestSendResult }
+
+type CompanyTestHistoryInput struct {
+	PublicRef string `path:"publicRef" format:"uuid"`
+}
+
+type CompanyTestHistoryItem struct {
+	Destination       string                 `json:"destination"`
+	CorrelationID     string                 `json:"correlationId"`
+	ProviderMessageID *string                `json:"providerMessageId"`
+	State             models.SubmissionState `json:"state"`
+	FailureCode       string                 `json:"failureCode"`
+	CreatedAt         time.Time              `json:"createdAt"`
+}
+
+type CompanyTestHistoryOutput struct{ Body []CompanyTestHistoryItem }

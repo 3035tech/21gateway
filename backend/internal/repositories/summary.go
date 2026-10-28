@@ -46,6 +46,12 @@ func (r *Summary) Summary(ctx context.Context, companyID ...uint64) (dtos.Summar
 	result.Accepted = messages.Accepted
 	result.Unknown = messages.Unknown
 	result.Rejected = messages.Rejected
+	if err := db.Raw(`SELECT COUNT(*) FILTER (WHERE state=?) AS accepted,COUNT(*) FILTER (WHERE state=?) AS unknown,COUNT(*) FILTER (WHERE state=?) AS rejected FROM company_test_sends`, models.SubmissionAccepted, models.SubmissionUnknown, models.SubmissionRejected).Scan(&messages).Error; err != nil {
+		return result, err
+	}
+	result.Accepted += messages.Accepted
+	result.Unknown += messages.Unknown
+	result.Rejected += messages.Rejected
 	var callbacks struct {
 		Pending int64
 		Failed  int64
@@ -89,6 +95,12 @@ func scopedSummary(db *gorm.DB, companyIDs []uint64) (dtos.Summary, error) {
 		return result, err
 	}
 	result.Accepted, result.Unknown, result.Rejected = messages.Accepted, messages.Unknown, messages.Rejected
+	if err := db.Table("company_test_sends").Where("company_id IN ?", companyIDs).Select("COUNT(*) FILTER (WHERE state=?) AS accepted, COUNT(*) FILTER (WHERE state=?) AS unknown, COUNT(*) FILTER (WHERE state=?) AS rejected", models.SubmissionAccepted, models.SubmissionUnknown, models.SubmissionRejected).Scan(&messages).Error; err != nil {
+		return result, err
+	}
+	result.Accepted += messages.Accepted
+	result.Unknown += messages.Unknown
+	result.Rejected += messages.Rejected
 	var callbacks struct{ Pending, Failed int64 }
 	if err := db.Table("callback_jobs AS j").Joins("JOIN sms_attempts AS a ON a.id=j.attempt_id").Where("a.company_id IN ?", companyIDs).Select("COUNT(*) FILTER (WHERE j.state IN (?,?)) AS pending, COUNT(*) FILTER (WHERE j.state=?) AS failed", models.CallbackPending, models.CallbackProcessing, models.CallbackFailed).Scan(&callbacks).Error; err != nil {
 		return result, err

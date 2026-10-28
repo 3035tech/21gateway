@@ -19,9 +19,73 @@ import { useUser } from '../auth/context'
 import { CredentialsPage } from '../credentials/CredentialsPage'
 import { CredentialTestDialog } from '../credentials/CredentialTestDialog'
 import { CompanyForm } from './CompanyForm'
-import { getCompany, getCompanyByPublicRef } from './api'
+import { getCompany, getCompanyByPublicRef, getCompanyTestSends } from './api'
 import { UsersPage } from '../users/UsersPage'
 import { isPublicRef } from '../../lib/publicRef'
+
+function CompanyTestHistory({ publicRef }: { publicRef: string }) {
+  const { t } = useTranslation()
+  const query = useQuery({
+    queryKey: ['admin', 'company-test-sends', publicRef],
+    queryFn: ({ signal }) => getCompanyTestSends(publicRef, signal),
+  })
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <h2 className="text-lg font-bold text-slate-900">
+        {t('companyDetail.testHistory')}
+      </h2>
+      <p className="mt-1 text-sm text-slate-600">
+        {t('companyDetail.testHistoryHint')}
+      </p>
+      {query.isPending ? (
+        <p className="mt-4 text-sm" role="status">
+          {t('common.loading')}
+        </p>
+      ) : null}
+      {query.isError ? (
+        <p className="mt-4 text-sm text-rose-700" role="alert">
+          {errorMessage(query.error)}
+        </p>
+      ) : null}
+      {query.data?.length === 0 ? (
+        <p className="mt-4 text-sm text-slate-500">
+          {t('companyDetail.noTests')}
+        </p>
+      ) : null}
+      {query.data?.length ? (
+        <ul className="mt-4 divide-y divide-slate-100">
+          {query.data.map((send) => (
+            <li
+              key={send.correlationId}
+              className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm"
+            >
+              <div className="min-w-0">
+                <p className="font-medium text-slate-900">
+                  {send.destination.replace(/(\d{4})\d{4}(\d{4})$/, '$1••••$2')}
+                </p>
+                <p className="break-all text-xs text-slate-500">
+                  {send.correlationId}
+                </p>
+                {send.providerMessageId ? (
+                  <p className="break-all text-xs text-slate-500">
+                    Zoug: {send.providerMessageId}
+                  </p>
+                ) : null}
+                {send.failureCode ? (
+                  <p className="text-xs text-amber-800">{send.failureCode}</p>
+                ) : null}
+              </div>
+              <div className="flex items-center gap-3">
+                <StatusBadge status={send.state} />
+                <DateCell value={send.createdAt} />
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
+  )
+}
 
 export function CompanyDetailPage() {
   const { t } = useTranslation()
@@ -181,6 +245,7 @@ export function CompanyDetailPage() {
               ) : null}
             </div>
           </section>
+          <CompanyTestHistory publicRef={query.data.publicRef} />
           <section aria-label={t('companyDetail.accessSection')}>
             <div className="mb-3 flex items-center gap-2 text-brand-purple">
               <KeyRound size={19} aria-hidden="true" />

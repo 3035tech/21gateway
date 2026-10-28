@@ -46,5 +46,12 @@ func (c *MessageController) Register(api huma.API) {
 		}
 		return &dtos.TestSendOutput{Body: value}, nil
 	})
+	huma.Register(api, c.operation(api, "listCompanyTokenTests", http.MethodGet, "/companies/by-ref/{publicRef}/test-sends", "Consultar últimos SMS de teste da empresa", security.ResourceMessages, security.ActionRead), func(ctx context.Context, input *dtos.CompanyTestHistoryInput) (*dtos.CompanyTestHistoryOutput, error) {
+		items, err := c.service.CompanyTests(ctx, input.PublicRef)
+		if err != nil {
+			return nil, HTTPError(err)
+		}
+		return &dtos.CompanyTestHistoryOutput{Body: items}, nil
+	})
 
 }

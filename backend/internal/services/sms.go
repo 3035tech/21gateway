@@ -84,7 +84,7 @@ func (s *SMSService) SendCompanyTest(ctx context.Context, company models.Company
 	}
 	response, err := provider.Send(ctx, whitelabel.SendRequest{Type: whitelabel.MessageTypeSMS, Message: normalized, Encoding: whitelabel.SelectEncoding(normalized), Destination: brazilCountryCode + destination, ReferenceID: correlationID, Index: strconv.FormatUint(company.ID, 10), CallbackLevel: whitelabel.CallbackNone})
 	if err != nil {
-		return "", err
+		return response.MessageID, err
 	}
 	return response.MessageID, nil
 }

@@ -23,6 +23,28 @@ func (r *SMSAttempts) Submission(ctx context.Context, credentialID, sendID uint6
 func (r *SMSAttempts) Create(ctx context.Context, attempt *models.SMSAttempt) error {
 	return r.db.WithContext(ctx).Create(attempt).Error
 }
+func (r *SMSAttempts) CreateCompanyTest(ctx context.Context, send *models.CompanyTestSend) error {
+	return r.db.WithContext(ctx).Create(send).Error
+}
+func (r *SMSAttempts) CompleteCompanyTest(ctx context.Context, send models.CompanyTestSend) error {
+	result := r.db.WithContext(ctx).Model(&models.CompanyTestSend{}).Where("id = ? AND correlation_id = ?", send.ID, send.CorrelationID).Updates(map[string]any{
+		"state": send.State, "provider_message_id": send.ProviderMessageID, "failure_code": send.FailureCode, "updated_at": time.Now().UTC(),
+	})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected != 1 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
+}
+func (r *SMSAttempts) CompanyTests(ctx context.Context, companyID uint64) ([]dtos.CompanyTestHistoryItem, error) {
+	items := []dtos.CompanyTestHistoryItem{}
+	err := scopedCompanies(r.db.WithContext(ctx).Model(&models.CompanyTestSend{}), ctx, "company_id").
+		Where("company_id = ?", companyID).Select("destination, correlation_id, provider_message_id, state, failure_code, created_at").
+		Order("created_at DESC, id DESC").Limit(20).Scan(&items).Error
+	return items, err
+}
 func (r *SMSAttempts) Complete(ctx context.Context, attempt models.SMSAttempt) error {
 	result := r.db.WithContext(ctx).Model(&models.SMSAttempt{}).
 		Where("id = ? AND credential_id = ?", attempt.ID, attempt.CredentialID).

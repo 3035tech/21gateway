@@ -68,6 +68,19 @@ func TestProviderErrorsAreSafeAndNotRetried(t *testing.T) {
 	}
 }
 
+func TestUnexpectedAcknowledgementKeepsValidProviderIDForReconciliation(t *testing.T) {
+	transport := httpmock.NewMockTransport()
+	const id = "550e8400-e29b-41d4-a716-446655440000"
+	transport.RegisterResponder(http.MethodPost, testBaseURL+"/api/send", httpmock.NewStringResponder(http.StatusOK, `{"message_id":"`+id+`","status":"queued"}`))
+	client, _ := NewWithTransport(testBaseURL, "test-token", transport)
+	defer client.Close()
+	response, err := client.Send(context.Background(), SendRequest{Type: MessageTypeSMS, Message: "test"})
+	var typed *apperrors.Error
+	if !errors.As(err, &typed) || typed.Code != apperrors.CodeUnknownOutcome || response.MessageID != id {
+		t.Fatalf("response=%+v err=%v", response, err)
+	}
+}
+
 func TestRedirectDoesNotLeakProviderToken(t *testing.T) {
 	transport := httpmock.NewMockTransport()
 	transport.RegisterResponder(http.MethodPost, testBaseURL+"/api/send", func(r *http.Request) (*http.Response, error) {

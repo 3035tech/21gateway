@@ -234,6 +234,9 @@
     "eyebrow": "Ficha da empresa",
     "noReference": "Sem referência",
     "accessSection": "Acessos da empresa",
+    "testHistory": "SMS de teste",
+    "testHistoryHint": "Últimos testes realizados com o token da empresa. Aceito confirma o recebimento pela Zoug; resultado incerto não deve ser reenviado automaticamente.",
+    "noTests": "Nenhum teste registrado ainda.",
     "credentialsTitle": "Credenciais da API",
     "credentialsHint": "Gerencie os usuários técnicos e as credenciais de integração desta empresa. Cada credencial pode ter validade própria."
   },

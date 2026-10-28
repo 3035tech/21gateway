@@ -78,6 +78,17 @@ func (s *MessageService) Messages(ctx context.Context, q dtos.ListQuery) (dtos.P
 	values, err := s.repository.Messages(ctx, q)
 	return values, dbError(err)
 }
+func (s *MessageService) CompanyTests(ctx context.Context, publicRef string) ([]dtos.CompanyTestHistoryItem, error) {
+	if s.companies == nil {
+		return nil, apperrors.Wrap(apperrors.CodeServiceUnavailable, nil)
+	}
+	company, err := s.companies.CompanyViewByPublicRef(ctx, publicRef)
+	if err != nil {
+		return nil, dbError(err)
+	}
+	items, err := s.repository.CompanyTests(ctx, company.ID)
+	return items, dbError(err)
+}
 func (s *MessageService) SendTest(ctx context.Context, actor, credentialID uint64, destination, messageText string) (dtos.TestSendResult, error) {
 	var empty dtos.TestSendResult
 	if (!s.testAllowAnyDestination && s.testDestination == "") || s.credentials == nil || s.sender == nil || s.audit == nil {
@@ -157,6 +168,10 @@ func (s *MessageService) SendCompanyTest(ctx context.Context, actor uint64, publ
 		return empty, dbError(err)
 	}
 	correlationID := "test-" + uuid.NewString()
+	record := models.CompanyTestSend{CompanyID: company.ID, ActorID: actor, Destination: "55" + destination, CorrelationID: correlationID, State: models.SubmissionUnknown}
+	if err := s.repository.CreateCompanyTest(ctx, &record); err != nil {
+		return empty, dbError(err)
+	}
 	providerID, err := s.sender.SendCompanyTest(ctx, company, destination, messageText, correlationID)
 	if err != nil {
 		var appError *apperrors.Error
@@ -164,11 +179,29 @@ func (s *MessageService) SendCompanyTest(ctx context.Context, actor uint64, publ
 		if errors.As(err, &appError) {
 			code = appError.Code
 		}
+		if parsedID, parseErr := uuid.Parse(providerID); parseErr == nil && parsedID != uuid.Nil {
+			providerID = parsedID.String()
+			record.ProviderMessageID = &providerID
+		}
+		record.FailureCode = code
+		if code != apperrors.CodeUnknownOutcome {
+			record.State = models.SubmissionRejected
+		}
+		if saveErr := s.repository.CompleteCompanyTest(ctx, record); saveErr != nil {
+			slog.Error("Company SMS test result could not be recorded", "company_id", company.ID, "correlation_id", correlationID, "error", saveErr)
+			return dtos.TestSendResult{SubmissionState: models.SubmissionUnknown, CorrelationID: correlationID, FailureCode: string(apperrors.CodeUnknownOutcome)}, nil
+		}
 		slog.Warn("Company SMS token test failed", "company_id", company.ID, "correlation_id", correlationID, "code", code)
 		if code == apperrors.CodeUnknownOutcome {
-			return dtos.TestSendResult{SubmissionState: models.SubmissionUnknown, CorrelationID: correlationID, FailureCode: string(code)}, nil
+			return dtos.TestSendResult{SubmissionState: models.SubmissionUnknown, IDSMS: providerID, CorrelationID: correlationID, FailureCode: string(code)}, nil
 		}
 		return empty, err
+	}
+	record.State = models.SubmissionAccepted
+	record.ProviderMessageID = &providerID
+	if err := s.repository.CompleteCompanyTest(ctx, record); err != nil {
+		slog.Error("Company SMS test acceptance could not be recorded", "company_id", company.ID, "correlation_id", correlationID, "provider_message_id", providerID, "error", err)
+		return dtos.TestSendResult{SubmissionState: models.SubmissionUnknown, CorrelationID: correlationID, FailureCode: string(apperrors.CodeUnknownOutcome)}, nil
 	}
 	slog.Info("Company SMS token test accepted", "company_id", company.ID, "correlation_id", correlationID, "provider_message_id", providerID)
 	return dtos.TestSendResult{SubmissionState: models.SubmissionAccepted, IDSMS: providerID, CorrelationID: correlationID}, nil

@@ -66,11 +66,31 @@ func TestPostgresCompanyTokenTestUsesPublicRefAndAudits(t *testing.T) {
 	if err := db.Model(&models.SMSAttempt{}).Count(&count).Error; err != nil || count != 0 {
 		t.Fatalf("unexpected SMS attempts: %d, %v", count, err)
 	}
+	var recorded models.CompanyTestSend
+	if err := db.Where("correlation_id = ?", result.CorrelationID).First(&recorded).Error; err != nil || recorded.CompanyID != company.ID || recorded.ActorID != user.ID || recorded.State != models.SubmissionAccepted || recorded.ProviderMessageID == nil || *recorded.ProviderMessageID != result.IDSMS {
+		t.Fatalf("accepted test not recorded: %+v, %v", recorded, err)
+	}
+	if summary, err := repositories.NewSummary(db).Summary(ctx, company.ID); err != nil || summary.Accepted != 1 || summary.Unknown != 0 {
+		t.Fatalf("company counts after accepted test: %+v, %v", summary, err)
+	}
+	if history, err := service.CompanyTests(ctx, company.PublicRef); err != nil || len(history) != 1 || history[0].CorrelationID != result.CorrelationID {
+		t.Fatalf("company test history: %+v, %v", history, err)
+	}
 	provider.err = apperrors.Wrap(apperrors.CodeUnknownOutcome, nil)
 	service.sender = NewSMSService(repositories.NewSMSAttempts(db), provider)
 	uncertain, err := service.SendCompanyTest(ctx, user.ID, company.PublicRef, "11987654321", "")
 	if err != nil || uncertain.SubmissionState != models.SubmissionUnknown || uncertain.CorrelationID == "" || uncertain.FailureCode != string(apperrors.CodeUnknownOutcome) {
 		t.Fatalf("unknown provider outcome was lost: result=%+v err=%v", uncertain, err)
+	}
+	recorded = models.CompanyTestSend{}
+	if err := db.Where("correlation_id = ?", uncertain.CorrelationID).First(&recorded).Error; err != nil || recorded.State != models.SubmissionUnknown || recorded.FailureCode != apperrors.CodeUnknownOutcome {
+		t.Fatalf("uncertain test not recorded: %+v, %v", recorded, err)
+	}
+	if summary, err := repositories.NewSummary(db).Summary(ctx, company.ID); err != nil || summary.Accepted != 1 || summary.Unknown != 1 {
+		t.Fatalf("company counts after uncertain test: %+v, %v", summary, err)
+	}
+	if history, err := service.CompanyTests(ctx, company.PublicRef); err != nil || len(history) != 2 || history[0].CorrelationID != uncertain.CorrelationID {
+		t.Fatalf("uncertain test history: %+v, %v", history, err)
 	}
 }
 

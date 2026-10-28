@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ClipboardCheck, Send, ShieldCheck, Webhook } from 'lucide-react'
 import { Dialog } from '../../components/admin/Dialog'
 import { errorMessage } from '../../lib/admin'
@@ -33,6 +33,7 @@ export function CredentialTestDialog({
 }) {
   const { t } = useTranslation()
   const feedback = useFeedback()
+  const queryClient = useQueryClient()
   const [destination, setDestination] = useState('')
   const [useStandardMessage, setUseStandardMessage] = useState(true)
   const [customMessage, setCustomMessage] = useState('')
@@ -52,6 +53,12 @@ export function CredentialTestDialog({
       throw new Error('Missing test target')
     },
     onSuccess: (result) => {
+      if (company) {
+        void queryClient.invalidateQueries({
+          queryKey: ['admin', 'company-test-sends', company.publicRef],
+        })
+        void queryClient.invalidateQueries({ queryKey: ['admin', 'summary'] })
+      }
       setDelivery(null)
       if (result.submissionState === 'pending')
         feedback.success(t('feedback.sendQueued'))

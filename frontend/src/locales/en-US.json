@@ -234,6 +234,9 @@
     "eyebrow": "Company details",
     "noReference": "No reference",
     "accessSection": "Company access",
+    "testHistory": "Test SMS",
+    "testHistoryHint": "Recent tests with this company's token. Accepted confirms receipt by Zoug; do not automatically retry an uncertain result.",
+    "noTests": "No tests recorded yet.",
     "credentialsTitle": "API credentials",
     "credentialsHint": "Manage this company's technical users and integration credentials. Each credential can have its own expiration."
   },

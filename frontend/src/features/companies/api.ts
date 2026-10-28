@@ -53,3 +53,22 @@ export async function saveCompany(id: number | undefined, body: CompanyBody) {
 export async function archiveCompany(id: number) {
   await api.delete(`/admin/companies/${id}`)
 }
+
+const companyTestSendSchema = z.object({
+  destination: z.string(),
+  correlationId: z.string(),
+  providerMessageId: z.string().nullable(),
+  state: z.enum(['accepted', 'rejected', 'unknown']),
+  failureCode: z.string(),
+  createdAt: z.string(),
+})
+export async function getCompanyTestSends(
+  publicRef: string,
+  signal?: AbortSignal,
+) {
+  const response = await api.get(
+    `/admin/companies/by-ref/${publicRef}/test-sends`,
+    { signal },
+  )
+  return z.array(companyTestSendSchema).parse(response.data)
+}

@@ -129,7 +129,12 @@ func (c *Client) Send(ctx context.Context, input SendRequest) (SendResponse, err
 	parsedID, err := uuid.Parse(result.MessageID)
 	if err != nil || parsedID == uuid.Nil || result.Status != StatusSent {
 		slog.Warn("Zoug SMS response unavailable", "reason", "invalid_acknowledgement", "message_id_valid", err == nil && parsedID != uuid.Nil, "status_sent", result.Status == StatusSent)
-		return SendResponse{}, apperrors.Wrap(apperrors.CodeUnknownOutcome, errors.New("invalid provider acknowledgement"))
+		if err == nil && parsedID != uuid.Nil {
+			result.MessageID = parsedID.String()
+		} else {
+			result.MessageID = ""
+		}
+		return result, apperrors.Wrap(apperrors.CodeUnknownOutcome, errors.New("invalid provider acknowledgement"))
 	}
 	result.MessageID = parsedID.String()
 	return result, nil
