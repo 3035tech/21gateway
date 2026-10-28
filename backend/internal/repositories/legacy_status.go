@@ -23,9 +23,9 @@ func (r *LegacyStatuses) Consume(ctx context.Context, credentialID uint64, limit
 		if len(rows) == 0 {
 			return nil
 		}
-		receipts := make([]models.LegacyStatusReceipt, 0, len(rows))
+		receipts := make([]models.SMSDeliveryReceipt, 0, len(rows))
 		for _, row := range rows {
-			receipts = append(receipts, models.LegacyStatusReceipt{AttemptID: row.ID, CredentialID: credentialID, DeliveryUpdatedAt: *row.DeliveryUpdatedAt, DeliveryStatus: row.DeliveryStatus})
+			receipts = append(receipts, models.SMSDeliveryReceipt{AttemptID: row.ID, CredentialID: credentialID, DeliveryUpdatedAt: *row.DeliveryUpdatedAt, DeliveryStatus: row.DeliveryStatus})
 		}
 		return tx.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "attempt_id"}}, DoUpdates: clause.AssignmentColumns([]string{"delivery_updated_at", "delivery_status"})}).Create(&receipts).Error
 	})

@@ -54,6 +54,7 @@ func (p *SendReferencePipeline) Run(ctx context.Context) {
 		}()
 		go func() {
 			defer group.Done()
+			failures := 0
 			for ctx.Err() == nil {
 				poll, cancel := context.WithTimeout(ctx, dispatchReceiveTimeout)
 				messages, err := p.queue.Receive(poll)
@@ -62,11 +63,19 @@ func (p *SendReferencePipeline) Run(ctx context.Context) {
 					if ctx.Err() == nil {
 						slog.Error("SMS reference receive failed")
 					}
-					if !dispatchPause(ctx, workerTick) {
+					if failures < 8 {
+						failures++
+					}
+					delay := CallbackBackoff(failures)
+					if delay > 30*time.Second {
+						delay = 30 * time.Second
+					}
+					if !dispatchPause(ctx, delay) {
 						return
 					}
 					continue
 				}
+				failures = 0
 				for _, message := range messages {
 					cycle, cancel := context.WithTimeout(ctx, workerCycleTimeout)
 					err := p.consume(cycle, message)
@@ -90,7 +99,7 @@ func (p *SendReferencePipeline) publishNext(ctx context.Context) (bool, error) {
 	cancel()
 	finish, stop := context.WithTimeout(context.WithoutCancel(ctx), completionTimeout)
 	defer stop()
-	if err := p.repo.PublicationResult(finish, *job, publishErr == nil, CallbackBackoff(1)); err != nil {
+	if err := p.repo.PublicationResult(finish, *job, publishErr == nil, CallbackBackoff(job.PublishAttempts)); err != nil {
 		return true, err
 	}
 	return true, publishErr

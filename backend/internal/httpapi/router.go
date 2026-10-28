@@ -43,6 +43,7 @@ type Dependencies struct {
 	CallbackIngressEnabled        bool
 	CallbackIngressToken          string
 	SMS                           *services.SMSService
+	Submissions                   *services.SubmissionService
 	Auth                          *services.AuthService
 }
 
@@ -125,6 +126,9 @@ func New(origins []string, docsEnabled bool, ping func(context.Context) error, d
 	if dependencies.SMS != nil && dependencies.Auth != nil {
 		controllers.NewSMSController(dependencies.SMS, dependencies.Auth).Register(api)
 	}
+	if dependencies.Submissions != nil && dependencies.Auth != nil {
+		controllers.NewSubmissionController(dependencies.Submissions, dependencies.Auth).Register(api)
+	}
 	if dependencies.Auth != nil {
 		controllers.NewCredentialCheckController(dependencies.Auth).Register(api)
 	}
@@ -147,10 +151,11 @@ func New(origins []string, docsEnabled bool, ping func(context.Context) error, d
 
 func limitOpenAPIToClientIntegration(spec *huma.OpenAPI) {
 	clientPaths := map[string]bool{
-		controllers.LegacySendPath:   true,
-		controllers.LegacyStatusPath: true,
-		controllers.LegacyMOPath:     true,
-		"/v1/auth/check":             true,
+		controllers.LegacySendPath:       true,
+		controllers.SubmissionStatusPath: true,
+		controllers.LegacyStatusPath:     true,
+		controllers.LegacyMOPath:         true,
+		"/v1/auth/check":                 true,
 	}
 	for path := range spec.Paths {
 		if !clientPaths[path] {

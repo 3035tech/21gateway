@@ -31,9 +31,12 @@ func (r *SendReferences) ClaimPublication(ctx context.Context) (*models.Schedule
 		}
 		token := uuid.NewString()
 		job.PublishToken = &token
+		if job.PublishAttempts < 1000000 {
+			job.PublishAttempts++
+		}
 		next := time.Now().UTC().Add(sendReferenceResignal)
 		job.PublishAfter = &next
-		return tx.Model(&job).Updates(map[string]any{"publish_token": token, "publish_after": next}).Error
+		return tx.Model(&job).Updates(map[string]any{"publish_token": token, "publish_after": next, "publish_attempts": job.PublishAttempts}).Error
 	})
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
@@ -45,6 +48,7 @@ func (r *SendReferences) PublicationResult(ctx context.Context, job models.Sched
 	updates := map[string]any{"publish_token": nil}
 	if success {
 		updates["published_at"] = time.Now().UTC()
+		updates["publish_attempts"] = 0
 	} else {
 		updates["publish_after"] = time.Now().UTC().Add(retry)
 	}

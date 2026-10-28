@@ -23,6 +23,7 @@ type ScheduledSMS struct {
 	PublishAfter     *time.Time
 	PublishToken     *string
 	PublishedAt      *time.Time
+	PublishAttempts  int
 	SendReference    bool
 	ID               uint64
 	AttemptID        uint64
