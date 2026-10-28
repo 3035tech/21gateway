@@ -5,6 +5,7 @@ import { beforeAll, expect, it, vi } from 'vitest'
 import { api } from '../../lib/api'
 import { CredentialTestDialog } from './CredentialTestDialog'
 import type { Credential } from './api'
+import type { Company } from '../companies/api'
 
 beforeAll(() => {
   HTMLDialogElement.prototype.showModal = function () {
@@ -33,6 +34,55 @@ const credential: Credential = {
   moCallbacksEnabled: false,
   legacyAccountId: '',
 }
+
+it('tests the saved company token without an API credential', async () => {
+  const company: Company = {
+    id: 2,
+    publicRef: '11111111-1111-4111-8111-111111111111',
+    name: 'Cliente exemplo',
+    reference: 'CLIENTE',
+    active: true,
+    createdAt: '2026-10-27T12:00:00Z',
+    providerTokenConfigured: true,
+    legacyProviderTokenFallback: false,
+  }
+  const post = vi.spyOn(api, 'post').mockResolvedValue({
+    data: {
+      submissionState: 'accepted',
+      idSms: 'provider-123',
+      correlationId: 'test-123',
+    },
+  })
+  try {
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <CredentialTestDialog company={company} onClose={vi.fn()} />
+      </QueryClientProvider>,
+    )
+    const user = userEvent.setup()
+    expect(screen.queryByText('1. Acesso do cliente')).not.toBeInTheDocument()
+    await user.type(
+      screen.getByRole('textbox', { name: /Número de teste/ }),
+      '11987654321',
+    )
+    await user.click(
+      screen.getByRole('checkbox', { name: /Confirmo que este número/ }),
+    )
+    await user.click(
+      screen.getByRole('button', { name: 'Enviar um SMS de teste' }),
+    )
+    await waitFor(() =>
+      expect(screen.getByText('Fornecedor aceitou o SMS')).toBeInTheDocument(),
+    )
+    expect(post).toHaveBeenCalledWith(
+      '/admin/companies/by-ref/11111111-1111-4111-8111-111111111111/test-send',
+      { destination: '11987654321' },
+      { timeout: 20_000 },
+    )
+  } finally {
+    post.mockRestore()
+  }
+})
 
 it('requires authorized destination confirmation and sends once', async () => {
   const post = vi.spyOn(api, 'post').mockResolvedValue({

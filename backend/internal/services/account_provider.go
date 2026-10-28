@@ -5,6 +5,7 @@ import (
 	"fmt"
 	apperrors "github.com/21mobile/sms-gateway/internal/errors"
 	"github.com/21mobile/sms-gateway/internal/integrations/whitelabel"
+	"github.com/21mobile/sms-gateway/internal/models"
 	"github.com/21mobile/sms-gateway/internal/security"
 )
 
@@ -19,6 +20,16 @@ func NewAccountSMSProvider(client *whitelabel.Client, vault *security.TokenVault
 	return &AccountSMSProvider{client: client, vault: vault}
 }
 func (p *AccountSMSProvider) Enabled() bool { return p.vault.Enabled() }
+func (p *AccountSMSProvider) PrepareCompany(company models.Company) (SMSProvider, error) {
+	if !p.Enabled() || company.ProviderTokenEncrypted == "" {
+		return nil, apperrors.Wrap(apperrors.CodeTestNotConfigured, nil)
+	}
+	token, err := p.vault.Decrypt(fmt.Sprintf("company:%d", company.ID), company.ProviderTokenEncrypted)
+	if err != nil {
+		return nil, err
+	}
+	return p.client.ForToken(token), nil
+}
 func (p *AccountSMSProvider) Prepare(ctx context.Context) (SMSProvider, error) {
 	credential, ok := CredentialFromContext(ctx)
 	if !ok {

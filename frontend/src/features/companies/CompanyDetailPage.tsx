@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   KeyRound,
   Pencil,
+  Send,
   ShieldCheck,
   TriangleAlert,
 } from 'lucide-react'
@@ -16,6 +17,7 @@ import { StatusBadge } from '../../components/admin/StatusBadge'
 import { errorMessage } from '../../lib/admin'
 import { useUser } from '../auth/context'
 import { CredentialsPage } from '../credentials/CredentialsPage'
+import { CredentialTestDialog } from '../credentials/CredentialTestDialog'
 import { CompanyForm } from './CompanyForm'
 import { getCompany, getCompanyByPublicRef } from './api'
 import { UsersPage } from '../users/UsersPage'
@@ -31,6 +33,7 @@ export function CompanyDetailPage() {
       ? Number.isSafeInteger(legacyId) && legacyId > 0
       : isPublicRef(id)
   const [editing, setEditing] = useState(false)
+  const [testingToken, setTestingToken] = useState(false)
   const canEdit = useUser()?.role !== 'viewer'
   const canViewUsers = useUser()?.role === 'admin'
   const query = useQuery({
@@ -154,16 +157,27 @@ export function CompanyDetailPage() {
                 </div>
               </div>
               {canEdit ? (
-                <button
-                  className="button-secondary shrink-0"
-                  onClick={() => setEditing(true)}
-                >
-                  {t(
-                    query.data.providerTokenConfigured
-                      ? 'companies.providerReplace'
-                      : 'companies.providerManage',
-                  )}
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  {query.data.providerTokenConfigured && query.data.active ? (
+                    <button
+                      className="button-primary"
+                      onClick={() => setTestingToken(true)}
+                    >
+                      <Send size={16} aria-hidden="true" />{' '}
+                      {t('companies.providerTest')}
+                    </button>
+                  ) : null}
+                  <button
+                    className="button-secondary"
+                    onClick={() => setEditing(true)}
+                  >
+                    {t(
+                      query.data.providerTokenConfigured
+                        ? 'companies.providerReplace'
+                        : 'companies.providerManage',
+                    )}
+                  </button>
+                </div>
               ) : null}
             </div>
           </section>
@@ -193,6 +207,12 @@ export function CompanyDetailPage() {
             <CompanyForm
               company={query.data}
               onClose={() => setEditing(false)}
+            />
+          ) : null}
+          {testingToken ? (
+            <CredentialTestDialog
+              company={query.data}
+              onClose={() => setTestingToken(false)}
             />
           ) : null}
         </>

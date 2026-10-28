@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"errors"
 	"strings"
 	"testing"
@@ -9,7 +10,63 @@ import (
 	"github.com/21mobile/sms-gateway/internal/integrations/whitelabel"
 	"github.com/21mobile/sms-gateway/internal/models"
 	"github.com/21mobile/sms-gateway/internal/repositories"
+	"github.com/21mobile/sms-gateway/internal/security"
 )
+
+type companyTestProvider struct{ stubProvider }
+
+func (p *companyTestProvider) PrepareCompany(company models.Company) (SMSProvider, error) {
+	if company.ProviderTokenEncrypted == "" {
+		return nil, apperrors.Wrap(apperrors.CodeTestNotConfigured, nil)
+	}
+	return &p.stubProvider, nil
+}
+
+func TestCompanyTokenTestCallsProviderWithoutCredentialOrAttempt(t *testing.T) {
+	provider := &companyTestProvider{stubProvider: stubProvider{enabled: true, response: whitelabel.SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440000", Status: whitelabel.StatusSent}}}
+	attempts := &memoryAttempts{}
+	sender := NewSMSService(attempts, provider)
+	company := models.Company{ID: 12, Active: true, ProviderTokenEncrypted: "encrypted-token"}
+	providerID, err := sender.SendCompanyTest(context.Background(), company, "11987654321", "Teste do token", "test-ref")
+	if err != nil || providerID == "" || len(attempts.created) != 0 || len(provider.inputs) != 1 {
+		t.Fatalf("providerID=%q err=%v attempts=%d calls=%d", providerID, err, len(attempts.created), len(provider.inputs))
+	}
+	if got := provider.inputs[0]; got.Destination != "5511987654321" || got.ReferenceID != "test-ref" || got.Message != "Teste do token" || got.CallbackLevel != whitelabel.CallbackNone {
+		t.Fatalf("unexpected provider request: %+v", got)
+	}
+	if _, err := sender.SendCompanyTest(context.Background(), company, "11987654321", "Teste do token", "test-ref-2"); !hasCode(err, apperrors.CodeRateLimited) || len(provider.inputs) != 1 {
+		t.Fatalf("rate limit failed: %v, calls=%d", err, len(provider.inputs))
+	}
+}
+
+func TestPostgresCompanyTokenTestUsesPublicRefAndAudits(t *testing.T) {
+	ctx, db := postgresFixture(t)
+	company := models.Company{Name: "Empresa XYZ", Active: true, ProviderTokenEncrypted: "encrypted-token"}
+	if err := db.Create(&company).Error; err != nil {
+		t.Fatal(err)
+	}
+	user := models.SystemUser{Name: "Admin", Email: "company-test@example.test", PasswordHash: "unused", Role: models.RoleAdmin, Active: true}
+	if err := db.Create(&user).Error; err != nil {
+		t.Fatal(err)
+	}
+	provider := &companyTestProvider{stubProvider: stubProvider{enabled: true, response: whitelabel.SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440000", Status: whitelabel.StatusSent}}}
+	service := NewMessageServiceWithTestSend(repositories.NewSMSAttempts(db), nil, repositories.NewAudits(db), NewSMSService(repositories.NewSMSAttempts(db), provider), "11987654321", false).WithCompanyTests(repositories.NewCompanies(db))
+	if _, err := service.SendCompanyTest(ctx, user.ID, company.PublicRef, "11999999999", ""); !hasCode(err, apperrors.CodeTestDestinationNotAllowed) || len(provider.inputs) != 0 {
+		t.Fatalf("wrong destination reached provider: %v", err)
+	}
+	result, err := service.SendCompanyTest(ctx, user.ID, company.PublicRef, "11987654321", "")
+	if err != nil || result.SubmissionState != models.SubmissionAccepted || result.IDSMS != provider.response.MessageID || len(provider.inputs) != 1 || provider.inputs[0].Message != standardTestMessage(company.Name) {
+		t.Fatalf("result=%+v err=%v calls=%d", result, err, len(provider.inputs))
+	}
+	var audit models.AuditEvent
+	if err := db.Where("actor_id=? AND action=? AND resource=? AND resource_id=?", user.ID, testSendAuditAction, string(security.ResourceCompanies), company.ID).First(&audit).Error; err != nil {
+		t.Fatal("test action not audited", err)
+	}
+	var count int64
+	if err := db.Model(&models.SMSAttempt{}).Count(&count).Error; err != nil || count != 0 {
+		t.Fatalf("unexpected SMS attempts: %d, %v", count, err)
+	}
+}
 
 func TestPostgresCredentialTestSendUsesExistingLimitsAndAudit(t *testing.T) {
 	ctx, db := postgresFixture(t)

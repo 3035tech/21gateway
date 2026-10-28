@@ -39,5 +39,12 @@ func (c *MessageController) Register(api huma.API) {
 		}
 		return &dtos.TestSendOutput{Body: value}, nil
 	})
+	huma.Register(api, c.operation(api, "sendCompanyTokenTestSMS", http.MethodPost, "/companies/by-ref/{publicRef}/test-send", "Testar token Zoug da empresa com um SMS", security.ResourceMessages, security.ActionWrite), func(ctx context.Context, input *dtos.CompanyTestSendInput) (*dtos.TestSendOutput, error) {
+		value, err := c.service.SendCompanyTest(ctx, actor(ctx), input.PublicRef, input.Body.Destination, input.Body.MessageText)
+		if err != nil {
+			return nil, HTTPError(err)
+		}
+		return &dtos.TestSendOutput{Body: value}, nil
+	})
 
 }

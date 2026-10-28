@@ -48,4 +48,12 @@ type TestSendResult struct {
 	FailureCode     string                 `json:"failureCode,omitempty"`
 }
 
+type CompanyTestSendInput struct {
+	PublicRef string `path:"publicRef" format:"uuid"`
+	Body      struct {
+		Destination string `json:"destination" pattern:"^[0-9]{11}$"`
+		MessageText string `json:"messageText,omitempty" maxLength:"160"`
+	}
+}
+
 type TestSendOutput struct{ Body TestSendResult }

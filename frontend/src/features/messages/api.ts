@@ -46,3 +46,16 @@ export async function sendTestSMS(
   )
   return testSendResultSchema.parse(response.data)
 }
+
+export async function sendCompanyTokenTestSMS(
+  publicRef: string,
+  destination: string,
+  messageText?: string,
+) {
+  const response = await api.post<unknown>(
+    `/admin/companies/by-ref/${publicRef}/test-send`,
+    { destination, ...(messageText !== undefined ? { messageText } : {}) },
+    { timeout: 20_000 },
+  )
+  return testSendResultSchema.parse(response.data)
+}

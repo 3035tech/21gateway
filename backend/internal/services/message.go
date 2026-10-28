@@ -20,6 +20,7 @@ const testSendAuditAction = "test_send_requested"
 type MessageService struct {
 	repository              *repositories.SMSAttempts
 	credentials             *repositories.Credentials
+	companies               *repositories.Companies
 	audit                   *repositories.Audits
 	sender                  *SMSService
 	testDestination         string
@@ -35,6 +36,10 @@ func NewMessageServiceWithTestSend(repo *repositories.SMSAttempts, credentials *
 }
 func (s *MessageService) WithHistoryVault(vault *security.SMSHistoryVault) *MessageService {
 	s.history = vault
+	return s
+}
+func (s *MessageService) WithCompanyTests(companies *repositories.Companies) *MessageService {
+	s.companies = companies
 	return s
 }
 
@@ -117,6 +122,44 @@ func (s *MessageService) SendTest(ctx context.Context, actor, credentialID uint6
 		state = models.SubmissionUnknown
 	}
 	return dtos.TestSendResult{SubmissionState: state, IDSMS: result.IDSMS, CorrelationID: correlationID, FailureCode: string(result.Message)}, nil
+}
+
+func (s *MessageService) SendCompanyTest(ctx context.Context, actor uint64, publicRef, destination, messageText string) (dtos.TestSendResult, error) {
+	var empty dtos.TestSendResult
+	if (!s.testAllowAnyDestination && s.testDestination == "") || s.companies == nil || s.sender == nil || s.audit == nil {
+		return empty, apperrors.Wrap(apperrors.CodeTestNotConfigured, nil)
+	}
+	if !brazilLocalNumber.MatchString(destination) {
+		return empty, apperrors.Wrap(apperrors.CodeInvalidDestination, nil)
+	}
+	if !s.testAllowAnyDestination && destination != s.testDestination {
+		return empty, apperrors.Wrap(apperrors.CodeTestDestinationNotAllowed, nil)
+	}
+	company, err := s.companies.CompanyViewByPublicRef(ctx, publicRef)
+	if err != nil {
+		return empty, dbError(err)
+	}
+	if !company.Active || company.ProviderTokenEncrypted == "" {
+		return empty, apperrors.Wrap(apperrors.CodeConflict, nil)
+	}
+	if strings.TrimSpace(messageText) == "" {
+		if messageText != "" {
+			return empty, apperrors.Wrap(apperrors.CodeInvalidMessage, nil)
+		}
+		messageText = standardTestMessage(company.Name)
+	}
+	if code := validateMessage(dtos.LegacySMS{Destination: destination, MessageText: messageText}); code != apperrors.CodeNone {
+		return empty, apperrors.Wrap(code, nil)
+	}
+	if err := s.audit.CreateEvent(ctx, &actor, testSendAuditAction, string(security.ResourceCompanies), &company.ID); err != nil {
+		return empty, dbError(err)
+	}
+	correlationID := "test-" + uuid.NewString()
+	providerID, err := s.sender.SendCompanyTest(ctx, company, destination, messageText, correlationID)
+	if err != nil {
+		return empty, err
+	}
+	return dtos.TestSendResult{SubmissionState: models.SubmissionAccepted, IDSMS: providerID, CorrelationID: correlationID}, nil
 }
 
 func standardTestMessage(companyName string) string {

@@ -58,6 +58,13 @@ func TestCompanyTokenSharedAcrossAPICredentials(t *testing.T) {
 	})
 	client, _ := whitelabel.NewWithTransport("https://provider.example", "unused", transport)
 	provider := NewAccountSMSProvider(client, vault)
+	companyProvider, err := provider.PrepareCompany(models.Company{ID: companyID, ProviderTokenEncrypted: companyToken})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := companyProvider.Send(context.Background(), whitelabel.SendRequest{}); err != nil {
+		t.Fatal("company token test failed", err)
+	}
 	for _, username := range []string{"api-one", "api-two"} {
 		legacy, _ := vault.Encrypt(username, "old-token")
 		credential := models.APICredential{Username: username, CompanyID: &companyID, ProviderTokenEncrypted: legacy, CompanyProviderTokenEncrypted: companyToken}

@@ -63,6 +63,38 @@ func NewSMSService(repository AttemptRepository, provider SMSProvider) *SMSServi
 func (s *SMSService) SetHistoryVault(vault *security.SMSHistoryVault) { s.history = vault }
 func (s *SMSService) Queued() bool                                    { return s.asyncQueue != nil }
 
+// A company token test calls Zoug directly so the response verifies the saved token.
+func (s *SMSService) SendCompanyTest(ctx context.Context, company models.Company, destination, message, correlationID string) (string, error) {
+	preparer, ok := s.provider.(interface {
+		PrepareCompany(models.Company) (SMSProvider, error)
+	})
+	if !ok {
+		return "", apperrors.Wrap(apperrors.CodeTestNotConfigured, nil)
+	}
+	provider, err := preparer.PrepareCompany(company)
+	if err != nil {
+		return "", err
+	}
+	if !s.allowCompanyTest(company.ID) {
+		return "", apperrors.Wrap(apperrors.CodeRateLimited, nil)
+	}
+	normalized, code := prepareSMSText(message)
+	if code != apperrors.CodeNone {
+		return "", apperrors.Wrap(code, nil)
+	}
+	response, err := provider.Send(ctx, whitelabel.SendRequest{Type: whitelabel.MessageTypeSMS, Message: normalized, Encoding: whitelabel.SelectEncoding(normalized), Destination: brazilCountryCode + destination, ReferenceID: correlationID, Index: strconv.FormatUint(company.ID, 10), CallbackLevel: whitelabel.CallbackNone})
+	if err != nil {
+		return "", err
+	}
+	return response.MessageID, nil
+}
+
+func (s *SMSService) allowCompanyTest(companyID uint64) bool {
+	key := "company-test:" + strconv.FormatUint(companyID, 10)
+	cached, _ := s.limits.LoadOrStore(key, rate.NewLimiter(rate.Every(sendRateWindow), sendRateBurst))
+	return cached.(*rate.Limiter).Allow()
+}
+
 func (s *SMSService) encryptAttempt(attempt *models.SMSAttempt, message string) error {
 	if s.history == nil {
 		return nil
