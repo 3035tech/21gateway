@@ -10,6 +10,9 @@ import { RecordDetailsDialog } from '../../components/admin/RecordDetailsDialog'
 import { useQuery } from '@tanstack/react-query'
 import { errorMessage } from '../../lib/admin'
 
+const timelineItemClass =
+  'relative pb-4 last:pb-0 before:absolute before:-left-[21px] before:top-1 before:z-10 before:size-2.5 before:rounded-full before:bg-brand-purple after:absolute after:-left-[17px] after:top-[9px] after:-bottom-[9px] after:w-0.5 after:bg-purple-200 last:after:hidden'
+
 function MessageDetails({
   message,
   onClose,
@@ -55,8 +58,8 @@ function MessageDetails({
           </p>
         </div>
       ) : null}
-      <ol className="border-l-2 border-purple-200 pl-4">
-        <li className="relative pb-4 before:absolute before:-left-[21px] before:top-1 before:size-2.5 before:rounded-full before:bg-brand-purple">
+      <ol className="pl-4">
+        <li className={timelineItemClass}>
           <span className="font-semibold">
             {t('messages.acceptedByGateway')}
           </span>
@@ -65,7 +68,7 @@ function MessageDetails({
           </span>
         </li>
         {trace.data.dispatchedAt ? (
-          <li className="relative pb-4 before:absolute before:-left-[21px] before:top-1 before:size-2.5 before:rounded-full before:bg-brand-purple">
+          <li className={timelineItemClass}>
             <span className="font-semibold">{t('messages.dispatched')}</span>
             <span className="ml-2 font-normal text-slate-600">
               <DateCell value={trace.data.dispatchedAt} />
@@ -75,7 +78,7 @@ function MessageDetails({
         {trace.data.events.map((event) => (
           <li
             key={`${event.kind}-${event.id}`}
-            className="relative pb-4 before:absolute before:-left-[21px] before:top-1 before:size-2.5 before:rounded-full before:bg-brand-purple"
+            className={timelineItemClass}
           >
             <span className="font-semibold">
               {t(`messages.traceKind.${event.kind}`, {
