@@ -1249,6 +1249,11 @@ function Listing({
                         id: name,
                         name,
                       }))}
+                      selectedIds={editing.companyAccess ?? []}
+                      selectedCount={editing.companyAccess?.length ?? 0}
+                      selectedPage={1}
+                      selectedPageSize={5}
+                      onSelectedPageChange={() => {}}
                       search={companySearch}
                       onSearchChange={(value) => {
                         setCompanySearch(value)

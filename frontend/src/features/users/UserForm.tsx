@@ -13,6 +13,9 @@ import { errorMessage } from '../../lib/admin'
 import { useEffect, useState } from 'react'
 import { useQueries, useQuery } from '@tanstack/react-query'
 import { getCompany, listCompanies } from '../companies/api'
+
+const SELECTED_COMPANIES_PAGE_SIZE = 5
+
 export function UserForm({
   user,
   initialCompanyId,
@@ -28,6 +31,7 @@ export function UserForm({
   const [companySearch, setCompanySearch] = useState('')
   const [debouncedCompanySearch, setDebouncedCompanySearch] = useState('')
   const [companyPage, setCompanyPage] = useState(1)
+  const [selectedCompanyPage, setSelectedCompanyPage] = useState(1)
   useEffect(() => {
     const timer = window.setTimeout(
       () => setDebouncedCompanySearch(companySearch),
@@ -50,6 +54,14 @@ export function UserForm({
   const active = useWatch({ control: form.control, name: 'active' })
   const companyIds =
     useWatch({ control: form.control, name: 'companyIds' }) ?? []
+  const selectedPage = Math.min(
+    selectedCompanyPage,
+    Math.max(1, Math.ceil(companyIds.length / SELECTED_COMPANIES_PAGE_SIZE)),
+  )
+  const visibleCompanyIds = companyIds.slice(
+    (selectedPage - 1) * SELECTED_COMPANIES_PAGE_SIZE,
+    selectedPage * SELECTED_COMPANIES_PAGE_SIZE,
+  )
   const companyOptions = useQuery({
     queryKey: [
       'admin',
@@ -72,7 +84,7 @@ export function UserForm({
       ),
   })
   const selectedCompanies = useQueries({
-    queries: companyIds.map((id) => ({
+    queries: visibleCompanyIds.map((id) => ({
       queryKey: ['admin', 'company', id],
       queryFn: ({ signal }: { signal: AbortSignal }) => getCompany(id, signal),
     })),
@@ -150,12 +162,17 @@ export function UserForm({
                   id: String(company.id),
                   name: company.name,
                 }))}
-                selected={companyIds.map((id, index) => ({
+                selected={visibleCompanyIds.map((id, index) => ({
                   id: String(id),
                   name:
                     selectedCompanies[index]?.data?.name ??
                     t('common.companyNumber', { id }),
                 }))}
+                selectedIds={companyIds.map(String)}
+                selectedCount={companyIds.length}
+                selectedPage={selectedPage}
+                selectedPageSize={SELECTED_COMPANIES_PAGE_SIZE}
+                onSelectedPageChange={setSelectedCompanyPage}
                 search={companySearch}
                 onSearchChange={(value) => {
                   setCompanySearch(value)
@@ -163,13 +180,20 @@ export function UserForm({
                 }}
                 onToggle={(value) => {
                   const id = Number(value)
+                  const alreadySelected = companyIds.includes(id)
                   form.setValue(
                     'companyIds',
-                    companyIds.includes(id)
+                    alreadySelected
                       ? companyIds.filter((current) => current !== id)
                       : [...companyIds, id],
                     { shouldValidate: true, shouldDirty: true },
                   )
+                  if (!alreadySelected)
+                    setSelectedCompanyPage(
+                      Math.ceil(
+                        (companyIds.length + 1) / SELECTED_COMPANIES_PAGE_SIZE,
+                      ),
+                    )
                 }}
                 page={companyPage}
                 pageSize={20}

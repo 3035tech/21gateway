@@ -6,6 +6,11 @@ type CompanyOption = { id: string; name: string }
 export function CompanyAccessPicker({
   options,
   selected,
+  selectedIds,
+  selectedCount,
+  selectedPage,
+  selectedPageSize,
+  onSelectedPageChange,
   search,
   onSearchChange,
   onToggle,
@@ -19,6 +24,11 @@ export function CompanyAccessPicker({
 }: {
   options: CompanyOption[]
   selected: CompanyOption[]
+  selectedIds: string[]
+  selectedCount: number
+  selectedPage: number
+  selectedPageSize: number
+  onSelectedPageChange: (page: number) => void
   search: string
   onSearchChange: (value: string) => void
   onToggle: (id: string) => void
@@ -31,8 +41,12 @@ export function CompanyAccessPicker({
   onRetry?: () => void
 }) {
   const { t } = useTranslation()
-  const selectedIds = new Set(selected.map((company) => company.id))
+  const selectedIdSet = new Set(selectedIds)
   const pageCount = Math.max(1, Math.ceil(total / pageSize))
+  const selectedPageCount = Math.max(
+    1,
+    Math.ceil(selectedCount / selectedPageSize),
+  )
 
   return (
     <fieldset className="space-y-3">
@@ -40,29 +54,57 @@ export function CompanyAccessPicker({
         {t('users.companyAccess')}
       </legend>
       <p className="text-xs text-slate-500">
-        {t('users.selectedCompanies', { count: selected.length })}
+        {t('users.selectedCompanies', { count: selectedCount })}
       </p>
-      {selected.length ? (
-        <ul
-          className="flex flex-wrap gap-2"
-          aria-label={t('users.selectedCompanyList')}
-        >
-          {selected.map((company) => (
-            <li key={company.id}>
+      {selectedCount ? (
+        <div className="space-y-2 rounded-xl border border-purple-100 bg-purple-50/40 p-3">
+          <ul
+            className="flex flex-wrap gap-2"
+            aria-label={t('users.selectedCompanyList')}
+          >
+            {selected.map((company) => (
+              <li key={company.id}>
+                <button
+                  type="button"
+                  className="inline-flex min-h-9 max-w-full items-center gap-2 rounded-lg border border-purple-200 bg-white px-3 py-1 text-sm font-semibold text-brand-purple hover:bg-purple-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-purple"
+                  aria-label={t('users.removeCompanyNamed', {
+                    name: company.name,
+                  })}
+                  onClick={() => onToggle(company.id)}
+                >
+                  <span className="truncate">{company.name}</span>
+                  <X size={15} aria-hidden="true" />
+                </button>
+              </li>
+            ))}
+          </ul>
+          {selectedPageCount > 1 ? (
+            <div className="flex items-center justify-between gap-2 text-xs text-slate-600">
               <button
                 type="button"
-                className="inline-flex min-h-9 max-w-full items-center gap-2 rounded-lg border border-purple-200 bg-purple-50 px-3 py-1 text-sm font-semibold text-brand-purple hover:bg-purple-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-purple"
-                aria-label={t('users.removeCompanyNamed', {
-                  name: company.name,
-                })}
-                onClick={() => onToggle(company.id)}
+                className="button-ghost min-h-9 px-2"
+                disabled={selectedPage <= 1}
+                onClick={() => onSelectedPageChange(selectedPage - 1)}
               >
-                <span className="truncate">{company.name}</span>
-                <X size={15} aria-hidden="true" />
+                {t('common.previous')}
               </button>
-            </li>
-          ))}
-        </ul>
+              <span>
+                {t('users.companyPage', {
+                  page: selectedPage,
+                  pages: selectedPageCount,
+                })}
+              </span>
+              <button
+                type="button"
+                className="button-ghost min-h-9 px-2"
+                disabled={selectedPage >= selectedPageCount}
+                onClick={() => onSelectedPageChange(selectedPage + 1)}
+              >
+                {t('common.next')}
+              </button>
+            </div>
+          ) : null}
+        </div>
       ) : null}
       <label className="field">
         {t('users.findCompany')}
@@ -104,7 +146,7 @@ export function CompanyAccessPicker({
             </div>
           ) : (
             options.map((company) => {
-              const isSelected = selectedIds.has(company.id)
+              const isSelected = selectedIdSet.has(company.id)
               return (
                 <button
                   key={company.id}
