@@ -16,6 +16,7 @@ import { errorMessage, formatDate, roleLabels } from '../../lib/admin'
 import { MFASettings } from './MFASettings'
 import { useTranslation } from 'react-i18next'
 import { useFeedback } from '../../components/admin/feedbackContext'
+import { FieldError } from '../../components/admin/FormFooter'
 
 const schema = z
   .object({
@@ -66,7 +67,7 @@ export function ProfilePage() {
   })
   if (!user) return null
   return (
-    <div className="max-w-4xl space-y-6">
+    <div className="max-w-6xl space-y-6">
       <div>
         <div className="flex items-center gap-3 text-brand-purple">
           <CircleUserRound size={30} aria-hidden="true" />
@@ -92,7 +93,7 @@ export function ProfilePage() {
           <CircleUserRound size={20} aria-hidden="true" />{' '}
           {t('profile.accountDetails')}
         </h2>
-        <dl className="mt-5 grid gap-5 text-sm sm:grid-cols-2">
+        <dl className="mt-5 grid gap-x-6 gap-y-5 text-sm sm:grid-cols-2 xl:grid-cols-4">
           <div>
             <dt className="text-slate-500">{t('common.name')}</dt>
             <dd className="mt-1 font-semibold text-slate-900">{user.name}</dd>
@@ -115,90 +116,89 @@ export function ProfilePage() {
           </div>
         </dl>
       </section>
-      <section
-        className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
-        aria-labelledby="change-password"
-      >
-        <h2
-          id="change-password"
-          className="flex items-center gap-2 text-lg font-bold"
+      <div className="grid items-start gap-6 xl:grid-cols-2">
+        <section
+          className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+          aria-labelledby="change-password"
         >
-          <KeyRound size={20} aria-hidden="true" />{' '}
-          {t('profile.changePassword')}
-        </h2>
-        <p className="mt-2 text-sm text-slate-500">
-          {t('profile.changePasswordHint')}
-        </p>
-        <form
-          className="mt-5 max-w-lg space-y-4"
-          onSubmit={form.handleSubmit((value) => mutation.mutate(value))}
-        >
-          <label className="field">
-            {t('profile.currentPassword')}
-            <input
-              className="form-control"
-              type="password"
-              autoComplete="current-password"
-              {...form.register('currentPassword')}
-            />
-            <span className="text-xs text-rose-700">
-              {form.formState.errors.currentPassword?.message &&
-                t(form.formState.errors.currentPassword.message)}
-            </span>
-          </label>
-          <label className="field">
-            {t('auth.newPassword')}
-            <input
-              className="form-control"
-              type="password"
-              autoComplete="new-password"
-              {...form.register('newPassword')}
-            />
-            <span className="text-xs text-rose-700">
-              {form.formState.errors.newPassword?.message &&
-                t(form.formState.errors.newPassword.message)}
-            </span>
-          </label>
-          <label className="field">
-            {t('profile.confirmNewPassword')}
-            <input
-              className="form-control"
-              type="password"
-              autoComplete="new-password"
-              {...form.register('confirmation')}
-            />
-            <span className="text-xs text-rose-700">
-              {form.formState.errors.confirmation?.message &&
-                t(form.formState.errors.confirmation.message)}
-            </span>
-          </label>
-          <p className="text-xs leading-5 text-slate-500">
-            {t('profile.passwordHint', {
-              count: systemPasswordLimits.minimumCharacters,
-            })}
+          <h2
+            id="change-password"
+            className="flex items-center gap-2 text-lg font-bold"
+          >
+            <KeyRound size={20} aria-hidden="true" />{' '}
+            {t('profile.changePassword')}
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-slate-500">
+            {t('profile.changePasswordHint')}
           </p>
-          {mutation.isError ? (
-            <p role="alert" className="text-sm text-rose-700">
-              {errorMessage(mutation.error)}
-            </p>
-          ) : null}
-          <button className="button-primary" disabled={mutation.isPending}>
-            {mutation.isPending ? (
-              <LoaderCircle
-                size={17}
-                className="animate-spin"
-                aria-hidden="true"
+          <form
+            className="mt-5 space-y-4"
+            onSubmit={form.handleSubmit((value) => mutation.mutate(value))}
+          >
+            <label className="field">
+              {t('profile.currentPassword')}
+              <input
+                className="form-control"
+                type="password"
+                autoComplete="current-password"
+                {...form.register('currentPassword')}
               />
-            ) : (
-              <ShieldCheck size={17} aria-hidden="true" />
-            )}
-            {mutation.isPending
-              ? t('profile.changing')
-              : t('auth.saveNewPassword')}
-          </button>
-        </form>
-      </section>
-      <MFASettings />
+              <FieldError
+                message={form.formState.errors.currentPassword?.message}
+              />
+            </label>
+            <label className="field">
+              {t('auth.newPassword')}
+              <input
+                className="form-control"
+                type="password"
+                autoComplete="new-password"
+                {...form.register('newPassword')}
+              />
+              <FieldError
+                message={form.formState.errors.newPassword?.message}
+              />
+            </label>
+            <label className="field">
+              {t('profile.confirmNewPassword')}
+              <input
+                className="form-control"
+                type="password"
+                autoComplete="new-password"
+                {...form.register('confirmation')}
+              />
+              <FieldError
+                message={form.formState.errors.confirmation?.message}
+              />
+            </label>
+            <p className="text-xs leading-5 text-slate-500">
+              {t('profile.passwordHint', {
+                count: systemPasswordLimits.minimumCharacters,
+              })}
+            </p>
+            {mutation.isError ? (
+              <p role="alert" className="text-sm text-rose-700">
+                {errorMessage(mutation.error)}
+              </p>
+            ) : null}
+            <button className="button-primary" disabled={mutation.isPending}>
+              {mutation.isPending ? (
+                <LoaderCircle
+                  size={17}
+                  className="animate-spin"
+                  aria-hidden="true"
+                />
+              ) : (
+                <ShieldCheck size={17} aria-hidden="true" />
+              )}
+              {mutation.isPending
+                ? t('profile.changing')
+                : t('auth.saveNewPassword')}
+            </button>
+          </form>
+        </section>
+        <MFASettings />
+      </div>
       {changed ? (
         <p
           role="status"

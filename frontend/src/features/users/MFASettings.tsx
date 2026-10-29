@@ -58,7 +58,9 @@ export function MFASettings() {
       >
         <ShieldCheck size={20} aria-hidden="true" /> {t('mfa.title')}
       </h2>
-      <p className="mt-2 text-sm text-slate-500">{t('mfa.description')}</p>
+      <p className="mt-2 text-sm leading-6 text-slate-500">
+        {t('mfa.description')}
+      </p>
       {status.isPending ? (
         <p role="status" className="mt-5 text-sm text-slate-500">
           {t('mfa.loading')}
@@ -109,7 +111,7 @@ export function MFASettings() {
           ) : null}
           {!status.data.enabled && !setup ? (
             <form
-              className="mt-5 max-w-md space-y-3"
+              className="mt-5 space-y-3"
               onSubmit={(event) => {
                 event.preventDefault()
                 begin.mutate()
@@ -162,7 +164,7 @@ export function MFASettings() {
               </div>
               <p className="text-xs text-slate-500">{t('mfa.qrWarning')}</p>
               <form
-                className="max-w-md space-y-3"
+                className="space-y-3"
                 onSubmit={(event) => {
                   event.preventDefault()
                   if (/^\d{6}$/.test(code)) confirm.mutate(code)
@@ -191,7 +193,7 @@ export function MFASettings() {
           ) : null}
           {status.data.enabled && recoveryCodes.length === 0 ? (
             <form
-              className="mt-5 max-w-md space-y-3"
+              className="mt-5 space-y-3"
               onSubmit={(event) => {
                 event.preventDefault()
                 if (
