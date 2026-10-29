@@ -231,7 +231,7 @@
   },
   "companyDetail": {
     "diagnosticTitle": "Diagnose Zoug responses",
-    "diagnosticHint": "Runs 10 requests with invalid bodies and no valid destination. This company's saved token is used; each request and response is logged with a Run ID, without exposing the token.",
+    "diagnosticHint": "Runs 10 authentication and invalid payload requests with no valid destination. It does not cover balance, rate limits, or delivery. This company's saved token is used; each request and response is logged with a Run ID, without exposing the token.",
     "diagnosticRun": "Run diagnostic",
     "diagnosticRunning": "Running diagnostic...",
     "diagnosticRequest": "Request",

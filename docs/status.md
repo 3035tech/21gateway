@@ -2,7 +2,11 @@
 
 ## Diagnóstico temporário Zoug — 29/10/2026
 
-Na ficha da empresa, o administrador pode executar dez POSTs fixos para a Zoug usando o token cifrado da empresa. Nenhum caso contém destinatário válido. A ação retorna status HTTP e corpo e registra cada par requisição/resposta em JSON/stdout com Run ID, empresa e ator, sem token. Há limite de uma execução por minuto por empresa em cada processo. Respostas não são persistidas. O adaptador de envio agora reconhece `SUCCESS` com UUID válido como aceite, além de `sent`, conforme tráfego observado. Outros status de corpo ainda dependem da execução diagnóstica e de confirmação de semântica antes de novo mapeamento.
+Na ficha da empresa, o administrador pode executar dez POSTs fixos para a Zoug usando o token cifrado da empresa. Nenhum caso contém destinatário válido. A ação retorna status HTTP e corpo e registra cada par requisição/resposta em JSON/stdout com Run ID, empresa e ator, sem token. Há limite de uma execução por minuto por empresa em cada processo. Respostas não são persistidas. O adaptador de envio agora reconhece `SUCCESS` com UUID válido como aceite, além de `sent`, conforme tráfego observado. O diagnóstico cobre autenticação e validação; saldo, limites, falhas de infraestrutura e entrega exigem testes próprios ou confirmação da Zoug.
+
+Execução real `acb7ca1e-2949-43f2-90bd-675250f8a710` na 3035TECH: dois casos de token retornaram HTTP 401 com `status=UNAUTHENTICATED` e `reason=missing_token`/`invalid_token`; oito casos de payload retornaram HTTP 422 com `errors`, `error` ou `status` textual de falha. Algumas respostas 422 incluíram `message_id` UUID, que não é aceite. O adaptador mapeia 401 para `PROVIDER_UNAUTHORIZED` e 422 para `PROVIDER_REJECTED` pelo HTTP, sem reaproveitar o UUID de erro. O teste de regressão cobre ambos.
+
+Sessões do painel: sem “Lembrar de mim” havia logout após 30 minutos de inatividade; o usuário considerou esse prazo curto. O limite passou a 8 horas, mantendo a duração absoluta de 8 horas. Com a opção marcada, cookie persistente e duração absoluta de 14 dias já existiam; o limite de inatividade passou de 7 para 14 dias. O teste HTTP agora cobre 2 horas de inatividade comum e 8 dias de sessão lembrada.
 
 ## Prévia de usuário vinculado — 27/10/2026
 

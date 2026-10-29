@@ -231,7 +231,7 @@
   },
   "companyDetail": {
     "diagnosticTitle": "Diagnosticar respostas Zoug",
-    "diagnosticHint": "Executa 10 requisições com corpos inválidos, sem destinatário válido. O token salvo desta empresa será usado; cada requisição e resposta será registrada nos logs da API com um Run ID, sem expor o token.",
+    "diagnosticHint": "Executa 10 requisições de autenticação e payload inválido, sem destinatário válido. Não cobre saldo, limite de tráfego ou entrega. Usa o token salvo da empresa e registra cada requisição e resposta nos logs da API com um Run ID, sem expor o token.",
     "diagnosticRun": "Executar diagnóstico",
     "diagnosticRunning": "Executando diagnóstico...",
     "diagnosticRequest": "Requisição",

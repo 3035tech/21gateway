@@ -15,6 +15,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 type fixtureUser struct {
@@ -54,6 +55,14 @@ func TestAdministrativeSessionAndPermissions(t *testing.T) {
 	router.Use(AdminMiddleware(sessions, []string{"http://localhost:5173"}))
 	router.Get("/admin/test/seed", func(w http.ResponseWriter, r *http.Request) {
 		sessions.Put(r.Context(), "seed", true)
+		w.WriteHeader(204)
+	})
+	router.Get("/admin/test/backdate", func(w http.ResponseWriter, r *http.Request) {
+		sessions.Put(r.Context(), "last_activity", time.Now().Add(-2*time.Hour).Unix())
+		w.WriteHeader(204)
+	})
+	router.Get("/admin/test/backdate-week", func(w http.ResponseWriter, r *http.Request) {
+		sessions.Put(r.Context(), "last_activity", time.Now().Add(-8*24*time.Hour).Unix())
 		w.WriteHeader(204)
 	})
 	api := humachi.New(router, huma.DefaultConfig("test", "1"))
@@ -96,14 +105,24 @@ func TestAdministrativeSessionAndPermissions(t *testing.T) {
 	if code := call("GET", "/admin/auth/me", "", cookie).Code; code != 200 {
 		t.Fatal("authenticated access", code)
 	}
+	backdated := call("GET", "/admin/test/backdate", "", cookie)
+	cookie = backdated.Result().Cookies()[0]
+	if code := call("GET", "/admin/auth/me", "", cookie).Code; code != 200 {
+		t.Fatal("regular session expired after two idle hours", code)
+	}
 	remembered := call("POST", "/admin/auth/login", `{"email":"viewer@example.test","password":"anything","remember":true}`, cookie)
 	if remembered.Code != 200 {
 		t.Fatal("remembered login", remembered.Code, remembered.Body.String())
 	}
-	if remembered.Result().Cookies()[0].MaxAge <= 0 {
-		t.Fatal("remembered session has no persistent cookie")
+	if remembered.Result().Cookies()[0].MaxAge < int((13 * 24 * time.Hour).Seconds()) {
+		t.Fatal("remembered session cookie is shorter than expected")
 	}
 	cookie = remembered.Result().Cookies()[0]
+	backdated = call("GET", "/admin/test/backdate-week", "", cookie)
+	cookie = backdated.Result().Cookies()[0]
+	if code := call("GET", "/admin/auth/me", "", cookie).Code; code != 200 {
+		t.Fatal("remembered session expired after eight idle days", code)
+	}
 	if code := call("POST", "/admin/companies", `{"name":"Denied","reference":"","active":true}`, cookie).Code; code != 403 {
 		t.Fatal("viewer may write", code)
 	}

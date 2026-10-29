@@ -62,6 +62,8 @@ func TestProviderErrorsAreSafeAndNotRetried(t *testing.T) {
 	}{
 		{"balance", http.StatusPaymentRequired, `{"error":"private details"}`, apperrors.CodeInsufficientBalance},
 		{"provider credential", http.StatusUnauthorized, `{"error":"private token"}`, apperrors.CodeProviderUnauthorized},
+		{"observed unauthenticated", http.StatusUnauthorized, `{"reason":"invalid_token","status":"UNAUTHENTICATED"}`, apperrors.CodeProviderUnauthorized},
+		{"observed rejected with id", http.StatusUnprocessableEntity, `{"code":422,"message_id":"550e8400-e29b-41d4-a716-446655440000","status":"Message processing failed, please check your request and try again"}`, apperrors.CodeProviderRejected},
 		{"tps", http.StatusTooManyRequests, `{}`, apperrors.CodeRateLimited},
 		{"internal error is uncertain", http.StatusInternalServerError, `{}`, apperrors.CodeUnknownOutcome},
 		{"invalid acknowledgement", http.StatusOK, `{"message_id":"invalid","status":"sent"}`, apperrors.CodeUnknownOutcome},
@@ -72,10 +74,13 @@ func TestProviderErrorsAreSafeAndNotRetried(t *testing.T) {
 			transport.RegisterResponder(http.MethodPost, testBaseURL+"/api/send", httpmock.NewStringResponder(tc.status, tc.body))
 			client, _ := NewWithTransport(testBaseURL, "test-token", transport)
 			defer client.Close()
-			_, err := client.Send(context.Background(), SendRequest{Type: MessageTypeSMS, Message: "test"})
+			result, err := client.Send(context.Background(), SendRequest{Type: MessageTypeSMS, Message: "test"})
 			var typed *apperrors.Error
 			if !errors.As(err, &typed) || typed.Code != tc.code || transport.GetTotalCallCount() != 1 {
 				t.Fatalf("err=%v calls=%d", err, transport.GetTotalCallCount())
+			}
+			if tc.name == "observed rejected with id" && result.MessageID != "" {
+				t.Fatalf("rejected provider UUID treated as acceptance: %+v", result)
 			}
 		})
 	}
