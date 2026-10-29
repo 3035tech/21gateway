@@ -17,6 +17,20 @@ export const callbackSchema = z.object({
   createdAt: z.string(),
 })
 export type Callback = z.infer<typeof callbackSchema>
+export const receivedCallbackSchema = z.object({
+  id: z.number(),
+  attemptId: z.number(),
+  companyId: z.number().nullable(),
+  companyName: z.string(),
+  providerMessageId: z.string(),
+  kind: z.enum(['sms', 'mo']),
+  status: z.string(),
+  occurredAt: z.string(),
+  receivedAt: z.string(),
+})
+export type ReceivedCallback = z.infer<typeof receivedCallbackSchema>
+export const listReceivedCallbacks = (params: ListParams, signal?: AbortSignal) =>
+  list('callbacks/received', receivedCallbackSchema, params, signal)
 export const listCallbacks = (params: ListParams, signal?: AbortSignal) =>
   list('callbacks', callbackSchema, params, signal)
 export async function retryCallback(id: number) {

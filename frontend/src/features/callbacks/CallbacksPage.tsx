@@ -6,8 +6,8 @@ import { StatusBadge } from '../../components/admin/StatusBadge'
 import { Confirmation } from '../../components/admin/Confirmation'
 import { useAdminMutation } from '../../components/admin/useAdminMutation'
 import { useUser } from '../auth/context'
-import { listCallbacks, retryCallback } from './api'
-import type { Callback } from './api'
+import { listCallbacks, listReceivedCallbacks, retryCallback } from './api'
+import type { Callback, ReceivedCallback } from './api'
 import { useTranslation } from 'react-i18next'
 import { RecordDetailsDialog } from '../../components/admin/RecordDetailsDialog'
 const callbackErrors = new Set([
@@ -25,6 +25,33 @@ export function CallbacksPage() {
     () => setRetry(null),
     'feedback.retryScheduled',
   )
+  const receivedColumns: ColumnDef<ReceivedCallback>[] = [
+    { accessorKey: 'attemptId', header: t('common.sending') },
+    { accessorKey: 'companyName', header: t('common.client') },
+    {
+      accessorKey: 'kind',
+      header: t('callbacks.eventKind'),
+      cell: ({ row }) => t(`callbacks.kind.${row.original.kind}`),
+    },
+    {
+      accessorKey: 'status',
+      header: t('callbacks.smsDelivery'),
+      cell: ({ row }) => row.original.kind === 'mo'
+        ? t('callbacks.moReceived')
+        : <StatusBadge status={row.original.status} />,
+    },
+    { accessorKey: 'providerMessageId', header: t('callbacks.providerMessageId') },
+    {
+      accessorKey: 'occurredAt',
+      header: t('callbacks.providerTime'),
+      cell: ({ row }) => <DateCell value={row.original.occurredAt} />,
+    },
+    {
+      accessorKey: 'receivedAt',
+      header: t('callbacks.receivedAt'),
+      cell: ({ row }) => <DateCell value={row.original.receivedAt} />,
+    },
+  ]
   const columns: ColumnDef<Callback>[] = [
     { accessorKey: 'id', header: 'ID' },
     { accessorKey: 'attemptId', header: t('common.sending') },
@@ -98,12 +125,22 @@ export function CallbacksPage() {
   return (
     <>
       <Listing
+        title={t('callbacks.receivedTitle')}
+        description={t('callbacks.receivedDescription')}
+        searchPlaceholder={t('callbacks.receivedSearchPlaceholder')}
+        queryKey="receivedCallbacks"
+        columns={receivedColumns}
+        load={listReceivedCallbacks}
+      />
+      <div className="mt-12" />
+      <Listing
         title={t('callbacks.title')}
         description={t('callbacks.description')}
         searchPlaceholder={t('callbacks.searchPlaceholder')}
         queryKey="callbacks"
         columns={columns}
         load={listCallbacks}
+        headingLevel={2}
         filterName="callbackState"
         filterOptions={[
           ['pending', t('messages.pending')],

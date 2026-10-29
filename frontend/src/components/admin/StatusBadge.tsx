@@ -23,6 +23,7 @@ const knownStatuses = new Set([
   'MESSAGE_CANCELLED',
   'INVALID_MESSAGE_FORMAT',
   'GENERAL_ERROR',
+  'UNKNOWN',
 ])
 export function StatusBadge({ status }: { status: string }) {
   const { t } = useTranslation()

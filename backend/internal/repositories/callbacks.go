@@ -164,6 +164,56 @@ func (r *Callbacks) Callbacks(ctx context.Context, q dtos.CallbackListInput) (dt
 	err := db.Joins("LEFT JOIN companies ON companies.id=sms_attempts.company_id").Select("callback_jobs.*, sms_attempts.company_id, COALESCE(companies.name,'') AS company_name").Order(column + " " + direction).Order("callback_jobs.id " + direction).Offset((q.Page - 1) * q.PageSize).Limit(q.PageSize).Scan(&result.Items).Error
 	return result, err
 }
+
+const receivedCallbacksTable = `(SELECT e.id::bigint AS id, e.attempt_id, a.company_id,
+  e.provider_message_id::text AS provider_message_id, 'sms' AS kind,
+  e.status, e.occurred_at, e.created_at AS received_at
+ FROM delivery_events e JOIN sms_attempts a ON a.id=e.attempt_id
+ WHERE e.event_key LIKE 'zoug:%'
+ UNION ALL
+ SELECT -m.id::bigint AS id, m.attempt_id, a.company_id,
+  m.provider_message_id::text AS provider_message_id, 'mo' AS kind,
+  'RECEIVED' AS status, m.received_at AS occurred_at, m.created_at AS received_at
+ FROM mo_events m JOIN sms_attempts a ON a.id=m.attempt_id
+ WHERE m.event_key LIKE 'zoug:%') AS received`
+
+func (r *Callbacks) Received(ctx context.Context, q dtos.ListQuery) (dtos.Page[dtos.ReceivedCallbackView], error) {
+	result := dtos.Page[dtos.ReceivedCallbackView]{Items: []dtos.ReceivedCallbackView{}, Page: q.Page, PageSize: q.PageSize}
+	if err := validatePage(q); err != nil {
+		return result, err
+	}
+	db := scopedCompanies(r.db.WithContext(ctx).Table(receivedCallbacksTable), ctx, "received.company_id")
+	if q.CompanyID != 0 {
+		db = db.Where("received.company_id = ?", q.CompanyID)
+	}
+	if q.Search != "" {
+		term := searchTerm(q.Search)
+		db = db.Where("received.provider_message_id ILIKE ? OR received.status ILIKE ? OR received.attempt_id::text ILIKE ?", term, term, term)
+	}
+	if err := db.Count(&result.Total).Error; err != nil {
+		return result, err
+	}
+	column := map[string]string{
+		"id": "received.id", "attemptId": "received.attempt_id", "companyName": "companies.name",
+		"providerMessageId": "received.provider_message_id", "kind": "received.kind",
+		"status": "received.status", "occurredAt": "received.occurred_at", "receivedAt": "received.received_at",
+	}[q.Sort]
+	if q.Sort == "" {
+		column = "received.received_at"
+	}
+	if column == "" {
+		return result, apperrors.Wrap(apperrors.CodeInvalidRequest, nil)
+	}
+	direction := string(q.Direction)
+	if q.Sort == "" {
+		direction = string(dtos.SortDescending)
+	}
+	err := db.Joins("LEFT JOIN companies ON companies.id = received.company_id").
+		Select("received.*, COALESCE(companies.name,'') AS company_name").
+		Order(column + " " + direction).Order("received.id " + direction).
+		Offset((q.Page - 1) * q.PageSize).Limit(q.PageSize).Scan(&result.Items).Error
+	return result, err
+}
 func (r *Callbacks) RetryCallback(ctx context.Context, actor, id uint64) error {
 	return r.Transaction(ctx, func(repo *Callbacks) error {
 		var job models.CallbackJob

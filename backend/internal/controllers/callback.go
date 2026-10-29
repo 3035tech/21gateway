@@ -20,6 +20,13 @@ func NewCallbackController(service *services.CallbackService, guard *SessionGuar
 	return &CallbackController{SessionGuard: guard, service: service}
 }
 func (c *CallbackController) Register(api huma.API) {
+	huma.Register(api, c.operation(api, "listReceivedCallbacks", http.MethodGet, "/callbacks/received", "Consultar callbacks recebidos", security.ResourceCallbacks, security.ActionRead), func(ctx context.Context, input *dtos.ListQuery) (*dtos.ReceivedCallbacksOutput, error) {
+		values, err := c.service.Received(ctx, *input)
+		if err != nil {
+			return nil, HTTPError(err)
+		}
+		return &dtos.ReceivedCallbacksOutput{Body: values}, nil
+	})
 	huma.Register(api, c.operation(api, "listCallbacks", http.MethodGet, "/callbacks", "Consultar callbacks", security.ResourceCallbacks, security.ActionRead), func(ctx context.Context, input *dtos.CallbackListInput) (*dtos.CallbacksOutput, error) {
 		values, err := c.service.Callbacks(ctx, *input)
 		if err != nil {

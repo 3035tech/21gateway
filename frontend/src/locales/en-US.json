@@ -107,7 +107,8 @@
     "BLACKLIST": "Blocked list",
     "MESSAGE_CANCELLED": "Cancelled",
     "INVALID_MESSAGE_FORMAT": "Invalid format",
-    "GENERAL_ERROR": "Delivery error"
+    "GENERAL_ERROR": "Delivery error",
+    "UNKNOWN": "Unknown outcome"
   },
   "auth": {
     "heroTitle": "Your SMS operations, connected.",
@@ -261,8 +262,17 @@
     "unknown": "Uncertain results"
   },
   "callbacks": {
+    "receivedTitle": "Callbacks received from Zoug",
+    "receivedDescription": "Received submissions and DLRs appear as SMS with internal status; replies appear as MO. Notifications sent to clients are below.",
+    "receivedSearchPlaceholder": "Send ID, Zoug UUID or status",
+    "eventKind": "Event",
+    "kind": { "sms": "SMS", "mo": "MO" },
+    "moReceived": "Reply received",
+    "providerMessageId": "Zoug ID",
+    "providerTime": "Provider time",
+    "receivedAt": "Received at",
     "title": "Delivery notifications",
-    "description": "Track DLR statuses forwarded to clients. Provider integration still requires validation.",
+    "description": "Delivery notifications forwarded to clients when the credential has a callback configured.",
     "searchPlaceholder": "Destination URL",
     "smsDelivery": "SMS delivery",
     "attempts": "Attempts",

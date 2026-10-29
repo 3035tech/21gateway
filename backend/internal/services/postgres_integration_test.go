@@ -145,7 +145,7 @@ func TestPostgresBackofficeAndOutbox(t *testing.T) {
 	callbacks := NewCallbackService(callbackRepo)
 	providerID := uuid.NewString()
 	input := dtos.DeliveryInput{}
-	input.Body.EventKey = "delivery-1"
+	input.Body.EventKey = "zoug:delivery-1"
 	input.Body.ProviderMessageID = providerID
 	input.Body.Status = models.DeliveryDelivered
 	input.Body.OccurredAt = time.Now().UTC().Truncate(time.Microsecond)
@@ -168,6 +168,15 @@ func TestPostgresBackofficeAndOutbox(t *testing.T) {
 	jobs, err := callbacks.Callbacks(ctx, dtos.CallbackListInput{ListQuery: list})
 	if err != nil || jobs.Total != 1 {
 		t.Fatal("outbox must be unique", jobs.Total, err)
+	}
+	received, err := callbacks.Received(ctx, list)
+	if err != nil || received.Total != 1 || received.Items[0].AttemptID != attempt.ID || received.Items[0].Kind != "sms" {
+		t.Fatal("received supplier event missing from history", received, err)
+	}
+	otherCompany := list
+	otherCompany.CompanyID = company.ID + 1000
+	if hidden, err := callbacks.Received(ctx, otherCompany); err != nil || hidden.Total != 0 {
+		t.Fatal("received supplier event leaked across company filter", hidden, err)
 	}
 	job, err := callbackRepo.Claim(ctx)
 	if err != nil || job == nil {
@@ -355,6 +364,12 @@ func TestPostgresBackofficeAndOutbox(t *testing.T) {
 	var providerEvents []models.MOEvent
 	if err := isolated.Where("provider_message_id = ?", providerMOID).Find(&providerEvents).Error; err != nil || len(providerEvents) != 1 || providerEvents[0].AttemptID == nil || *providerEvents[0].AttemptID != providerAttempt.ID || providerEvents[0].PhoneNumber != providerAttempt.Destination {
 		t.Fatal("Zoug MO association or deduplication failed", err)
+	}
+	moHistoryQuery := list
+	moHistoryQuery.Search = providerMOID
+	moHistory, err := callbacks.Received(ctx, moHistoryQuery)
+	if err != nil || moHistory.Total != 1 || moHistory.Items[0].Kind != "mo" || moHistory.Items[0].AttemptID != providerAttempt.ID {
+		t.Fatal("received MO metadata missing from callback history", moHistory, err)
 	}
 	cross := moInput
 	cross.Body.EventKey = "cross-account"

@@ -32,3 +32,19 @@ type CallbackListInput struct {
 	CallbackState models.CallbackState `query:"callbackState" enum:"pending,processing,delivered,failed"`
 }
 type CallbacksOutput struct{ Body Page[CallbackView] }
+
+// ReceivedCallbackView is metadata already persisted for supplier SMS/MO
+// callbacks. It never exposes MO content, fingerprints or raw webhook bodies.
+type ReceivedCallbackView struct {
+	ID                int64     `json:"id"`
+	AttemptID         uint64    `json:"attemptId"`
+	CompanyID         *uint64   `json:"companyId"`
+	CompanyName       string    `json:"companyName"`
+	ProviderMessageID string    `json:"providerMessageId"`
+	Kind              string    `json:"kind" enum:"sms,mo"`
+	Status            string    `json:"status"`
+	OccurredAt        time.Time `json:"occurredAt"`
+	ReceivedAt        time.Time `json:"receivedAt"`
+}
+
+type ReceivedCallbacksOutput struct{ Body Page[ReceivedCallbackView] }

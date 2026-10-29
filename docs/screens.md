@@ -21,7 +21,7 @@ O formulário de nova credencial e edição usa abas **Acesso**, **Notificaçõe
 
 Polimento de 27/10/2026: a prévia ordena o formulário de credencial por empresa e acesso Basic Auth, permite gerar username e exibe a senha gerada uma vez em diálogo. O formulário real mostra a empresa fixa em campo somente leitura. Os links diretos de usuário e credencial apresentam estados de carregamento, erro e ID inválido. A prévia continua apenas em memória.
 
-Listagens compartilham DataTable, filtros, paginação/tamanho e ordenação no servidor. Envios separam submissão/entrega e resultados incertos. Callbacks mostram fila/falhas e reprocessamento manual, sem reenvio SMS. Auditoria não inclui senhas ou conteúdo SMS. Resumo usa dados reais e não inventa saldo ou contagens.
+Listagens compartilham DataTable, filtros, paginação/tamanho e ordenação no servidor. Envios separam submissão/entrega e resultados incertos. Callbacks separam eventos recebidos da Zoug (SMS e MO, sem conteúdo bruto) da fila/falhas das notificações aos clientes; o reprocessamento manual não reenvia SMS. Auditoria não inclui senhas ou conteúdo SMS. Resumo usa dados reais e não inventa saldo ou contagens.
 
 ## Prévia fictícia
 

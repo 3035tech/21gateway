@@ -39,6 +39,10 @@ func (s *CallbackService) Callbacks(ctx context.Context, q dtos.CallbackListInpu
 	value, err := s.repository.Callbacks(ctx, q)
 	return value, dbError(err)
 }
+func (s *CallbackService) Received(ctx context.Context, q dtos.ListQuery) (dtos.Page[dtos.ReceivedCallbackView], error) {
+	value, err := s.repository.Received(ctx, q)
+	return value, dbError(err)
+}
 func (s *CallbackService) Retry(ctx context.Context, actor, id uint64) error {
 	return dbError(s.repository.RetryCallback(ctx, actor, id))
 }

@@ -48,6 +48,7 @@ Administradores administram a operação global; podem existir vários. Operador
 ## Callbacks e workers
 
 O ingress Zoug permite temporariamente em HML o log integral do corpo e cabeçalhos não secretos por configuração opt-in. A exceção de diagnóstico foi autorizada pelo usuário para observar o contrato real; a rota mantém token e whitelist. Eventos `UNKNOWN` ficam em `delivery_events` sem atualizar o estado legado nem criar callback ao cliente. Não há migração nova nem exceção à separação por domínio.
+O histórico administrativo de recebidos usa o domínio callbacks e consulta `delivery_events` e `mo_events` com escopo de empresa. O painel separa esse histórico da outbox de notificações ao cliente. A consulta expõe apenas metadados e estados normalizados; conteúdo MO e payloads brutos ficam fora do DTO. Sem migração.
 
 PostgreSQL armazena delivery_events e callback_jobs como outbox. Evento/estado/job gravados atomicamente; worker reconcilia UUIDs associados depois da chegada do evento. Callback do cliente é GET legado. Lease/SKIP LOCKED, concorrência limitada, oito tentativas, backoff com jitter, HTTP pooled/timeout, sem redirects. Entrega pelo menos uma vez: cliente deve deduplicar.
 

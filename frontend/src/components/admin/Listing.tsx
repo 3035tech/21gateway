@@ -142,7 +142,7 @@ export function Listing<T extends { id: number }>({
               </label>
             ) : null}
             {!fixedCompanyId &&
-            ['credentials', 'messages', 'callbacks'].includes(queryKey) ? (
+            ['credentials', 'messages', 'callbacks', 'receivedCallbacks'].includes(queryKey) ? (
               <label className="flex flex-col gap-1 text-sm font-semibold">
                 {t('common.companyId')}
                 <input

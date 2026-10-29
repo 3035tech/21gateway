@@ -66,9 +66,11 @@ Envios mostram submissão e entrega separadas. Sem DLR, a entrega aparece como s
 
 ## Callbacks
 
+O menu Callbacks separa eventos recebidos da Zoug e notificações enviadas aos clientes. `GET /admin/callbacks/received` pagina metadados já persistidos em `delivery_events` e `mo_events`, vinculados a um envio e filtrados pelo escopo da empresa; exibe SMS (submissão/DLR normalizados) e MO sem texto, fingerprint, corpo bruto ou token. O identificador e status bruto exatos do fornecedor ficam apenas no log temporário de HML, pois as tabelas atuais guardam o estado normalizado. A listagem anterior `/admin/callbacks` continua mostrando somente jobs de saída e permanece vazia quando a credencial não tem callback para o cliente habilitado.
+
 Migration 003 adiciona eventos de entrega e outbox durável. `cmd/worker` reconcilia callbacks antecipados e entrega notificações GET com `idSms`, `correlationId`, `status`, conforme manual legado. O cabeçalho `X-21Mobile-Event-ID` oferece um identificador estável para deduplicação no cliente.
 
-O documento Zoug de callback agora define payloads dos tipos 1/2/3. O adaptador inativo em [zoug-callback.md](zoug-callback.md) valida os três e traduz apenas status DLR inequívocos; autenticação externa, vínculo MO e alguns status continuam pendentes. `POST /internal/dlr` permanece um contrato interno normalizado, disponível somente com `CALLBACK_INGRESS_ENABLED=true` e Bearer `CALLBACK_INGRESS_TOKEN` de pelo menos 32 bytes. Não é a rota do fornecedor. O envio SMS permanece com callback_level NONE até homologar o ingresso externo.
+O documento Zoug de callback define payloads dos tipos 1/2/3. O ingresso externo opt-in em [zoug-callback.md](zoug-callback.md) valida token da URL e IP de origem, persiste submissão/DLR e associa MO pelo `message_id`; códigos exatos do fornecedor ainda exigem homologação. `POST /internal/dlr` permanece um contrato interno normalizado, disponível somente com `CALLBACK_INGRESS_ENABLED=true` e Bearer `CALLBACK_INGRESS_TOKEN` de pelo menos 32 bytes. Não é a rota do fornecedor. Com ingresso Zoug ativo, o envio unitário solicita `callback_level=ALL`.
 
 Contrato interno: `eventKey` (identificador estável, até 200 caracteres), `providerMessageId` (UUID), `status` (enum legado) e `occurredAt` (RFC3339). Aceite retorna 204 após persistência. Repetir mesmo evento é idempotente; reutilizar a chave com outros dados retorna 409. Horário é normalizado para microssegundos. Eventos antecipados ficam persistidos até o UUID do envio ser associado.
 
