@@ -31,6 +31,7 @@ const (
 	CallbackNone          CallbackLevel = "NONE"
 	CallbackAll           CallbackLevel = "ALL"
 	StatusSent            SendStatus    = "sent"
+	StatusSuccess         SendStatus    = "SUCCESS"
 	tokenHeader                         = "X-API-TOKEN"
 	sendPath                            = "api/send"
 	requestTimeout                      = 10 * time.Second
@@ -132,8 +133,8 @@ func (c *Client) Send(ctx context.Context, input SendRequest) (SendResponse, err
 		return result, apperrors.Wrap(apperrors.CodeUnknownOutcome, err)
 	}
 	parsedID, err := uuid.Parse(result.MessageID)
-	if err != nil || parsedID == uuid.Nil || result.Status != StatusSent {
-		attributes := []any{"reason", "invalid_acknowledgement", "provider_index", input.Index, "message_id_valid", err == nil && parsedID != uuid.Nil, "status_sent", result.Status == StatusSent}
+	if err != nil || parsedID == uuid.Nil || (result.Status != StatusSent && result.Status != StatusSuccess) {
+		attributes := []any{"reason", "invalid_acknowledgement", "provider_index", input.Index, "message_id_valid", err == nil && parsedID != uuid.Nil, "status_sent", result.Status == StatusSent || result.Status == StatusSuccess}
 		if c.logUnexpectedResponseBody {
 			attributes = append(attributes, "http_status", response.StatusCode, "response_body", string(data))
 		}

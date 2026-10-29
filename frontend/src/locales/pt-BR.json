@@ -230,6 +230,12 @@
     "providerManage": "Gerenciar token"
   },
   "companyDetail": {
+    "diagnosticTitle": "Diagnosticar respostas Zoug",
+    "diagnosticHint": "Executa 10 requisições com corpos inválidos, sem destinatário válido. O token salvo desta empresa será usado; cada requisição e resposta será registrada nos logs da API com um Run ID, sem expor o token.",
+    "diagnosticRun": "Executar diagnóstico",
+    "diagnosticRunning": "Executando diagnóstico...",
+    "diagnosticRequest": "Requisição",
+    "diagnosticResponse": "Resposta Zoug",
     "back": "Voltar para empresas",
     "eyebrow": "Ficha da empresa",
     "noReference": "Sem referência",

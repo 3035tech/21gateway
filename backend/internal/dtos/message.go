@@ -72,3 +72,21 @@ type CompanyTestHistoryItem struct {
 }
 
 type CompanyTestHistoryOutput struct{ Body []CompanyTestHistoryItem }
+
+type ZougDiagnosticInput struct {
+	PublicRef string `path:"publicRef" format:"uuid"`
+}
+type ZougDiagnosticResult struct {
+	RunID   string               `json:"runId"`
+	Results []ZougDiagnosticCase `json:"results"`
+}
+type ZougDiagnosticCase struct {
+	CaseID       string `json:"caseId"`
+	RequestBody  string `json:"requestBody"`
+	ContentType  string `json:"contentType"`
+	Auth         string `json:"auth"`
+	HTTPStatus   int    `json:"httpStatus"`
+	ResponseBody string `json:"responseBody"`
+	ErrorCode    string `json:"errorCode,omitempty"`
+}
+type ZougDiagnosticOutput struct{ Body ZougDiagnosticResult }

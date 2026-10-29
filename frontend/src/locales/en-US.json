@@ -230,6 +230,12 @@
     "providerManage": "Manage token"
   },
   "companyDetail": {
+    "diagnosticTitle": "Diagnose Zoug responses",
+    "diagnosticHint": "Runs 10 requests with invalid bodies and no valid destination. This company's saved token is used; each request and response is logged with a Run ID, without exposing the token.",
+    "diagnosticRun": "Run diagnostic",
+    "diagnosticRunning": "Running diagnostic...",
+    "diagnosticRequest": "Request",
+    "diagnosticResponse": "Zoug response",
     "back": "Back to companies",
     "eyebrow": "Company details",
     "noReference": "No reference",

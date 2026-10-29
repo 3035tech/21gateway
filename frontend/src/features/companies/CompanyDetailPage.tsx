@@ -19,6 +19,7 @@ import { useUser } from '../auth/context'
 import { CredentialsPage } from '../credentials/CredentialsPage'
 import { CredentialTestDialog } from '../credentials/CredentialTestDialog'
 import { CompanyForm } from './CompanyForm'
+import { ZougDiagnosticDialog } from './ZougDiagnosticDialog'
 import { getCompany, getCompanyByPublicRef, getCompanyTestSends } from './api'
 import { UsersPage } from '../users/UsersPage'
 import { isPublicRef } from '../../lib/publicRef'
@@ -98,6 +99,7 @@ export function CompanyDetailPage() {
       : isPublicRef(id)
   const [editing, setEditing] = useState(false)
   const [testingToken, setTestingToken] = useState(false)
+  const [diagnosing, setDiagnosing] = useState(false)
   const canEdit = useUser()?.role !== 'viewer'
   const canViewUsers = useUser()?.role === 'admin'
   const query = useQuery({
@@ -223,13 +225,23 @@ export function CompanyDetailPage() {
               {canEdit ? (
                 <div className="flex flex-wrap gap-2">
                   {query.data.providerTokenConfigured && query.data.active ? (
-                    <button
-                      className="button-primary"
-                      onClick={() => setTestingToken(true)}
-                    >
-                      <Send size={16} aria-hidden="true" />{' '}
-                      {t('companies.providerTest')}
-                    </button>
+                    <>
+                      <button
+                        className="button-primary"
+                        onClick={() => setTestingToken(true)}
+                      >
+                        <Send size={16} aria-hidden="true" />{' '}
+                        {t('companies.providerTest')}
+                      </button>
+                      {canViewUsers ? (
+                        <button
+                          className="button-secondary"
+                          onClick={() => setDiagnosing(true)}
+                        >
+                          {t('companyDetail.diagnosticTitle')}
+                        </button>
+                      ) : null}
+                    </>
                   ) : null}
                   <button
                     className="button-secondary"
@@ -278,6 +290,12 @@ export function CompanyDetailPage() {
             <CredentialTestDialog
               company={query.data}
               onClose={() => setTestingToken(false)}
+            />
+          ) : null}
+          {diagnosing ? (
+            <ZougDiagnosticDialog
+              publicRef={query.data.publicRef}
+              onClose={() => setDiagnosing(false)}
             />
           ) : null}
         </>

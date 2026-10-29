@@ -72,3 +72,26 @@ export async function getCompanyTestSends(
   )
   return z.array(companyTestSendSchema).parse(response.data)
 }
+
+const zougDiagnosticSchema = z.object({
+  runId: z.string(),
+  results: z.array(
+    z.object({
+      caseId: z.string(),
+      requestBody: z.string(),
+      contentType: z.string(),
+      auth: z.string(),
+      httpStatus: z.number(),
+      responseBody: z.string(),
+      errorCode: z.string().optional(),
+    }),
+  ),
+})
+export async function runZougDiagnostic(publicRef: string) {
+  const response = await api.post(
+    `/admin/companies/by-ref/${publicRef}/zoug-diagnostic`,
+    {},
+    { timeout: 28_000 },
+  )
+  return zougDiagnosticSchema.parse(response.data)
+}

@@ -43,6 +43,16 @@ func TestHTTPTranslationAndAcknowledgement(t *testing.T) {
 	}
 }
 
+func TestObservedSuccessAcknowledgement(t *testing.T) {
+	transport := httpmock.NewMockTransport()
+	transport.RegisterResponder(http.MethodPost, testBaseURL+"/api/send", httpmock.NewStringResponder(http.StatusOK, `{"code":200,"message_id":"550e8400-e29b-41d4-a716-446655440000","status":"SUCCESS"}`))
+	client, _ := NewWithTransport(testBaseURL, "test-token", transport)
+	response, err := client.Send(context.Background(), SendRequest{Type: MessageTypeSMS, Message: "test"})
+	if err != nil || response.Status != StatusSuccess {
+		t.Fatalf("response=%+v err=%v", response, err)
+	}
+}
+
 func TestProviderErrorsAreSafeAndNotRetried(t *testing.T) {
 	for _, tc := range []struct {
 		name   string

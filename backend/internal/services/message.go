@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/21mobile/sms-gateway/internal/dtos"
 	apperrors "github.com/21mobile/sms-gateway/internal/errors"
+	"github.com/21mobile/sms-gateway/internal/integrations/whitelabel"
 	"github.com/21mobile/sms-gateway/internal/models"
 	"github.com/21mobile/sms-gateway/internal/repositories"
 	"github.com/21mobile/sms-gateway/internal/security"
@@ -205,6 +206,36 @@ func (s *MessageService) SendCompanyTest(ctx context.Context, actor uint64, publ
 	}
 	slog.Info("Company SMS token test accepted", "company_id", company.ID, "correlation_id", correlationID, "provider_message_id", providerID)
 	return dtos.TestSendResult{SubmissionState: models.SubmissionAccepted, IDSMS: providerID, CorrelationID: correlationID}, nil
+}
+
+func (s *MessageService) DiagnoseCompany(ctx context.Context, actor uint64, publicRef string) (dtos.ZougDiagnosticResult, error) {
+	var empty dtos.ZougDiagnosticResult
+	if s.companies == nil || s.sender == nil || s.audit == nil {
+		return empty, apperrors.Wrap(apperrors.CodeTestNotConfigured, nil)
+	}
+	company, err := s.companies.CompanyViewByPublicRef(ctx, publicRef)
+	if err != nil {
+		return empty, dbError(err)
+	}
+	if !company.Active || company.ProviderTokenEncrypted == "" {
+		return empty, apperrors.Wrap(apperrors.CodeConflict, nil)
+	}
+	if !s.sender.allowCompanyDiagnostic(company.ID) {
+		return empty, apperrors.Wrap(apperrors.CodeRateLimited, nil)
+	}
+	if err := s.audit.CreateEvent(ctx, &actor, "zoug_diagnostic_requested", string(security.ResourceCompanies), &company.ID); err != nil {
+		return empty, dbError(err)
+	}
+	runID := whitelabel.NewDiagnosticRunID()
+	results, err := s.sender.DiagnoseCompany(ctx, company, runID, actor)
+	if err != nil {
+		return empty, err
+	}
+	views := make([]dtos.ZougDiagnosticCase, 0, len(results))
+	for _, result := range results {
+		views = append(views, dtos.ZougDiagnosticCase{CaseID: result.CaseID, RequestBody: result.RequestBody, ContentType: result.ContentType, Auth: result.Auth, HTTPStatus: result.HTTPStatus, ResponseBody: result.ResponseBody, ErrorCode: result.ErrorCode})
+	}
+	return dtos.ZougDiagnosticResult{RunID: runID, Results: views}, nil
 }
 
 func standardTestMessage(companyName string) string {

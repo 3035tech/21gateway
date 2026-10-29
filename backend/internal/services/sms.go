@@ -91,9 +91,33 @@ func (s *SMSService) SendCompanyTest(ctx context.Context, company models.Company
 	return response.MessageID, nil
 }
 
+func (s *SMSService) DiagnoseCompany(ctx context.Context, company models.Company, runID string, actorID uint64) ([]whitelabel.DiagnosticResult, error) {
+	preparer, ok := s.provider.(interface {
+		PrepareCompany(models.Company) (SMSProvider, error)
+	})
+	if !ok {
+		return nil, apperrors.Wrap(apperrors.CodeTestNotConfigured, nil)
+	}
+	provider, err := preparer.PrepareCompany(company)
+	if err != nil {
+		return nil, err
+	}
+	client, ok := provider.(*whitelabel.Client)
+	if !ok {
+		return nil, apperrors.Wrap(apperrors.CodeTestNotConfigured, nil)
+	}
+	return client.Diagnose(ctx, runID, company.ID, actorID), nil
+}
+
 func (s *SMSService) allowCompanyTest(companyID uint64) bool {
 	key := "company-test:" + strconv.FormatUint(companyID, 10)
 	cached, _ := s.limits.LoadOrStore(key, rate.NewLimiter(rate.Every(sendRateWindow), sendRateBurst))
+	return cached.(*rate.Limiter).Allow()
+}
+
+func (s *SMSService) allowCompanyDiagnostic(companyID uint64) bool {
+	key := "company-diagnostic:" + strconv.FormatUint(companyID, 10)
+	cached, _ := s.limits.LoadOrStore(key, rate.NewLimiter(rate.Every(time.Minute), 1))
 	return cached.(*rate.Limiter).Allow()
 }
 

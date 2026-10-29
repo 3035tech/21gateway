@@ -1,5 +1,9 @@
 # Estado da implementação
 
+## Diagnóstico temporário Zoug — 29/10/2026
+
+Na ficha da empresa, o administrador pode executar dez POSTs fixos para a Zoug usando o token cifrado da empresa. Nenhum caso contém destinatário válido. A ação retorna status HTTP e corpo e registra cada par requisição/resposta em JSON/stdout com Run ID, empresa e ator, sem token. Há limite de uma execução por minuto por empresa em cada processo. Respostas não são persistidas. O adaptador de envio agora reconhece `SUCCESS` com UUID válido como aceite, além de `sent`, conforme tráfego observado. Outros status de corpo ainda dependem da execução diagnóstica e de confirmação de semântica antes de novo mapeamento.
+
 ## Prévia de usuário vinculado — 27/10/2026
 
 O login fictício da prévia permite escolher administradora, operador vinculado a duas empresas ou usuária de consulta vinculada apenas a Nexo Educação. Para perfis vinculados, o dashboard usa contagens dos registros simulados filtrados, menu e rotas escondem usuários/auditoria, listagens e detalhes mostram somente empresas autorizadas e consulta não pode editar. A prévia não implementa autenticação; o painel real continua usando sessão e escopo do backend.
