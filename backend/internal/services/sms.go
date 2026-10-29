@@ -50,17 +50,19 @@ type SMSService struct {
 	asyncQueue interface {
 		EnqueueAll(context.Context, uint64, []dtos.LegacySMS) ([]dtos.LegacySendResult, error)
 	}
-	limiter    SendLimiter
-	repository AttemptRepository
-	provider   SMSProvider
-	limits     sync.Map
-	history    *security.SMSHistoryVault
+	limiter       SendLimiter
+	repository    AttemptRepository
+	provider      SMSProvider
+	limits        sync.Map
+	history       *security.SMSHistoryVault
+	callbackLevel whitelabel.CallbackLevel
 }
 
 func NewSMSService(repository AttemptRepository, provider SMSProvider) *SMSService {
-	return &SMSService{repository: repository, provider: provider}
+	return &SMSService{repository: repository, provider: provider, callbackLevel: whitelabel.CallbackNone}
 }
 func (s *SMSService) SetHistoryVault(vault *security.SMSHistoryVault) { s.history = vault }
+func (s *SMSService) SetCallbackLevel(level whitelabel.CallbackLevel) { s.callbackLevel = level }
 func (s *SMSService) Queued() bool                                    { return s.asyncQueue != nil }
 
 // A company token test calls Zoug directly so the response verifies the saved token.
@@ -178,7 +180,7 @@ func (s *SMSService) Send(ctx context.Context, credentialID uint64, messages []d
 		return nil, apperrors.Wrap(apperrors.CodeServiceUnavailable, err)
 	}
 	id := strconv.FormatUint(attempt.ID, 10)
-	sent, err := provider.Send(ctx, whitelabel.SendRequest{Type: whitelabel.MessageTypeSMS, Message: input.MessageText, Encoding: encoding, Destination: attempt.Destination, ReferenceID: input.CorrelationID, Index: id, CallbackLevel: whitelabel.CallbackNone})
+	sent, err := provider.Send(ctx, whitelabel.SendRequest{Type: whitelabel.MessageTypeSMS, Message: input.MessageText, Encoding: encoding, Destination: attempt.Destination, ReferenceID: input.CorrelationID, Index: id, CallbackLevel: s.callbackLevel})
 	if err != nil {
 		code := apperrors.CodeUnknownOutcome
 		var typed *apperrors.Error
@@ -188,6 +190,10 @@ func (s *SMSService) Send(ctx context.Context, credentialID uint64, messages []d
 		attempt.State = models.SubmissionRejected
 		if code == apperrors.CodeUnknownOutcome {
 			attempt.State = models.SubmissionUnknown
+			if parsed, parseErr := uuid.Parse(sent.MessageID); parseErr == nil && parsed != uuid.Nil {
+				providerID := parsed.String()
+				attempt.ProviderMessageID = &providerID
+			}
 		}
 		slog.Warn("SMS provider submission failed", "send_id", attempt.ID, "credential_id", credentialID, "state", attempt.State, "code", code)
 		attempt.FailureCode = code

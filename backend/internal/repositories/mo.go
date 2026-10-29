@@ -14,6 +14,13 @@ import (
 type MOs struct{ db *gorm.DB }
 
 func NewMOs(db *gorm.DB) *MOs { return &MOs{db: db} }
+
+// FindOriginal resolves the MO account through Zoug's MT message_id.
+func (r *MOs) FindOriginal(ctx context.Context, providerMessageID string) (models.SMSAttempt, error) {
+	var attempt models.SMSAttempt
+	err := r.db.WithContext(ctx).Select("id,credential_id,destination,provider_message_id").Where("provider_message_id = ?", providerMessageID).First(&attempt).Error
+	return attempt, err
+}
 func (r *MOs) Accept(ctx context.Context, event models.MOEvent) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var credential models.APICredential

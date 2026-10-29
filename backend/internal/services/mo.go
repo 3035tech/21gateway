@@ -2,9 +2,12 @@ package services
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"github.com/21mobile/sms-gateway/internal/dtos"
 	apperrors "github.com/21mobile/sms-gateway/internal/errors"
+	"github.com/21mobile/sms-gateway/internal/integrations/whitelabel"
 	"github.com/21mobile/sms-gateway/internal/models"
 	"github.com/21mobile/sms-gateway/internal/security"
 	"github.com/google/uuid"
@@ -26,6 +29,43 @@ type MOService struct {
 
 func NewMOService(repo MORepository, vault *security.MOContentVault) *MOService {
 	return &MOService{repo: repo, vault: vault}
+}
+
+// AcceptWhiteLabelMO links the incoming reply to the original MT before it is
+// encrypted and persisted. A missing MT is retriable; never acknowledge it as
+// received because Zoug discards callbacks after three unsuccessful attempts.
+func (s *MOService) AcceptWhiteLabelMO(ctx context.Context, payload whitelabel.CallbackPayload) error {
+	if payload.CallbackType != whitelabel.CallbackMO || payload.ShortMessage == nil {
+		return apperrors.Wrap(apperrors.CodeInvalidRequest, nil)
+	}
+	lookup, ok := s.repo.(interface {
+		FindOriginal(context.Context, string) (models.SMSAttempt, error)
+	})
+	if !ok {
+		return apperrors.Wrap(apperrors.CodeServiceUnavailable, nil)
+	}
+	attempt, err := lookup.FindOriginal(ctx, payload.MessageID)
+	if err != nil {
+		return apperrors.Wrap(apperrors.CodeServiceUnavailable, err)
+	}
+	receivedAt, err := time.Parse(time.RFC3339Nano, payload.ReportDate)
+	if err != nil || attempt.CredentialID == 0 {
+		return apperrors.Wrap(apperrors.CodeInvalidRequest, err)
+	}
+	identity, _ := json.Marshal(struct {
+		MessageID string
+		Date      string
+		Message   string
+	}{payload.MessageID, receivedAt.UTC().Format(time.RFC3339Nano), *payload.ShortMessage})
+	digest := sha256.Sum256(identity)
+	input := dtos.MOInput{}
+	input.Body.EventKey = "zoug:" + hex.EncodeToString(digest[:])
+	input.Body.CredentialID = attempt.CredentialID
+	input.Body.ProviderMessageID = payload.MessageID
+	input.Body.PhoneNumber = attempt.Destination
+	input.Body.Message = *payload.ShortMessage
+	input.Body.ReceivedAt = receivedAt
+	return s.Accept(ctx, input)
 }
 func (s *MOService) Accept(ctx context.Context, input dtos.MOInput) error {
 	b := input.Body

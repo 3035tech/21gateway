@@ -8,6 +8,7 @@ import (
 	"github.com/21mobile/sms-gateway/internal/database"
 	"github.com/21mobile/sms-gateway/internal/dtos"
 	apperrors "github.com/21mobile/sms-gateway/internal/errors"
+	"github.com/21mobile/sms-gateway/internal/integrations/whitelabel"
 	"github.com/21mobile/sms-gateway/internal/models"
 	"github.com/21mobile/sms-gateway/internal/repositories"
 	"github.com/21mobile/sms-gateway/internal/security"
@@ -337,6 +338,23 @@ func TestPostgresBackofficeAndOutbox(t *testing.T) {
 	}
 	if next, err := moRepo.Claim(ctx); err != nil || next != nil {
 		t.Fatal("blocked MO requeued", err)
+	}
+	providerMOID := uuid.NewString()
+	providerAttempt := models.SMSAttempt{CredentialID: legacySaved.ID, CompanyID: &company.ID, ProviderMessageID: &providerMOID, CorrelationID: "provider-mo-ref", Destination: "5511998877665", Encoding: models.SMSEncodingGSM7, State: models.SubmissionUnknown}
+	if err := isolated.Create(&providerAttempt).Error; err != nil {
+		t.Fatal(err)
+	}
+	providerText := "Obrigado"
+	providerMO := whitelabel.CallbackPayload{SendType: "SMS", MessageID: providerMOID, CallbackType: whitelabel.CallbackMO, ShortMessage: &providerText, ReportDate: time.Now().UTC().Add(-48 * time.Hour).Truncate(time.Microsecond).Format(time.RFC3339Nano)}
+	if err := moService.AcceptWhiteLabelMO(ctx, providerMO); err != nil {
+		t.Fatal(err)
+	}
+	if err := moService.AcceptWhiteLabelMO(ctx, providerMO); err != nil {
+		t.Fatal("duplicate Zoug MO", err)
+	}
+	var providerEvents []models.MOEvent
+	if err := isolated.Where("provider_message_id = ?", providerMOID).Find(&providerEvents).Error; err != nil || len(providerEvents) != 1 || providerEvents[0].AttemptID == nil || *providerEvents[0].AttemptID != providerAttempt.ID || providerEvents[0].PhoneNumber != providerAttempt.Destination {
+		t.Fatal("Zoug MO association or deduplication failed", err)
 	}
 	cross := moInput
 	cross.Body.EventKey = "cross-account"

@@ -72,6 +72,17 @@ func TestSendTranslatesAndPersistsAcceptance(t *testing.T) {
 	}
 }
 
+func TestUnexpectedZougStatusRetainsMessageIDForCallbackReconciliation(t *testing.T) {
+	repo := &memoryAttempts{}
+	provider := &stubProvider{enabled: true, response: whitelabel.SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440000", Status: "SUCCESS"}, err: apperrors.Wrap(apperrors.CodeUnknownOutcome, nil)}
+	sender := NewSMSService(repo, provider)
+	sender.SetCallbackLevel(whitelabel.CallbackAll)
+	result, err := sender.Send(context.Background(), 7, []dtos.LegacySMS{validSMS()})
+	if err != nil || len(result) != 1 || result[0].Status != dtos.LegacyStatusNOK || len(repo.completed) != 1 || repo.completed[0].State != models.SubmissionUnknown || repo.completed[0].ProviderMessageID == nil || *repo.completed[0].ProviderMessageID != provider.response.MessageID || provider.inputs[0].CallbackLevel != whitelabel.CallbackAll {
+		t.Fatalf("unexpected outcome: result=%+v completed=%+v err=%v", result, repo.completed, err)
+	}
+}
+
 func TestImmediateSMSPersistsOnlyEncryptedHistory(t *testing.T) {
 	repo := &memoryAttempts{}
 	provider := &stubProvider{enabled: true, response: whitelabel.SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440000", Status: whitelabel.StatusSent}}

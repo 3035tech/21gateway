@@ -42,6 +42,9 @@ type Dependencies struct {
 	Callbacks                     *services.CallbackService
 	CallbackIngressEnabled        bool
 	CallbackIngressToken          string
+	ZougCallbackEnabled           bool
+	ZougCallbackTokenSHA256       string
+	ZougCallbackAllowedIPs        []string
 	SMS                           *services.SMSService
 	Submissions                   *services.SubmissionService
 	Auth                          *services.AuthService
@@ -115,6 +118,9 @@ func New(origins []string, docsEnabled bool, ping func(context.Context) error, d
 	}
 	if dependencies.Callbacks != nil && dependencies.CallbackIngressEnabled {
 		controllers.NewCallbackController(dependencies.Callbacks, nil).RegisterIngress(api, dependencies.CallbackIngressToken)
+	}
+	if dependencies.ZougCallbackEnabled && dependencies.Callbacks != nil && dependencies.MO != nil {
+		controllers.NewZougCallbackController(dependencies.Callbacks, dependencies.MO, dependencies.ZougCallbackTokenSHA256, dependencies.ZougCallbackAllowedIPs).Register(router)
 	}
 	if dependencies.MO != nil && dependencies.MOIngressEnabled {
 		controllers.NewMOController(dependencies.MO).RegisterIngress(api, dependencies.CallbackIngressToken)

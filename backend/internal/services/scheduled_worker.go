@@ -11,6 +11,7 @@ import (
 
 	"github.com/21mobile/sms-gateway/internal/dtos"
 	apperrors "github.com/21mobile/sms-gateway/internal/errors"
+	"github.com/21mobile/sms-gateway/internal/integrations/whitelabel"
 	"github.com/21mobile/sms-gateway/internal/models"
 	"github.com/21mobile/sms-gateway/internal/security"
 )
@@ -24,14 +25,18 @@ type ScheduledWorkerRepository interface {
 	Finish(context.Context, []models.ScheduledSMS, []models.SMSAttempt) error
 }
 type ScheduledSMSWorker struct {
-	repo     ScheduledWorkerRepository
-	provider SMSProvider
-	limiter  SendLimiter
-	vault    *security.ScheduledContentVault
+	repo          ScheduledWorkerRepository
+	provider      SMSProvider
+	limiter       SendLimiter
+	vault         *security.ScheduledContentVault
+	callbackLevel whitelabel.CallbackLevel
 }
 
 func NewScheduledSMSWorker(repo ScheduledWorkerRepository, provider SMSProvider, limiter SendLimiter, vault *security.ScheduledContentVault) *ScheduledSMSWorker {
-	return &ScheduledSMSWorker{repo: repo, provider: provider, limiter: limiter, vault: vault}
+	return &ScheduledSMSWorker{repo: repo, provider: provider, limiter: limiter, vault: vault, callbackLevel: whitelabel.CallbackNone}
+}
+func (w *ScheduledSMSWorker) SetCallbackLevel(level whitelabel.CallbackLevel) {
+	w.callbackLevel = level
 }
 func (w *ScheduledSMSWorker) Run(ctx context.Context) {
 	ticker := time.NewTicker(workerTick)
@@ -160,6 +165,7 @@ func (w *ScheduledSMSWorker) processGroup(ctx context.Context, jobs []models.Sch
 	}
 	adapter := &scheduledAttempts{repo: w.repo, jobs: jobs}
 	service := NewSMSServiceWithLimiter(adapter, provider, budget)
+	service.SetCallbackLevel(w.callbackLevel)
 	result, sendErr := service.Send(WithCredential(ctx, credential), credential.ID, messages)
 	if adapter.started {
 		return adapter.finishErr == nil, adapter.finishErr

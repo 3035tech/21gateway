@@ -47,7 +47,7 @@ Administradores administram a operação global; podem existir vários. Operador
 
 PostgreSQL armazena delivery_events e callback_jobs como outbox. Evento/estado/job gravados atomicamente; worker reconcilia UUIDs associados depois da chegada do evento. Callback do cliente é GET legado. Lease/SKIP LOCKED, concorrência limitada, oito tentativas, backoff com jitter, HTTP pooled/timeout, sem redirects. Entrega pelo menos uma vez: cliente deve deduplicar.
 
-safeurl bloqueia SSRF no dial, proxy desativado, HTTPS/443; saída IPv6 desabilitada. Bloqueio de conta/empresa impede entrega. Reprocessar callback não reenvia SMS. O payload do callback Zoug agora está documentado e um adaptador puro valida os tipos 1/2/3 e traduz DLR inequívoco para o serviço existente. Sem autenticação do webhook e vínculo MO confirmado, não há rota externa ativa; ingresso interno normalizado permanece opt-in e envio usa callback_level NONE. Consulte docs/zoug-callback.md e docs/backoffice.md.
+safeurl bloqueia SSRF no dial, proxy desativado, HTTPS/443; saída IPv6 desabilitada. Bloqueio de conta/empresa impede entrega. Reprocessar callback não reenvia SMS. O payload Zoug é validado pelo adaptador de integração; o controller de callback externo verifica hash do segredo na URL e IP, então encaminha DLR ao serviço de callbacks e MO ao serviço MO. Cada domínio persiste seu evento antes da resposta 204. A rota é opt-in independente das rotas internas normalizadas. Não há exceção à separação por domínio: o controller só coordena o contrato HTTP do fornecedor; regras de DLR/MO continuam nos services e repositories respectivos. Consulte docs/zoug-callback.md e docs/backoffice.md.
 
 ## Frontend e hospedagem
 

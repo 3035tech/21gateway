@@ -5,6 +5,7 @@ import (
 	"github.com/21mobile/sms-gateway/internal/security"
 	"net/http"
 	"net/mail"
+	"net/netip"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -54,6 +55,9 @@ type Config struct {
 	CookieCrossSite            bool     `env:"COOKIE_CROSS_SITE" envDefault:"false"`
 	CallbackIngressToken       string   `env:"CALLBACK_INGRESS_TOKEN"`
 	CallbackIngressEnabled     bool     `env:"CALLBACK_INGRESS_ENABLED" envDefault:"false"`
+	ZougCallbackEnabled        bool     `env:"ZOUG_CALLBACK_ENABLED" envDefault:"false"`
+	ZougCallbackTokenSHA256    string   `env:"ZOUG_CALLBACK_TOKEN_SHA256"`
+	ZougCallbackAllowedIPs     []string `env:"ZOUG_CALLBACK_ALLOWED_IPS" envSeparator:","`
 	Address                    string   `env:"HTTP_ADDRESS" envDefault:":8080"`
 	DatabaseURL                string   `env:"DATABASE_URL,required"`
 	AllowedOrigins             []string `env:"CORS_ALLOWED_ORIGINS" envDefault:"http://localhost:5173" envSeparator:","`
@@ -127,6 +131,17 @@ func Load() (Config, error) {
 	}
 	if (cfg.CallbackIngressEnabled || cfg.MOIngressEnabled) && len(cfg.CallbackIngressToken) < 32 {
 		return cfg, apperrors.Wrap(apperrors.CodeConfigurationInvalid, nil)
+	}
+	if cfg.ZougCallbackEnabled {
+		if !validSHA256Hex(cfg.ZougCallbackTokenSHA256) || len(cfg.ZougCallbackAllowedIPs) == 0 {
+			return cfg, apperrors.Wrap(apperrors.CodeConfigurationInvalid, nil)
+		}
+		for _, raw := range cfg.ZougCallbackAllowedIPs {
+			ip, err := netip.ParseAddr(strings.TrimSpace(raw))
+			if err != nil || ip.IsUnspecified() || ip.IsLoopback() {
+				return cfg, apperrors.Wrap(apperrors.CodeConfigurationInvalid, nil)
+			}
+		}
 	}
 	if cfg.MOIngressEnabled && cfg.MOContentKey == "" && cfg.MOActiveKeyID == "" {
 		return cfg, apperrors.Wrap(apperrors.CodeConfigurationInvalid, nil)

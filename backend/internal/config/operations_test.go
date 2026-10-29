@@ -1,7 +1,9 @@
 package config
 
 import (
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"strings"
 	"testing"
 )
@@ -14,6 +16,30 @@ func operationEnvironment(t *testing.T) {
 	t.Setenv("HEALTH_DEPENDENCIES_TOKEN_SHA256", "")
 	t.Setenv("SMS_SQS_ENABLED", "false")
 	t.Setenv("SMS_SQS_QUEUE_URL", "")
+	t.Setenv("ZOUG_CALLBACK_ENABLED", "false")
+	t.Setenv("ZOUG_CALLBACK_TOKEN_SHA256", "")
+	t.Setenv("ZOUG_CALLBACK_ALLOWED_IPS", "")
+}
+
+func TestZougCallbackRequiresHashAndIPAllowlist(t *testing.T) {
+	operationEnvironment(t)
+	t.Setenv("ZOUG_CALLBACK_ENABLED", "true")
+	if _, err := Load(); err == nil {
+		t.Fatal("unprotected webhook accepted")
+	}
+	digest := sha256.Sum256([]byte(strings.Repeat("t", 32)))
+	t.Setenv("ZOUG_CALLBACK_TOKEN_SHA256", hex.EncodeToString(digest[:]))
+	if _, err := Load(); err == nil {
+		t.Fatal("webhook without source allowlist accepted")
+	}
+	t.Setenv("ZOUG_CALLBACK_ALLOWED_IPS", "18.232.239.74,3.213.146.37,34.195.124.142")
+	if _, err := Load(); err != nil {
+		t.Fatal("protected webhook rejected", err)
+	}
+	t.Setenv("ZOUG_CALLBACK_ALLOWED_IPS", "0.0.0.0")
+	if _, err := Load(); err == nil {
+		t.Fatal("unspecified source allowed")
+	}
 }
 func TestAllSendQueueRequiresSeparateValidTransport(t *testing.T) {
 	operationEnvironment(t)

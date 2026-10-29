@@ -29,6 +29,7 @@ const (
 	EncodingUCS2          Encoding      = models.SMSEncodingUCS2
 	MessageTypeSMS        MessageType   = "SMS"
 	CallbackNone          CallbackLevel = "NONE"
+	CallbackAll           CallbackLevel = "ALL"
 	StatusSent            SendStatus    = "sent"
 	tokenHeader                         = "X-API-TOKEN"
 	sendPath                            = "api/send"

@@ -59,6 +59,9 @@ func New(ctx context.Context, cfg config.Config, db *gorm.DB, provider *whitelab
 			return nil, err
 		}
 		w.scheduled = services.NewScheduledSMSWorker(repositories.NewScheduledSMS(db), services.NewAccountSMSProvider(provider, tokenVault), repositories.NewDispatchSendLimits(db), scheduledVault)
+		if cfg.ZougCallbackEnabled {
+			w.scheduled.SetCallbackLevel(whitelabel.CallbackAll)
+		}
 		if cfg.ScheduledSQSEnabled || cfg.SMSSQSEnabled {
 			startup, cancel := context.WithTimeout(ctx, config.StartupTimeout)
 			queueURL := cfg.ScheduledSQSQueueURL

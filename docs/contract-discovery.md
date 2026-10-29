@@ -14,6 +14,25 @@ Verificado em 14/10/2026. Trabalho de descoberta de contratos; nenhum endpoint n
 
 O navegador conseguiu ler GitHub e páginas Devyx; o leitor web falhou com cache miss/403 e curl sem acesso retornou HTTP 000. Falhas dessas ferramentas não comprovam inexistência dos recursos. Não foi feita exploração por tentativa de endpoints de produção.
 
+## Respostas observadas na Zoug — 29/10/2026
+
+O guia fornecido mostra `POST /api/send` com HTTP 200, `message_id` UUID e
+`status="sent"`. Em HML, o envio `id_sms=3` recebeu HTTP 200 e corpo com
+`code=200`, `status="SUCCESS"`, `message_id` UUID e `reference_id`. O adaptador
+atual exige `sent`, por isso manteve o resultado como `unknown`. O SMS não foi
+repetido. Essa amostra não confirma que `SUCCESS` tenha semântica idêntica a
+`sent` nem enumera os demais estados possíveis.
+
+Quatro chamadas diretas sem capacidade de enviar SMS foram feitas a
+`/api/send` e `/api/send/batch`: sem `X-API-TOKEN`, ambas responderam HTTP 401
+com `{"reason":"missing_token","status":"UNAUTHENTICATED"}`; com token
+deliberadamente inválido, ambas responderam HTTP 401 com
+`{"reason":"invalid_token","status":"UNAUTHENTICATED"}`. O guia descreve
+HTTP 401 com outro formato (`{"error":"Unauthorized: invalid token"}`). Esses
+testes cobrem somente autenticação; payloads diferentes não alcançaram a
+validação/envio por falta de token Zoug de homologação disponível para a
+investigação. Não houve novo envio real.
+
 ## Resultado por contrato
 
 - **Paginação status/date: ainda não confirmada.** Não implementar next/page/offset/cursor como se documentados. Também conferir forma com barra final usada pelos exemplos e grafia dos filtros antes do rollout.
