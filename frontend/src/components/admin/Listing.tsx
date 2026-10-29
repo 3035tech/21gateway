@@ -24,6 +24,7 @@ type Props<T extends { id: number }> = {
   extra?: ReactNode
   fixedCompanyId?: number
   headingLevel?: 1 | 2
+  stickyActions?: boolean
 }
 export function Listing<T extends { id: number }>({
   title,
@@ -39,6 +40,7 @@ export function Listing<T extends { id: number }>({
   extra,
   fixedCompanyId,
   headingLevel = 1,
+  stickyActions = false,
 }: Props<T>) {
   const { t } = useTranslation()
   const selectedCompanyId = useCompanyView()
@@ -95,6 +97,7 @@ export function Listing<T extends { id: number }>({
         {...state}
         caption={title}
         wide={columns.length >= 8}
+        stickyActions={stickyActions}
         searchPlaceholder={searchPlaceholder}
         columns={columns}
         data={query.data?.items ?? []}

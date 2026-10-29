@@ -91,3 +91,7 @@ As listagens oferecem Visualizar para consultar os campos disponíveis sem entra
 O cabeçalho e os controles da coluna Ações são centralizados pelo componente compartilhado de tabela, incluindo listas com uma ou várias ações.
 
 Os nomes das credenciais e usuários na visão da empresa abrem URLs próprias (`/credenciais/{id}` e `/usuarios/{id}`), carregadas por GET administrativo do registro real e autorizadas pelo domínio. Ao fechar o detalhe, o usuário volta para a empresa de origem. A prévia fictícia usa o mesmo fluxo com registros simulados.
+
+## Revisão visual com dados de homologação — 29/10/2026
+
+Visão geral, empresas e detalhe, usuários, credenciais e detalhe, envios, agendamentos, callbacks recebidos/notificações e auditoria foram inspecionados no Chrome com dados de homologação. Envios e agendamentos mantêm a ação Visualizar fixa na borda direita durante a rolagem horizontal, para que os detalhes permaneçam acessíveis sem esconder as colunas de dados. A lista de credenciais dentro da empresa omite a coluna Empresa, redundante nesse contexto. O seletor de idioma mantém bandeira e nome na mesma linha no menu. Os campos de autenticação Basic Auth e cabeçalho personalizado dos destinos DLR/MO ficam lado a lado a partir da largura `sm` e empilham no celular.

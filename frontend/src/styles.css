@@ -99,6 +99,18 @@
     overflow-wrap: normal;
     white-space: nowrap;
   }
+  .data-grid .data-grid-sticky-action {
+    @apply sticky right-0 z-10 bg-white;
+    box-shadow:
+      -1px 0 0 #e2e8f0,
+      -8px 0 14px -14px #334155;
+  }
+  .data-grid thead .data-grid-sticky-action {
+    @apply z-20 bg-slate-50;
+  }
+  .data-grid tbody tr:hover .data-grid-sticky-action {
+    @apply bg-slate-50;
+  }
   .field {
     @apply flex flex-col gap-2 text-sm font-semibold;
   }

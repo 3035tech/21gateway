@@ -158,7 +158,9 @@ export function CredentialsPage({
           row.original.username
         ),
     },
-    { accessorKey: 'companyName', header: t('common.company') },
+    ...(companyId
+      ? []
+      : [{ accessorKey: 'companyName', header: t('common.company') }]),
     {
       accessorKey: 'providerTokenConfigured',
       header: 'Zoug',

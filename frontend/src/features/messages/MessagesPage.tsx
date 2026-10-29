@@ -124,6 +124,7 @@ export function MessagesPage() {
   return (
     <>
       <Listing
+        stickyActions
         title={t('nav.messages')}
         description={t('messages.description')}
         searchPlaceholder={t('common.destinationOrReference')}

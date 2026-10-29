@@ -12,6 +12,7 @@ export function AppSelect({
   options,
   label,
   className = '',
+  nowrapOptions = false,
   disabled = false,
 }: {
   value: string | number
@@ -19,6 +20,7 @@ export function AppSelect({
   options: Option[]
   label: string
   className?: string
+  nowrapOptions?: boolean
   disabled?: boolean
 }) {
   const selected = String(value) || EMPTY_VALUE
@@ -50,7 +52,7 @@ export function AppSelect({
           position="popper"
           sideOffset={5}
           collisionPadding={8}
-          className="select-content"
+          className={`select-content ${nowrapOptions ? 'min-w-max' : ''}`}
         >
           <Select.ScrollUpButton className="select-scroll-button">
             <ChevronUp size={16} />
@@ -61,7 +63,7 @@ export function AppSelect({
                 key={String(option.value)}
                 value={String(option.value) || EMPTY_VALUE}
                 disabled={option.disabled}
-                className="select-item"
+                className={`select-item ${nowrapOptions ? 'whitespace-nowrap' : ''}`}
               >
                 <Select.ItemText>{option.label}</Select.ItemText>
                 <Select.ItemIndicator className="ml-auto text-brand-purple">

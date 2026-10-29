@@ -126,6 +126,7 @@ export function SchedulesPage() {
       ) : null}
       <DataTable
         {...table}
+        stickyActions
         caption={t('schedules.caption')}
         wide
         searchPlaceholder={t('common.destinationOrReference')}
