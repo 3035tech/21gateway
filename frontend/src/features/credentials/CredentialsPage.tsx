@@ -242,7 +242,7 @@ export function CredentialsPage({
     header: t('common.actions'),
     enableSorting: false,
     cell: ({ row }) => (
-      <div className="flex flex-nowrap gap-1">
+      <div className="flex max-w-72 flex-wrap justify-center gap-1">
         <button
           className="table-action"
           onClick={() =>
@@ -301,6 +301,7 @@ export function CredentialsPage({
   return (
     <>
       <Listing
+        stickyActions
         title={
           companyId ? t('companyDetail.credentialsTitle') : t('nav.credentials')
         }
