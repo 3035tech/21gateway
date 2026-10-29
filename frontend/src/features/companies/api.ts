@@ -78,19 +78,26 @@ const zougDiagnosticSchema = z.object({
   results: z.array(
     z.object({
       caseId: z.string(),
+      requestMethod: z.string(),
+      requestPath: z.string(),
       requestBody: z.string(),
       contentType: z.string(),
       auth: z.string(),
       httpStatus: z.number(),
       responseBody: z.string(),
+      responseHeaders: z.record(z.string(), z.array(z.string())).optional(),
+      durationMs: z.number(),
       errorCode: z.string().optional(),
     }),
   ),
 })
-export async function runZougDiagnostic(publicRef: string) {
+export async function runZougDiagnostic(
+  publicRef: string,
+  destination: string,
+) {
   const response = await api.post(
     `/admin/companies/by-ref/${publicRef}/zoug-diagnostic`,
-    {},
+    { destination },
     { timeout: 28_000 },
   )
   return zougDiagnosticSchema.parse(response.data)

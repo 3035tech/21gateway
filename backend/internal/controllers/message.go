@@ -54,7 +54,7 @@ func (c *MessageController) Register(api huma.API) {
 		return &dtos.CompanyTestHistoryOutput{Body: items}, nil
 	})
 	huma.Register(api, c.operation(api, "diagnoseZougResponses", http.MethodPost, "/companies/by-ref/{publicRef}/zoug-diagnostic", "Diagnosticar respostas Zoug sem SMS real", security.ResourceMessages, security.ActionWrite), func(ctx context.Context, input *dtos.ZougDiagnosticInput) (*dtos.ZougDiagnosticOutput, error) {
-		value, err := c.service.DiagnoseCompany(ctx, actor(ctx), input.PublicRef)
+		value, err := c.service.DiagnoseCompany(ctx, actor(ctx), input.PublicRef, input.Body.Destination)
 		if err != nil {
 			return nil, HTTPError(err)
 		}

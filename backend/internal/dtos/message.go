@@ -75,18 +75,25 @@ type CompanyTestHistoryOutput struct{ Body []CompanyTestHistoryItem }
 
 type ZougDiagnosticInput struct {
 	PublicRef string `path:"publicRef" format:"uuid"`
+	Body      struct {
+		Destination string `json:"destination,omitempty"`
+	}
 }
 type ZougDiagnosticResult struct {
 	RunID   string               `json:"runId"`
 	Results []ZougDiagnosticCase `json:"results"`
 }
 type ZougDiagnosticCase struct {
-	CaseID       string `json:"caseId"`
-	RequestBody  string `json:"requestBody"`
-	ContentType  string `json:"contentType"`
-	Auth         string `json:"auth"`
-	HTTPStatus   int    `json:"httpStatus"`
-	ResponseBody string `json:"responseBody"`
-	ErrorCode    string `json:"errorCode,omitempty"`
+	CaseID          string              `json:"caseId"`
+	RequestMethod   string              `json:"requestMethod"`
+	RequestPath     string              `json:"requestPath"`
+	RequestBody     string              `json:"requestBody"`
+	ContentType     string              `json:"contentType"`
+	Auth            string              `json:"auth"`
+	HTTPStatus      int                 `json:"httpStatus"`
+	ResponseBody    string              `json:"responseBody"`
+	ResponseHeaders map[string][]string `json:"responseHeaders,omitempty"`
+	DurationMS      int64               `json:"durationMs"`
+	ErrorCode       string              `json:"errorCode,omitempty"`
 }
 type ZougDiagnosticOutput struct{ Body ZougDiagnosticResult }

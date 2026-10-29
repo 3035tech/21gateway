@@ -231,7 +231,8 @@
   },
   "companyDetail": {
     "diagnosticTitle": "Diagnosticar respostas Zoug",
-    "diagnosticHint": "Executa 10 requisições de autenticação e payload inválido, sem destinatário válido. Não cobre saldo, limite de tráfego ou entrega. Usa o token salvo da empresa e registra cada requisição e resposta nos logs da API com um Run ID, sem expor o token.",
+    "diagnosticHint": "Executa 16 casos de autenticação, payload, lote, rota e método sem destinatário válido. Com o número de teste autorizado, acrescenta 2 casos com campos obrigatórios inválidos. Esperamos zero SMS, mas essas 2 chamadas podem gerar mensagens se a Zoug ignorar os erros; o primeiro HTTP 2xx interrompe a bateria. Não cobre saldo, limite de tráfego ou entrega. Token e número não aparecem nos logs.",
+    "diagnosticDestination": "Número de teste autorizado (opcional)",
     "diagnosticRun": "Executar diagnóstico",
     "diagnosticRunning": "Executando diagnóstico...",
     "diagnosticRequest": "Requisição",

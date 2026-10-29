@@ -2,6 +2,8 @@ package services
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"strings"
 	"testing"
@@ -12,6 +14,23 @@ import (
 	"github.com/21mobile/sms-gateway/internal/repositories"
 	"github.com/21mobile/sms-gateway/internal/security"
 )
+
+func TestDiagnosticDestinationMustMatchConfiguredHash(t *testing.T) {
+	allowed := sha256.Sum256([]byte("11999999999"))
+	service := NewMessageService(nil).WithDiagnosticDestinationHash(hex.EncodeToString(allowed[:]))
+	for _, destination := range []string{"21999999999", "1199999999", "invalid"} {
+		_, err := service.DiagnoseCompany(context.Background(), 1, "unused", destination)
+		var typed *apperrors.Error
+		if !errors.As(err, &typed) || typed.Code != apperrors.CodeTestDestinationNotAllowed {
+			t.Fatalf("destination=%q err=%v", destination, err)
+		}
+	}
+	_, err := service.DiagnoseCompany(context.Background(), 1, "unused", "11999999999")
+	var typed *apperrors.Error
+	if !errors.As(err, &typed) || typed.Code != apperrors.CodeTestNotConfigured {
+		t.Fatalf("allowed destination rejected: %v", err)
+	}
+}
 
 type companyTestProvider struct{ stubProvider }
 

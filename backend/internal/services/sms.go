@@ -91,7 +91,7 @@ func (s *SMSService) SendCompanyTest(ctx context.Context, company models.Company
 	return response.MessageID, nil
 }
 
-func (s *SMSService) DiagnoseCompany(ctx context.Context, company models.Company, runID string, actorID uint64) ([]whitelabel.DiagnosticResult, error) {
+func (s *SMSService) DiagnoseCompany(ctx context.Context, company models.Company, runID string, actorID uint64, destination string) ([]whitelabel.DiagnosticResult, error) {
 	preparer, ok := s.provider.(interface {
 		PrepareCompany(models.Company) (SMSProvider, error)
 	})
@@ -106,7 +106,7 @@ func (s *SMSService) DiagnoseCompany(ctx context.Context, company models.Company
 	if !ok {
 		return nil, apperrors.Wrap(apperrors.CodeTestNotConfigured, nil)
 	}
-	return client.Diagnose(ctx, runID, company.ID, actorID), nil
+	return client.Diagnose(ctx, runID, company.ID, actorID, destination), nil
 }
 
 func (s *SMSService) allowCompanyTest(companyID uint64) bool {

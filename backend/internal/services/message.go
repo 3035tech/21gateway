@@ -2,6 +2,9 @@ package services
 
 import (
 	"context"
+	"crypto/sha256"
+	"crypto/subtle"
+	"encoding/hex"
 	"errors"
 	"github.com/21mobile/sms-gateway/internal/dtos"
 	apperrors "github.com/21mobile/sms-gateway/internal/errors"
@@ -21,14 +24,15 @@ const testSMSCompanyPrefix = "Teste do token Zoug da empresa "
 const testSendAuditAction = "test_send_requested"
 
 type MessageService struct {
-	repository              *repositories.SMSAttempts
-	credentials             *repositories.Credentials
-	companies               *repositories.Companies
-	audit                   *repositories.Audits
-	sender                  *SMSService
-	testDestination         string
-	testAllowAnyDestination bool
-	history                 *security.SMSHistoryVault
+	repository                *repositories.SMSAttempts
+	credentials               *repositories.Credentials
+	companies                 *repositories.Companies
+	audit                     *repositories.Audits
+	sender                    *SMSService
+	testDestination           string
+	testAllowAnyDestination   bool
+	history                   *security.SMSHistoryVault
+	diagnosticDestinationHash string
 }
 
 func NewMessageService(repo *repositories.SMSAttempts) *MessageService {
@@ -43,6 +47,10 @@ func (s *MessageService) WithHistoryVault(vault *security.SMSHistoryVault) *Mess
 }
 func (s *MessageService) WithCompanyTests(companies *repositories.Companies) *MessageService {
 	s.companies = companies
+	return s
+}
+func (s *MessageService) WithDiagnosticDestinationHash(hash string) *MessageService {
+	s.diagnosticDestinationHash = hash
 	return s
 }
 
@@ -208,8 +216,18 @@ func (s *MessageService) SendCompanyTest(ctx context.Context, actor uint64, publ
 	return dtos.TestSendResult{SubmissionState: models.SubmissionAccepted, IDSMS: providerID, CorrelationID: correlationID}, nil
 }
 
-func (s *MessageService) DiagnoseCompany(ctx context.Context, actor uint64, publicRef string) (dtos.ZougDiagnosticResult, error) {
+func (s *MessageService) DiagnoseCompany(ctx context.Context, actor uint64, publicRef, destination string) (dtos.ZougDiagnosticResult, error) {
 	var empty dtos.ZougDiagnosticResult
+	if destination != "" {
+		if !brazilLocalNumber.MatchString(destination) || s.diagnosticDestinationHash == "" {
+			return empty, apperrors.Wrap(apperrors.CodeTestDestinationNotAllowed, nil)
+		}
+		digest := sha256.Sum256([]byte(destination))
+		expected, err := hex.DecodeString(s.diagnosticDestinationHash)
+		if err != nil || subtle.ConstantTimeCompare(digest[:], expected) != 1 {
+			return empty, apperrors.Wrap(apperrors.CodeTestDestinationNotAllowed, nil)
+		}
+	}
 	if s.companies == nil || s.sender == nil || s.audit == nil {
 		return empty, apperrors.Wrap(apperrors.CodeTestNotConfigured, nil)
 	}
@@ -227,13 +245,13 @@ func (s *MessageService) DiagnoseCompany(ctx context.Context, actor uint64, publ
 		return empty, dbError(err)
 	}
 	runID := whitelabel.NewDiagnosticRunID()
-	results, err := s.sender.DiagnoseCompany(ctx, company, runID, actor)
+	results, err := s.sender.DiagnoseCompany(ctx, company, runID, actor, destination)
 	if err != nil {
 		return empty, err
 	}
 	views := make([]dtos.ZougDiagnosticCase, 0, len(results))
 	for _, result := range results {
-		views = append(views, dtos.ZougDiagnosticCase{CaseID: result.CaseID, RequestBody: result.RequestBody, ContentType: result.ContentType, Auth: result.Auth, HTTPStatus: result.HTTPStatus, ResponseBody: result.ResponseBody, ErrorCode: result.ErrorCode})
+		views = append(views, dtos.ZougDiagnosticCase{CaseID: result.CaseID, RequestMethod: result.RequestMethod, RequestPath: result.RequestPath, RequestBody: result.RequestBody, ContentType: result.ContentType, Auth: result.Auth, HTTPStatus: result.HTTPStatus, ResponseBody: result.ResponseBody, ResponseHeaders: result.ResponseHeaders, DurationMS: result.DurationMS, ErrorCode: result.ErrorCode})
 	}
 	return dtos.ZougDiagnosticResult{RunID: runID, Results: views}, nil
 }

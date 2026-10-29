@@ -231,7 +231,8 @@
   },
   "companyDetail": {
     "diagnosticTitle": "Diagnose Zoug responses",
-    "diagnosticHint": "Runs 10 authentication and invalid payload requests with no valid destination. It does not cover balance, rate limits, or delivery. This company's saved token is used; each request and response is logged with a Run ID, without exposing the token.",
+    "diagnosticHint": "Runs 16 authentication, payload, batch, route and method cases without a valid destination. An authorized test number adds 2 cases with invalid required fields. We expect zero SMS, but those 2 calls could produce messages if Zoug ignores the errors; the first HTTP 2xx stops the run. It does not cover balance, rate limits, or delivery. Token and number are omitted from logs.",
+    "diagnosticDestination": "Authorized test number (optional)",
     "diagnosticRun": "Run diagnostic",
     "diagnosticRunning": "Running diagnostic...",
     "diagnosticRequest": "Request",

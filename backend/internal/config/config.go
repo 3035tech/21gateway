@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"github.com/21mobile/sms-gateway/internal/security"
 	"net/http"
@@ -48,31 +49,32 @@ type Config struct {
 	MOFingerprintKey              string   `env:"MO_FINGERPRINT_KEY"`
 	LogUnexpectedProviderResponse bool     `env:"WHITELABEL_LOG_UNEXPECTED_RESPONSE_BODY" envDefault:"false"`
 
-	MOContentKey               string   `env:"MO_CONTENT_KEY"`
-	MOIngressEnabled           bool     `env:"MO_INGRESS_ENABLED" envDefault:"false"`
-	ProviderTokenKey           string   `env:"PROVIDER_TOKEN_KEY"`
-	CookieSecure               bool     `env:"COOKIE_SECURE" envDefault:"true"`
-	CookieCrossSite            bool     `env:"COOKIE_CROSS_SITE" envDefault:"false"`
-	CallbackIngressToken       string   `env:"CALLBACK_INGRESS_TOKEN"`
-	CallbackIngressEnabled     bool     `env:"CALLBACK_INGRESS_ENABLED" envDefault:"false"`
-	ZougCallbackEnabled        bool     `env:"ZOUG_CALLBACK_ENABLED" envDefault:"false"`
-	ZougCallbackTokenSHA256    string   `env:"ZOUG_CALLBACK_TOKEN_SHA256"`
-	ZougCallbackAllowedIPs     []string `env:"ZOUG_CALLBACK_ALLOWED_IPS" envSeparator:","`
-	Address                    string   `env:"HTTP_ADDRESS" envDefault:":8080"`
-	DatabaseURL                string   `env:"DATABASE_URL,required"`
-	AllowedOrigins             []string `env:"CORS_ALLOWED_ORIGINS" envDefault:"http://localhost:5173" envSeparator:","`
-	WhiteLabelBaseURL          string   `env:"WHITELABEL_BASE_URL" envDefault:"https://endpoint.devyx.com.br"`
-	WhiteLabelToken            string   `env:"WHITELABEL_API_TOKEN"`
-	TestSMSDestination         string   `env:"TEST_SMS_DESTINATION"`
-	TestSMSAllowAnyDestination bool     `env:"TEST_SMS_ALLOW_ANY_DESTINATION" envDefault:"false"`
-	MFAEncryptionKey           string   `env:"MFA_ENCRYPTION_KEY"`
-	RecoverySMTPHost           string   `env:"RECOVERY_SMTP_HOST"`
-	RecoverySMTPPort           string   `env:"RECOVERY_SMTP_PORT"`
-	RecoverySMTPUser           string   `env:"RECOVERY_SMTP_USER"`
-	RecoverySMTPPassword       string   `env:"RECOVERY_SMTP_PASSWORD"`
-	RecoverySMTPFrom           string   `env:"RECOVERY_SMTP_FROM"`
-	PublicAppURL               string   `env:"PUBLIC_APP_URL"`
-	DocsEnabled                bool     `env:"DOCS_ENABLED" envDefault:"false"`
+	MOContentKey                    string   `env:"MO_CONTENT_KEY"`
+	MOIngressEnabled                bool     `env:"MO_INGRESS_ENABLED" envDefault:"false"`
+	ProviderTokenKey                string   `env:"PROVIDER_TOKEN_KEY"`
+	CookieSecure                    bool     `env:"COOKIE_SECURE" envDefault:"true"`
+	CookieCrossSite                 bool     `env:"COOKIE_CROSS_SITE" envDefault:"false"`
+	CallbackIngressToken            string   `env:"CALLBACK_INGRESS_TOKEN"`
+	CallbackIngressEnabled          bool     `env:"CALLBACK_INGRESS_ENABLED" envDefault:"false"`
+	ZougCallbackEnabled             bool     `env:"ZOUG_CALLBACK_ENABLED" envDefault:"false"`
+	ZougCallbackTokenSHA256         string   `env:"ZOUG_CALLBACK_TOKEN_SHA256"`
+	ZougCallbackAllowedIPs          []string `env:"ZOUG_CALLBACK_ALLOWED_IPS" envSeparator:","`
+	Address                         string   `env:"HTTP_ADDRESS" envDefault:":8080"`
+	DatabaseURL                     string   `env:"DATABASE_URL,required"`
+	AllowedOrigins                  []string `env:"CORS_ALLOWED_ORIGINS" envDefault:"http://localhost:5173" envSeparator:","`
+	WhiteLabelBaseURL               string   `env:"WHITELABEL_BASE_URL" envDefault:"https://endpoint.devyx.com.br"`
+	WhiteLabelToken                 string   `env:"WHITELABEL_API_TOKEN"`
+	TestSMSDestination              string   `env:"TEST_SMS_DESTINATION"`
+	ZougDiagnosticDestinationSHA256 string   `env:"ZOUG_DIAGNOSTIC_DESTINATION_SHA256"`
+	TestSMSAllowAnyDestination      bool     `env:"TEST_SMS_ALLOW_ANY_DESTINATION" envDefault:"false"`
+	MFAEncryptionKey                string   `env:"MFA_ENCRYPTION_KEY"`
+	RecoverySMTPHost                string   `env:"RECOVERY_SMTP_HOST"`
+	RecoverySMTPPort                string   `env:"RECOVERY_SMTP_PORT"`
+	RecoverySMTPUser                string   `env:"RECOVERY_SMTP_USER"`
+	RecoverySMTPPassword            string   `env:"RECOVERY_SMTP_PASSWORD"`
+	RecoverySMTPFrom                string   `env:"RECOVERY_SMTP_FROM"`
+	PublicAppURL                    string   `env:"PUBLIC_APP_URL"`
+	DocsEnabled                     bool     `env:"DOCS_ENABLED" envDefault:"false"`
 }
 
 func (c Config) MFAVault() (*security.TokenVault, error) {
@@ -92,6 +94,14 @@ func Load() (Config, error) {
 	}
 	if cfg.TestSMSDestination != "" && !testSMSDestination.MatchString(cfg.TestSMSDestination) {
 		return cfg, apperrors.Wrap(apperrors.CodeConfigurationInvalid, nil)
+	}
+	if cfg.ZougDiagnosticDestinationSHA256 != "" {
+		if len(cfg.ZougDiagnosticDestinationSHA256) != 64 {
+			return cfg, apperrors.Wrap(apperrors.CodeConfigurationInvalid, nil)
+		}
+		if _, err := hex.DecodeString(cfg.ZougDiagnosticDestinationSHA256); err != nil {
+			return cfg, apperrors.Wrap(apperrors.CodeConfigurationInvalid, nil)
+		}
 	}
 	if cfg.RecoverySMTPHost != "" || cfg.RecoverySMTPPort != "" || cfg.RecoverySMTPUser != "" || cfg.RecoverySMTPPassword != "" || cfg.RecoverySMTPFrom != "" || cfg.PublicAppURL != "" {
 		app, err := url.Parse(cfg.PublicAppURL)
