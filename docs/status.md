@@ -6,6 +6,8 @@ Na ficha da empresa, o administrador pode executar 16 casos fixos para a Zoug us
 
 Execução real `acb7ca1e-2949-43f2-90bd-675250f8a710` na 3035TECH: dois casos de token retornaram HTTP 401 com `status=UNAUTHENTICATED` e `reason=missing_token`/`invalid_token`; oito casos de payload retornaram HTTP 422 com `errors`, `error` ou `status` textual de falha. Algumas respostas 422 incluíram `message_id` UUID, que não é aceite. O adaptador mapeia 401 para `PROVIDER_UNAUTHORIZED` e 422 para `PROVIDER_REJECTED` pelo HTTP, sem reaproveitar o UUID de erro. O teste de regressão cobre ambos.
 
+Execução ampliada `29b7d213-19cb-4cef-8b86-36589ec08d5a` na 3035TECH: 18 casos foram executados porque o campo opcional de telefone estava preenchido no navegador, contrariando a intenção de rodar somente os 16 sem destino. Ambos os casos com destino autorizado retornaram HTTP 422 e erro de validação de `type`/`encoding`; sem aceite 2xx. Os demais casos retornaram HTTP 401/422, rota desconhecida 404 e método GET 405. O diálogo agora exige marcar uma opção separada, desmarcada por padrão, para incluir os dois casos com destino; o teste frontend fixa que número preenchido não é enviado se a opção for desmarcada.
+
 Sessões do painel: sem “Lembrar de mim” havia logout após 30 minutos de inatividade; o usuário considerou esse prazo curto. O limite passou a 8 horas, mantendo a duração absoluta de 8 horas. Com a opção marcada, cookie persistente e duração absoluta de 14 dias já existiam; o limite de inatividade passou de 7 para 14 dias. O teste HTTP agora cobre 2 horas de inatividade comum e 8 dias de sessão lembrada.
 
 ## Prévia de usuário vinculado — 27/10/2026

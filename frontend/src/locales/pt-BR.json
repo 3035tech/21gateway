@@ -233,6 +233,7 @@
     "diagnosticTitle": "Diagnosticar respostas Zoug",
     "diagnosticHint": "Executa 16 casos de autenticação, payload, lote, rota e método sem destinatário válido. Com o número de teste autorizado, acrescenta 2 casos com campos obrigatórios inválidos. Esperamos zero SMS, mas essas 2 chamadas podem gerar mensagens se a Zoug ignorar os erros; o primeiro HTTP 2xx interrompe a bateria. Não cobre saldo, limite de tráfego ou entrega. Token e número não aparecem nos logs.",
     "diagnosticDestination": "Número de teste autorizado (opcional)",
+    "diagnosticIncludeDestination": "Incluir 2 casos com destino válido (risco de até 2 SMS)",
     "diagnosticRun": "Executar diagnóstico",
     "diagnosticRunning": "Executando diagnóstico...",
     "diagnosticRequest": "Requisição",

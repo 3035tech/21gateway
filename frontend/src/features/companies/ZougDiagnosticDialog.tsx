@@ -13,9 +13,11 @@ export function ZougDiagnosticDialog({
   onClose: () => void
 }) {
   const { t } = useTranslation()
+  const [includeDestination, setIncludeDestination] = useState(false)
   const [destination, setDestination] = useState('')
   const diagnostic = useMutation({
-    mutationFn: () => runZougDiagnostic(publicRef, destination),
+    mutationFn: () =>
+      runZougDiagnostic(publicRef, includeDestination ? destination : ''),
   })
   return (
     <Dialog
@@ -27,25 +29,36 @@ export function ZougDiagnosticDialog({
       <p className="mb-4 text-sm text-slate-600">
         {t('companyDetail.diagnosticHint')}
       </p>
-      <label className="mb-4 block text-sm font-semibold text-slate-700">
-        {t('companyDetail.diagnosticDestination')}
+      <label className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-700">
         <input
-          className="form-control mt-2 w-full"
-          type="tel"
-          inputMode="numeric"
-          autoComplete="off"
-          value={destination}
-          onChange={(event) =>
-            setDestination(event.target.value.replace(/\D/g, '').slice(0, 11))
-          }
+          type="checkbox"
+          checked={includeDestination}
+          onChange={(event) => setIncludeDestination(event.target.checked)}
           disabled={diagnostic.isPending}
         />
+        {t('companyDetail.diagnosticIncludeDestination')}
       </label>
+      {includeDestination ? (
+        <label className="mb-4 block text-sm font-semibold text-slate-700">
+          {t('companyDetail.diagnosticDestination')}
+          <input
+            className="form-control mt-2 w-full"
+            type="text"
+            inputMode="numeric"
+            autoComplete="off"
+            value={destination}
+            onChange={(event) =>
+              setDestination(event.target.value.replace(/\D/g, '').slice(0, 11))
+            }
+            disabled={diagnostic.isPending}
+          />
+        </label>
+      ) : null}
       <button
         className="button-primary"
         disabled={
           diagnostic.isPending ||
-          (destination !== '' && destination.length !== 11)
+          (includeDestination && destination.length !== 11)
         }
         onClick={() => diagnostic.mutate()}
       >
