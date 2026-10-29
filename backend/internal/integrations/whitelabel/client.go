@@ -54,9 +54,10 @@ type SendResponse struct {
 }
 
 type Client struct {
-	endpoint string
-	token    string
-	http     *http.Client
+	endpoint                  string
+	token                     string
+	http                      *http.Client
+	logUnexpectedResponseBody bool
 }
 
 func New(baseURL, token string) (*Client, error) {
@@ -83,6 +84,9 @@ func NewWithTransport(baseURL, token string, transport http.RoundTripper) (*Clie
 
 func (c *Client) Enabled() bool { return strings.TrimSpace(c.token) != "" }
 func (c *Client) Close()        { c.http.CloseIdleConnections() }
+func (c *Client) SetLogUnexpectedResponseBody(enabled bool) {
+	c.logUnexpectedResponseBody = enabled
+}
 
 func SelectEncoding(message string) Encoding {
 	if _, err := gsm7.Encode([]byte(message)); err == nil {
@@ -128,7 +132,11 @@ func (c *Client) Send(ctx context.Context, input SendRequest) (SendResponse, err
 	}
 	parsedID, err := uuid.Parse(result.MessageID)
 	if err != nil || parsedID == uuid.Nil || result.Status != StatusSent {
-		slog.Warn("Zoug SMS response unavailable", "reason", "invalid_acknowledgement", "provider_index", input.Index, "message_id_valid", err == nil && parsedID != uuid.Nil, "status_sent", result.Status == StatusSent)
+		attributes := []any{"reason", "invalid_acknowledgement", "provider_index", input.Index, "message_id_valid", err == nil && parsedID != uuid.Nil, "status_sent", result.Status == StatusSent}
+		if c.logUnexpectedResponseBody {
+			attributes = append(attributes, "http_status", response.StatusCode, "response_body", string(data))
+		}
+		slog.Warn("Zoug SMS response unavailable", attributes...)
 		if err == nil && parsedID != uuid.Nil {
 			result.MessageID = parsedID.String()
 		} else {
@@ -157,5 +165,5 @@ func codeForResponse(status int) apperrors.Code {
 
 // ForToken shares transport and connections without mutating another account.
 func (c *Client) ForToken(token string) *Client {
-	return &Client{endpoint: c.endpoint, token: token, http: c.http}
+	return &Client{endpoint: c.endpoint, token: token, http: c.http, logUnexpectedResponseBody: c.logUnexpectedResponseBody}
 }

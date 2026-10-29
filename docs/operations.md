@@ -1,5 +1,9 @@
 # Operação do gateway
 
+## Diagnóstico temporário de resposta ao envio
+
+`WHITELABEL_LOG_UNEXPECTED_RESPONSE_BODY` fica desligado por padrão. Quando ativado, o adaptador registra o corpo completo, até 64 KiB, somente para resposta HTTP 200 de `/api/send` com confirmação inesperada (`message_id` inválido ou `status` diferente de `sent`). Não registra o corpo das respostas normais. O corpo pode conter dados sensíveis e vai para stdout/Loki; restringir acesso e desligar a flag após obter a amostra de HML. Esse diagnóstico não transforma o resultado `unknown` em aceite nem autoriza reenvio.
+
 ## Conteúdo de SMS no painel
 
 Aplicar migração 019 antes do backend novo e configurar `SMS_HISTORY_CONTENT_KEY` (32 bytes em base64) ou `SMS_HISTORY_ACTIVE_KEY_ID` com `SMS_HISTORY_ENCRYPTION_KEYS`. A chave é independente das de MO, MFA e agendamento. Guardar versões antigas durante o período de retenção de 90 dias. O backend falha ao iniciar sem chave válida. Não registrar texto ou ciphertext em logs. A listagem lê apenas metadados; `GET /admin/messages/{id}/content` devolve o texto normalizado somente a usuários autorizados à empresa e apenas dentro da retenção. Envios anteriores à migração retornam indisponível. O expurgo usa lotes de 500, até dez por ciclo de cinco minutos; a verificação de prazo na API impede leitura mesmo se o worker atrasar. Backup de banco pode reter ciphertext por mais tempo; definir retenção do backup separadamente.

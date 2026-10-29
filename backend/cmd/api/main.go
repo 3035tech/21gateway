@@ -44,6 +44,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	provider.SetLogUnexpectedResponseBody(cfg.LogUnexpectedProviderResponse)
 	defer provider.Close()
 	auth, err := services.NewAuthServiceWithProtection(repositories.NewCredentials(db), repositories.NewAuthenticationAttempts(db), cfg.APIAuthenticationIPLimit)
 	if err != nil {

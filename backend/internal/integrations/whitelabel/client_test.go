@@ -84,6 +84,46 @@ func TestUnexpectedAcknowledgementKeepsValidProviderIDForReconciliation(t *testi
 	}
 }
 
+func TestUnexpectedAcknowledgementResponseBodyDiagnostic(t *testing.T) {
+	var logs bytes.Buffer
+	previous := slog.Default()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(&logs, nil)))
+	t.Cleanup(func() { slog.SetDefault(previous) })
+	const body = `{"message_id":"550e8400-e29b-41d4-a716-446655440000","status":"queued","details":{"reason":"provider pending"}}`
+	transport := httpmock.NewMockTransport()
+	transport.RegisterResponder(http.MethodPost, testBaseURL+"/api/send", httpmock.NewStringResponder(http.StatusOK, body))
+	client, err := NewWithTransport(testBaseURL, "private-token", transport)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Close()
+	input := SendRequest{Message: "private-message", Destination: "5511999999999", Index: "42"}
+	_, _ = client.Send(context.Background(), input)
+	if strings.Contains(logs.String(), `"response_body"`) {
+		t.Fatal("diagnostic enabled by default")
+	}
+	logs.Reset()
+	client.SetLogUnexpectedResponseBody(true)
+	_, _ = client.ForToken("private-token").Send(context.Background(), input)
+	var event map[string]any
+	for _, line := range strings.Split(strings.TrimSpace(logs.String()), "\n") {
+		if err := json.Unmarshal([]byte(line), &event); err != nil {
+			t.Fatal(err)
+		}
+		if event["msg"] == "Zoug SMS response unavailable" {
+			break
+		}
+	}
+	if event["response_body"] != body || event["http_status"] != float64(http.StatusOK) {
+		t.Fatalf("response diagnostic missing: %s", logs.String())
+	}
+	for _, secret := range []string{"private-token", "private-message", "5511999999999"} {
+		if strings.Contains(logs.String(), secret) {
+			t.Fatalf("request data logged: %s", secret)
+		}
+	}
+}
+
 func TestRedirectDoesNotLeakProviderToken(t *testing.T) {
 	transport := httpmock.NewMockTransport()
 	transport.RegisterResponder(http.MethodPost, testBaseURL+"/api/send", func(r *http.Request) (*http.Response, error) {
