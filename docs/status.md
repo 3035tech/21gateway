@@ -232,6 +232,10 @@ Em 29/10, os workflows de backend e frontend do commit `2f6ec7e` concluíram com
 
 O GitOps privado registra segredos de HML em manifests codificados em base64, o que não os protege contra leitores do histórico. Rotação e retirada desse material do histórico permanecem pendentes. Nenhum valor de segredo foi copiado para esta documentação.
 
+Atualização de 29/10/2026: o manifesto ativo de SQS em GitOps usa `ExternalSecret`/AWS Secrets Manager; um manifesto `Secret` anterior ainda existe no histórico. A rotação da credencial e limpeza coordenada do histórico seguem pendentes. Ver `docs/product-observability-2026-10-29.md`.
+
+Evolução do produto em 29/10/2026: detalhe de Envios ganha linha do tempo persistida e limitada; ficha de empresa ganha saúde de integração; Visão geral ganha avisos operacionais para administrador, e operações contam envios incertos sem DLR terminal. Migração 025 adiciona índices de leitura antes dos binários novos. Sem SMS real ou reenvio automático. Prova PostgreSQL e backup/restauração local em `docs/product-observability-2026-10-29.md`; alertas externos, aceite real Zoug/cliente e backup recorrente permanecem pendentes.
+
 ## Diagnóstico temporário da resposta Zoug — 29/10/2026
 
 O ingress do callback Zoug agora aceita os três tipos SMS documentados. `UNKNOWN` no DLR é persistido sem alterar o DLR público; demais códigos de submissão diferentes de `ESME_ROK` são classificados provisoriamente como `GENERAL_ERROR` conforme orientação da Zoug de que geralmente são falhas definitivas. A flag `ZOUG_CALLBACK_LOG_FULL_REQUEST` permite em HML observar corpo, cabeçalhos não secretos, status HTTP e motivo de cada chamada autenticada; padrão desligado. Ver `docs/zoug-callback.md`.

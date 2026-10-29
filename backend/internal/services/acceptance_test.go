@@ -158,6 +158,9 @@ func TestPostgresSMSCallbackAcceptance(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	if err := db.Exec("UPDATE callback_jobs SET available_at=NOW()-INTERVAL '1 second' WHERE attempt_id=?", attempt.ID).Error; err != nil {
+		t.Fatal(err)
+	}
 	dlrCalls := 0
 	transport.RegisterResponder(http.MethodGet, credential.CallbackURL, func(r *http.Request) (*http.Response, error) {
 		dlrCalls++
@@ -213,6 +216,9 @@ func TestPostgresSMSCallbackAcceptance(t *testing.T) {
 		if err := mo.Accept(ctx, input); err != nil {
 			t.Fatal(err)
 		}
+	}
+	if err := db.Exec("UPDATE mo_callback_jobs SET available_at=NOW()-INTERVAL '1 second' WHERE attempt_id=?", attempt.ID).Error; err != nil {
+		t.Fatal(err)
 	}
 	cross := input
 	cross.Body.CredentialID = other.ID
@@ -288,6 +294,9 @@ func TestPostgresSMSCallbackAcceptance(t *testing.T) {
 	if err := NewCallbackService(callbacks).Accept(ctx, next); err != nil {
 		t.Fatal(err)
 	}
+	if err := db.Exec("UPDATE callback_jobs SET available_at=NOW()-INTERVAL '1 second' WHERE attempt_id=?", nextAttempt.ID).Error; err != nil {
+		t.Fatal(err)
+	}
 	if err := db.Model(&credential).Update("callback_url", "https://client.example/new-dlr").Error; err != nil {
 		t.Fatal(err)
 	}
@@ -305,6 +314,9 @@ func TestPostgresSMSCallbackAcceptance(t *testing.T) {
 	nextMO := input
 	nextMO.Body.EventKey = "changed-url-mo"
 	if err := mo.Accept(ctx, nextMO); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Exec("UPDATE mo_callback_jobs SET available_at=NOW()-INTERVAL '1 second' WHERE attempt_id=? AND state=?", attempt.ID, models.CallbackPending).Error; err != nil {
 		t.Fatal(err)
 	}
 	if err := db.Model(&credential).Update("mo_callback_url", "https://client.example/new-mo").Error; err != nil {

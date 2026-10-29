@@ -63,6 +63,8 @@ Retorna pending, processing, leases expirados, falhas na última hora, data do j
 
 Plano para monitor externo: observar /readyz, crescimento/idade das filas, leases vencidos persistentes e falhas. Alertas devem distinguir indisponibilidade HTTP do cliente, falha de banco e falta de associação de UUID. Destino desejado continua relacionamento@21mobile.com.br, mas nenhum e-mail/alarme AWS foi ativado. Definir limiares e infraestrutura antes de automatizar alertas; não enviar conteúdo SMS ou segredos no alerta.
 
+Desde 29/10/2026, `GET /admin/operations` mostra o retrato a administradores autenticados. O painel avisa sobre jobs DLR/MO com mais de 15 minutos, leases vencidos, agendamentos vencidos há 5 minutos, falhas definitivas de callback na última hora e envios incertos sem DLR terminal. O endpoint Bearer `/internal/operations` preserva seu opt-in independente. Aviso no painel não substitui coleta e notificação externa. A prova local de backup cifrado e restauração isolada consta em `docs/product-observability-2026-10-29.md`; agendamento e retenção de backup de produção seguem pendentes.
+
 ## Evidência das tentativas de callback
 
 Implementado em 15/10/2026 a partir da resposta 22 do formulário: registrar falhas para diagnóstico da entrega DLR/MO. Usa `log/slog` da biblioteca padrão, com atributos tipados via `LogAttrs`; worker escreve JSON em stdout. Sem nova dependência, tabela, tela ou serviço.

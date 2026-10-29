@@ -317,6 +317,9 @@ func TestPostgresBackofficeAndOutbox(t *testing.T) {
 	if err := moRepo.Reconcile(ctx); err != nil {
 		t.Fatal(err)
 	}
+	if err := isolated.Exec("UPDATE mo_callback_jobs SET available_at=NOW()-INTERVAL '1 second' WHERE attempt_id=?", moAttempt.ID).Error; err != nil {
+		t.Fatal(err)
+	}
 	moJob, err := moRepo.Claim(ctx)
 	if err != nil || moJob == nil {
 		t.Fatal("MO outbox missing", err)

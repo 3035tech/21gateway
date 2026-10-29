@@ -18,6 +18,13 @@ func NewCompanyController(service *services.CompanyService, guard *SessionGuard)
 	return &CompanyController{SessionGuard: guard, service: service}
 }
 func (c *CompanyController) Register(api huma.API) {
+	huma.Register(api, c.operation(api, "getCompanyHealth", http.MethodGet, "/companies/by-ref/{publicRef}/health", "Consultar saúde da integração da empresa", security.ResourceCompanies, security.ActionRead), func(ctx context.Context, input *dtos.PublicRefInput) (*dtos.CompanyHealthOutput, error) {
+		value, err := c.service.Health(ctx, input.PublicRef)
+		if err != nil {
+			return nil, HTTPError(err)
+		}
+		return &dtos.CompanyHealthOutput{Body: value}, nil
+	})
 	huma.Register(api, c.operation(api, "getCompanyByPublicRef", http.MethodGet, "/companies/by-ref/{publicRef}", "Consultar empresa pelo endereço público", security.ResourceCompanies, security.ActionRead), func(ctx context.Context, input *dtos.PublicRefInput) (*dtos.CompanyOutput, error) {
 		value, err := c.service.CompanyByPublicRef(ctx, input.PublicRef)
 		if err != nil {

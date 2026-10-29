@@ -62,6 +62,11 @@ func TestPostgresDispatchOutboxPublicationLeasesAndPartialBudget(t *testing.T) {
 			t.Fatal("fair bounded batch", count, err)
 		}
 	}
+	// Colima's database clock can lag the Go process by a few milliseconds.
+	// Make the newly created publication fixtures due by database time.
+	if err := db.Exec("UPDATE sms_dispatch_batches SET available_at=NOW()-INTERVAL '1 second' WHERE published_at IS NULL").Error; err != nil {
+		t.Fatal(err)
+	}
 	publication, err := batches.ClaimPublication(ctx)
 	if err != nil || publication == nil {
 		t.Fatal("outbox publication missing", err)

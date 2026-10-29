@@ -35,6 +35,14 @@ func (s *CompanyService) CompanyByPublicRef(ctx context.Context, publicRef strin
 	value, err := s.repository.CompanyViewByPublicRef(ctx, publicRef)
 	return dtos.CompanyDTO(value), dbError(err)
 }
+func (s *CompanyService) Health(ctx context.Context, publicRef string) (dtos.CompanyHealth, error) {
+	company, err := s.repository.CompanyViewByPublicRef(ctx, publicRef)
+	if err != nil {
+		return dtos.CompanyHealth{}, dbError(err)
+	}
+	value, err := s.repository.Health(ctx, company.ID)
+	return value, dbError(err)
+}
 func (s *CompanyService) SaveCompany(ctx context.Context, actor, id uint64, body dtos.CompanyBody) (dtos.CompanyView, error) {
 	var result models.Company
 	if id == 0 && security.Scope(ctx).Restricted {

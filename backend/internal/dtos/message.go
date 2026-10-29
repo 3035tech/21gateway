@@ -19,6 +19,32 @@ type MessageView struct {
 }
 type MessagesOutput struct{ Body Page[MessageView] }
 
+// MessageTrace shows persisted milestones only. A missing milestone must not be
+// interpreted as a provider failure or as proof of delivery.
+type MessageTrace struct {
+	ID                uint64                 `json:"id"`
+	SubmissionState   models.SubmissionState `json:"submissionState"`
+	FailureCode       string                 `json:"failureCode"`
+	DeliveryStatus    string                 `json:"deliveryStatus"`
+	ProviderMessageID *string                `json:"providerMessageId,omitempty"`
+	CreatedAt         time.Time              `json:"createdAt"`
+	DispatchedAt      *time.Time             `json:"dispatchedAt,omitempty"`
+	Events            []MessageTraceEvent    `json:"events"`
+	Truncated         bool                   `json:"truncated"`
+}
+
+type MessageTraceEvent struct {
+	Kind        string    `json:"kind"`
+	ID          uint64    `json:"id"`
+	Status      string    `json:"status"`
+	OccurredAt  time.Time `json:"occurredAt"`
+	RecordedAt  time.Time `json:"recordedAt"`
+	Attempts    int       `json:"attempts,omitempty"`
+	FailureCode string    `json:"failureCode,omitempty"`
+}
+
+type MessageTraceOutput struct{ Body MessageTrace }
+
 type MessageContentState string
 
 const (

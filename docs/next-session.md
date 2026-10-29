@@ -1,5 +1,9 @@
 # Ponto de retomada — 15/10/2026
 
+## Estado mais recente — 29/10/2026
+
+Há código novo para histórico por SMS, saúde da integração por empresa e avisos operacionais no painel do administrador. Aplicar migração 025 antes do backend novo; ela cria índices dentro da transação do migrador, portanto avaliar janela/volume de dados. Consulte `docs/product-observability-2026-10-29.md` para contratos e limites. Backup cifrado e restauração passaram no PostgreSQL local; backup recorrente de produção, entrega externa de alertas, aceite real Zoug → gateway → cliente e rotação/limpeza do segredo SQS histórico continuam pendentes. Não declarar esses itens homologados com base nos testes simulados.
+
 Atualização de 27/10/2026: aplicar migrações 018 (vínculos usuário/empresa) e 019 (histórico SMS cifrado) antes da imagem nova. Configurar chave independente `SMS_HISTORY_CONTENT_KEY` em segredo de produção; a API falha ao iniciar sem ela. O conteúdo novo fica visível somente no detalhe administrativo por até 90 dias; histórico antigo não contém texto. O worker integrado expurga em lotes. Confirmar coleta/backup de chaves e política de acesso antes do deployment; nenhum SMS real foi enviado.
 
 Atualização posterior: aplicar também migração 020 para token Zoug único por empresa. O painel cadastra esse token na ficha da empresa; cada empresa pode ter várias credenciais Basic Auth de API. Tokens individuais antigos são preservados em fallback somente até cadastrar ou remover explicitamente o token da empresa. Para rollback do binário depois de usar o token centralizado, recriptografar e restaurar tokens individuais antes; não pressupor que a imagem antiga leia `companies.provider_token_encrypted`. Sem SMS real ou deploy.

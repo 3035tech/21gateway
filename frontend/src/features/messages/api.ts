@@ -27,6 +27,27 @@ export async function getMessageContent(id: number, signal?: AbortSignal) {
   return messageContentSchema.parse(response.data)
 }
 
+const messageTraceSchema = z.object({
+  id: z.number(),
+  submissionState: messageSchema.shape.state,
+  failureCode: z.string(),
+  deliveryStatus: z.string(),
+  providerMessageId: z.string().nullable().optional(),
+  createdAt: z.string(),
+  dispatchedAt: z.string().nullable().optional(),
+  truncated: z.boolean(),
+  events: z.array(z.object({
+    kind: z.string(), id: z.number(), status: z.string(),
+    occurredAt: z.string(), recordedAt: z.string(),
+    attempts: z.number().optional(), failureCode: z.string().optional(),
+  })),
+})
+export type MessageTrace = z.infer<typeof messageTraceSchema>
+export async function getMessageTrace(id: number, signal?: AbortSignal) {
+  const response = await api.get(`/admin/messages/${id}/trace`, { signal })
+  return messageTraceSchema.parse(response.data)
+}
+
 const testSendResultSchema = z.object({
   submissionState: z.enum(['pending', 'accepted', 'rejected', 'unknown']),
   idSms: z.string().optional(),

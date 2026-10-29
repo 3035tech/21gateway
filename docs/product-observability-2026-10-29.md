@@ -1,0 +1,25 @@
+# Acompanhamento de envios e saúde da integração — 29/10/2026
+
+## Entregue no código
+
+- `GET /admin/messages/{id}/trace` consulta um envio autorizado e retorna o estado atual da submissão, ID Zoug conhecido, criação/despacho e até 100 eventos persistidos de DLR, MO e notificações ao cliente, ordenados por horário. `truncated=true` informa limite de leitura. A consulta não retorna URL, cabeçalhos, texto MO, corpo bruto nem segredo. O detalhe de **Envios** apresenta essas etapas e separa o resultado da submissão da entrega. O horário exato da resposta HTTP Zoug não foi persistido em envios anteriores e é mostrado como indisponível.
+- `GET /admin/companies/by-ref/{publicRef}/health` agrega credenciais válidas, destinos DLR/MO configurados, envios incertos sem DLR terminal, jobs pendentes/falhos e última atividade. A ficha da empresa atualiza a leitura a cada minuto. Configuração de destino não é prova de homologação; a URL de callback da Zoug permanece global em `/me` enquanto o bug do fornecedor existir.
+- `GET /admin/operations` expõe o retrato operacional existente apenas a administradores autenticados. A Visão geral calcula avisos a partir de leases vencidos, DLR/MO pendentes ou sem associação há 15 minutos, agendamentos vencidos há 5 minutos, falhas definitivas de callback na última hora e envios incertos sem DLR terminal. O painel atualiza a cada minuto. O endpoint operacional Bearer independente continua opt-in. Esses avisos são **no painel**; notificação externa e retenção/coleta de métricas ainda exigem configuração de infraestrutura.
+- Se a atualização da saúde da empresa ou dos avisos operacionais falhar, o painel mostra o erro e oculta os dados da leitura anterior até uma consulta bem-sucedida.
+- O filtro **Resultados incertos** em Envios, a linha do tempo e o contador por empresa formam a fila de investigação. Um callback com DLR terminal pode resolver a dúvida de entrega mesmo quando a submissão ficou `unknown`; nenhum SMS é reenviado ou marcado como entregue por inferência. Consulta ativa ao fornecedor depende de contrato confiável ainda não recebido.
+
+A migração **025** cria índices para leitura de eventos/jobs por envio e envios incertos. Aplicá-la antes dos binários novos; como o migrador executa `CREATE INDEX` na transação de migração, programar a execução conforme o volume e observar bloqueios de escrita. Consultas e autorização permanecem nos domínios `message`, `company` e `operations`; o router somente compõe. A consulta de histórico é sob demanda e limitada, e os agregados por empresa são carregados apenas na ficha. Com volume real, medir essas consultas antes de fixar meta de latência.
+
+## Evidência e limites
+
+`TestPostgresMessageTraceAndCompanyHealth` comprova eventos DLR/MO, jobs ao cliente, escopo por empresa, agregados e ausência de URL/conteúdo MO no JSON. A suíte de aceite PostgreSQL simula SMS, callbacks Zoug normalizados, DLR/MO ao cliente, repetição, falha e recuperação; ela não envia SMS real. As fixtures de fila agora liberam os jobs pelo relógio do banco, pois o relógio do processo Go no Colima estava alguns milissegundos adiantado. A regra de despacho de produção não mudou.
+
+Em 29/10/2026, backup `pg_dump` cifrado com `age` e restauração `pg_restore` passaram no PostgreSQL **local**, em banco temporário isolado, após aplicar as migrações no banco de desenvolvimento. O arquivo e a identidade temporários foram removidos automaticamente. Isso não configura backup recorrente, retenção, recuperação de chaves, RPO/RTO ou restauração de produção.
+
+## Antes de ampliar o piloto
+
+1. Com a Zoug, confirmar códigos de submissão, DLR/`err`, consulta de status e cobertura de callback em lote. Preservar `unknown` sem reenvio enquanto faltar confirmação.
+2. Executar um aceite real autorizado e rastreável para uma empresa piloto: SMS, `message_id`, callback tipo 1/2/3 da Zoug e DLR/MO ao destino do cliente. Registrar IDs e horários sem expor texto/telefone/tokens no relatório. Testes simulados não substituem essa prova.
+3. Configurar coleta/retenção e entrega de alertas fora do painel. A infraestrutura Dublin já possui Prometheus/Grafana/Loki, mas as regras específicas do gateway e o destino de notificação não foram aplicados nesta mudança. Validar limiares com dados reais para reduzir alarmes falsos.
+4. Configurar backup protegido e recorrente do PostgreSQL de HML/produção, guardar identidades `age` e chaves de aplicação em plano independente, definir retenção e testar restauração periodicamente em ambiente isolado.
+5. O GitOps atual usa `ExternalSecret` para as credenciais SQS de HML, mas o histórico contém um manifesto de `Secret`. Tratar a credencial como exposta: preparar chave nova, atualizar Secrets Manager/SecretStore, verificar worker e fila, desativar chave antiga e só então remover o material antigo do histórico com coordenação dos clones/sync. Não interromper o worker nem reescrever histórico como operação isolada.

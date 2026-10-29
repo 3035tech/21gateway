@@ -18,6 +18,13 @@ func NewMessageController(service *services.MessageService, guard *SessionGuard)
 	return &MessageController{SessionGuard: guard, service: service}
 }
 func (c *MessageController) Register(api huma.API) {
+	huma.Register(api, c.operation(api, "getMessageTrace", http.MethodGet, "/messages/{id}/trace", "Consultar etapas registradas do SMS", security.ResourceMessages, security.ActionRead), func(ctx context.Context, input *dtos.IDInput) (*dtos.MessageTraceOutput, error) {
+		value, err := c.service.Trace(ctx, input.ID)
+		if err != nil {
+			return nil, HTTPError(err)
+		}
+		return &dtos.MessageTraceOutput{Body: value}, nil
+	})
 	huma.Register(api, c.operation(api, "getMessageContent", http.MethodGet, "/messages/{id}/content", "Consultar texto do SMS", security.ResourceMessages, security.ActionRead), func(ctx context.Context, input *dtos.IDInput) (*dtos.MessageContentOutput, error) {
 		value, err := c.service.Content(ctx, input.ID)
 		if err != nil {

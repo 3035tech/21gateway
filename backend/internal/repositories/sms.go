@@ -7,6 +7,7 @@ import (
 	apperrors "github.com/21mobile/sms-gateway/internal/errors"
 	"github.com/21mobile/sms-gateway/internal/models"
 	"gorm.io/gorm"
+	"sort"
 	"time"
 )
 
@@ -91,6 +92,70 @@ func (r *SMSAttempts) MessageContent(ctx context.Context, id uint64) (models.SMS
 	var attempt models.SMSAttempt
 	err := scopedCompanies(r.db.WithContext(ctx).Model(&models.SMSAttempt{}), ctx, "company_id").Select("id,credential_id,content_ref,encrypted_message,content_purged_at,created_at,scheduled_at,dispatched_at").Where("id = ?", id).First(&attempt).Error
 	return attempt, err
+}
+
+const messageTraceLimit = 100
+
+func (r *SMSAttempts) MessageTrace(ctx context.Context, id uint64) (dtos.MessageTrace, error) {
+	var attempt models.SMSAttempt
+	err := scopedCompanies(r.db.WithContext(ctx).Model(&models.SMSAttempt{}), ctx, "company_id").
+		Select("id,state,failure_code,delivery_status,provider_message_id,created_at,dispatched_at").
+		Where("id = ?", id).First(&attempt).Error
+	if err != nil {
+		return dtos.MessageTrace{}, err
+	}
+	trace := dtos.MessageTrace{
+		ID: attempt.ID, SubmissionState: attempt.State, FailureCode: string(attempt.FailureCode),
+		DeliveryStatus: attempt.DeliveryStatus, ProviderMessageID: attempt.ProviderMessageID,
+		CreatedAt: attempt.CreatedAt, DispatchedAt: attempt.DispatchedAt,
+		Events: []dtos.MessageTraceEvent{},
+	}
+	var deliveries []models.DeliveryEvent
+	if err := r.db.WithContext(ctx).Model(&models.DeliveryEvent{}).
+		Select("id,event_key,status,occurred_at,created_at").Where("attempt_id = ?", id).
+		Order("occurred_at,id").Limit(messageTraceLimit + 1).Find(&deliveries).Error; err != nil {
+		return dtos.MessageTrace{}, err
+	}
+	for _, event := range deliveries {
+		kind := "delivery"
+		if len(event.EventKey) >= 5 && event.EventKey[:5] == "zoug:" {
+			kind = "zoug_delivery"
+		}
+		trace.Events = append(trace.Events, dtos.MessageTraceEvent{Kind: kind, ID: event.ID, Status: string(event.Status), OccurredAt: event.OccurredAt, RecordedAt: event.CreatedAt})
+	}
+	var mos []models.MOEvent
+	if err := r.db.WithContext(ctx).Model(&models.MOEvent{}).
+		Select("id,received_at,created_at").Where("attempt_id = ?", id).
+		Order("received_at,id").Limit(messageTraceLimit + 1).Find(&mos).Error; err != nil {
+		return dtos.MessageTrace{}, err
+	}
+	for _, event := range mos {
+		trace.Events = append(trace.Events, dtos.MessageTraceEvent{Kind: "mo", ID: event.ID, Status: "received", OccurredAt: event.ReceivedAt, RecordedAt: event.CreatedAt})
+	}
+	var dlrJobs []models.CallbackJob
+	if err := r.db.WithContext(ctx).Model(&models.CallbackJob{}).
+		Select("id,state,attempts,last_error,created_at,updated_at").Where("attempt_id = ?", id).
+		Order("created_at,id").Limit(messageTraceLimit + 1).Find(&dlrJobs).Error; err != nil {
+		return dtos.MessageTrace{}, err
+	}
+	for _, job := range dlrJobs {
+		trace.Events = append(trace.Events, dtos.MessageTraceEvent{Kind: "client_dlr", ID: job.ID, Status: string(job.State), OccurredAt: job.UpdatedAt, RecordedAt: job.CreatedAt, Attempts: job.Attempts, FailureCode: job.LastError})
+	}
+	var moJobs []models.MOCallbackJob
+	if err := r.db.WithContext(ctx).Model(&models.MOCallbackJob{}).
+		Select("id,state,attempts,last_error,created_at,updated_at").Where("attempt_id = ?", id).
+		Order("created_at,id").Limit(messageTraceLimit + 1).Find(&moJobs).Error; err != nil {
+		return dtos.MessageTrace{}, err
+	}
+	for _, job := range moJobs {
+		trace.Events = append(trace.Events, dtos.MessageTraceEvent{Kind: "client_mo", ID: job.ID, Status: string(job.State), OccurredAt: job.UpdatedAt, RecordedAt: job.CreatedAt, Attempts: job.Attempts, FailureCode: job.LastError})
+	}
+	sort.SliceStable(trace.Events, func(i, j int) bool { return trace.Events[i].OccurredAt.Before(trace.Events[j].OccurredAt) })
+	if len(trace.Events) > messageTraceLimit {
+		trace.Events = trace.Events[:messageTraceLimit]
+		trace.Truncated = true
+	}
+	return trace, nil
 }
 
 func (r *SMSAttempts) PurgeContent(ctx context.Context, before time.Time, limit int) (int64, error) {

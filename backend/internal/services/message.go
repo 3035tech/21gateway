@@ -87,6 +87,10 @@ func (s *MessageService) Messages(ctx context.Context, q dtos.ListQuery) (dtos.P
 	values, err := s.repository.Messages(ctx, q)
 	return values, dbError(err)
 }
+func (s *MessageService) Trace(ctx context.Context, id uint64) (dtos.MessageTrace, error) {
+	value, err := s.repository.MessageTrace(ctx, id)
+	return value, dbError(err)
+}
 func (s *MessageService) CompanyTests(ctx context.Context, publicRef string) ([]dtos.CompanyTestHistoryItem, error) {
 	if s.companies == nil {
 		return nil, apperrors.Wrap(apperrors.CodeServiceUnavailable, nil)

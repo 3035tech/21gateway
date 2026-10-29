@@ -69,6 +69,8 @@ func TestAdministrativeSessionAndPermissions(t *testing.T) {
 	guard := controllers.NewSessionGuard(users, sessions)
 	controllers.NewSessionController(users, guard).Register(api)
 	controllers.NewCompanyController(services.NewCompanyService(nil), guard).Register(api)
+	operations := &operationsMemory{}
+	controllers.NewOperationsController(services.NewOperationsService(operations)).RegisterAdmin(api, guard)
 	call := func(method, path, body string, cookie *http.Cookie) *httptest.ResponseRecorder {
 		r := httptest.NewRequest(method, "http://localhost:8080"+path, strings.NewReader(body))
 		r.Header.Set("Content-Type", "application/json")
@@ -126,6 +128,14 @@ func TestAdministrativeSessionAndPermissions(t *testing.T) {
 	if code := call("POST", "/admin/companies", `{"name":"Denied","reference":"","active":true}`, cookie).Code; code != 403 {
 		t.Fatal("viewer may write", code)
 	}
+	if code := call("GET", "/admin/operations", "", cookie).Code; code != 403 || operations.calls != 0 {
+		t.Fatal("viewer may read global operations", code, operations.calls)
+	}
+	users.user.Role = models.RoleAdmin
+	if code := call("GET", "/admin/operations", "", cookie).Code; code != 200 || operations.calls != 1 {
+		t.Fatal("admin cannot read operations", code, operations.calls)
+	}
+	users.user.Role = models.RoleViewer
 	users.user.SessionVersion++
 	if code := call("GET", "/admin/auth/me", "", cookie).Code; code != 401 {
 		t.Fatal("revoked session accepted", code)

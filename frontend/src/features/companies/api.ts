@@ -39,6 +39,18 @@ export async function getCompanyByPublicRef(
   })
   return companySchema.parse(response.data)
 }
+const companyHealthSchema = z.object({
+  activeCredentials: z.number(), dlrConfigured: z.number(), moConfigured: z.number(),
+  expiringSoon: z.number(), unknownSends: z.number(), pendingCallbacks: z.number(),
+  failedCallbacks: z.number(), lastSendAt: z.string().nullable(),
+  lastProviderAt: z.string().nullable(), lastClientDlrAt: z.string().nullable(),
+  lastClientMoAt: z.string().nullable(),
+})
+export type CompanyHealth = z.infer<typeof companyHealthSchema>
+export async function getCompanyHealth(publicRef: string, signal?: AbortSignal) {
+  const response = await api.get(`/admin/companies/by-ref/${publicRef}/health`, { signal })
+  return companyHealthSchema.parse(response.data)
+}
 export async function saveCompany(id: number | undefined, body: CompanyBody) {
   const payload = {
     name: body.name,

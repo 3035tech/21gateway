@@ -15,6 +15,17 @@ func (r *Operations) Snapshot(ctx context.Context) (dtos.OperationsSnapshot, err
 	const activeSQL = `SELECT COUNT(*) FILTER (WHERE state='pending') AS pending, COUNT(*) FILTER (WHERE state='processing') AS processing, COUNT(*) FILTER (WHERE state='processing' AND lease_until < NOW()) AS expired_leases, MIN(created_at) FILTER (WHERE state='pending') AS oldest_pending_at FROM callback_jobs WHERE state IN ('pending','processing')`
 	const moActiveSQL = `SELECT COUNT(*) FILTER (WHERE state='pending') AS pending, COUNT(*) FILTER (WHERE state='processing') AS processing, COUNT(*) FILTER (WHERE state='processing' AND lease_until < NOW()) AS expired_leases, MIN(created_at) FILTER (WHERE state='pending') AS oldest_pending_at FROM mo_callback_jobs WHERE state IN ('pending','processing')`
 	db := r.db.WithContext(ctx)
+	var unresolved struct {
+		UnresolvedSends    int64
+		OldestUnresolvedAt *time.Time
+	}
+	if err := db.Raw(`SELECT COUNT(*) AS unresolved_sends,
+		MIN(created_at) AS oldest_unresolved_at
+		FROM sms_attempts WHERE state='unknown' AND COALESCE(delivery_status,'') IN ('','SENT','UNKNOWN')`).Scan(&unresolved).Error; err != nil {
+		return snapshot, err
+	}
+	snapshot.UnresolvedSends = unresolved.UnresolvedSends
+	snapshot.OldestUnresolvedAt = unresolved.OldestUnresolvedAt
 	if err := db.Raw(activeSQL).Scan(&snapshot.DLR).Error; err != nil {
 		return snapshot, err
 	}

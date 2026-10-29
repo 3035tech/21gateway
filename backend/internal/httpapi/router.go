@@ -116,6 +116,9 @@ func New(origins []string, docsEnabled bool, ping func(context.Context) error, d
 		if dependencies.Summary != nil {
 			controllers.NewSummaryController(dependencies.Summary, guard).Register(api)
 		}
+		if dependencies.Operations != nil {
+			controllers.NewOperationsController(dependencies.Operations).RegisterAdmin(api, guard)
+		}
 	}
 	if dependencies.Callbacks != nil && dependencies.CallbackIngressEnabled {
 		controllers.NewCallbackController(dependencies.Callbacks, nil).RegisterIngress(api, dependencies.CallbackIngressToken)

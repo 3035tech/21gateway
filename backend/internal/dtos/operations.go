@@ -26,9 +26,11 @@ type ScheduledQueueDiagnostics struct {
 	OldestDueAt         *time.Time `json:"oldestDueAt"`
 }
 type OperationsSnapshot struct {
-	Scheduler  ScheduledQueueDiagnostics `json:"scheduler"`
-	ObservedAt time.Time                 `json:"observedAt"`
-	DLR        QueueDiagnostics          `json:"dlr"`
-	MO         QueueDiagnostics          `json:"mo"`
+	Scheduler          ScheduledQueueDiagnostics `json:"scheduler"`
+	ObservedAt         time.Time                 `json:"observedAt"`
+	DLR                QueueDiagnostics          `json:"dlr"`
+	MO                 QueueDiagnostics          `json:"mo"`
+	UnresolvedSends    int64                     `json:"unresolvedSends"`
+	OldestUnresolvedAt *time.Time                `json:"oldestUnresolvedAt"`
 }
 type OperationsOutput struct{ Body OperationsSnapshot }

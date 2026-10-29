@@ -8,15 +8,50 @@ import {
   RefreshCw,
   Send,
   Webhook,
+  TriangleAlert,
 } from 'lucide-react'
-import { getSummary } from './api'
+import { getSummary, getOperations } from './api'
 import { errorMessage } from '../../lib/admin'
 import { useTranslation } from 'react-i18next'
 import { useCompanyView } from '../companies/CompanyViewContext'
+import { useUser } from '../auth/context'
+
+function olderThan(value: string | null, minutes: number, now: number) {
+  return value !== null && now - new Date(value).getTime() >= minutes * 60_000
+}
+
+function OperationsAlerts() {
+  const { t } = useTranslation()
+  const query = useQuery({
+    queryKey: ['admin', 'operations'],
+    queryFn: ({ signal }) => getOperations(signal),
+    refetchInterval: 60_000,
+  })
+  const data = query.isError ? undefined : query.data
+  const now = data ? new Date(data.observedAt).getTime() : 0
+  const alerts = data ? [
+    data.unresolvedSends > 0 && t('overview.alertUnknownSends', { count: data.unresolvedSends }),
+    data.dlr.expiredLeases + data.mo.expiredLeases > 0 && t('overview.alertExpiredLeases'),
+    olderThan(data.dlr.oldestPendingAt, 15, now) && t('overview.alertDlrPending'),
+    olderThan(data.mo.oldestPendingAt, 15, now) && t('overview.alertMoPending'),
+    olderThan(data.dlr.oldestUnmatchedAt, 15, now) && t('overview.alertDlrUnmatched'),
+    olderThan(data.mo.oldestUnmatchedAt, 15, now) && t('overview.alertMoUnmatched'),
+    olderThan(data.scheduler.oldestDueAt, 5, now) && t('overview.alertSchedulerDue'),
+    data.dlr.failedLastHour + data.mo.failedLastHour > 0 && t('overview.alertCallbackFailed'),
+  ].filter((item): item is string => typeof item === 'string') : []
+  return <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5" aria-label={t('overview.operationsHealth')}>
+    <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-base font-bold text-slate-900">{t('overview.operationsHealth')}</h2><span className="text-xs text-slate-500">{t('overview.operationsRefresh')}</span></div>
+    {query.isPending ? <p className="mt-2 text-sm text-slate-600">{t('common.loading')}</p> : null}
+    {query.isError ? <p className="mt-2 text-sm text-amber-800" role="alert">{t('overview.operationsUnavailable')}</p> : null}
+    {data && alerts.length === 0 ? <p className="mt-2 text-sm text-emerald-800">{t('overview.operationsClear')}</p> : null}
+    {alerts.length > 0 ? <ul className="mt-3 grid gap-2" role="alert">{alerts.map((alert) => <li key={alert} className="flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900"><TriangleAlert size={16} className="mt-0.5 shrink-0" aria-hidden="true" />{alert}</li>)}</ul> : null}
+  </section>
+}
 
 export function OverviewPage() {
   const { t, i18n } = useTranslation()
   const companyId = useCompanyView()
+  const isAdmin = useUser()?.role === 'admin'
   const number = (value: number) => value.toLocaleString(i18n.language)
   const query = useQuery({
     queryKey: ['admin', 'summary', companyId],
@@ -42,6 +77,7 @@ export function OverviewPage() {
           <RefreshCw size={16} aria-hidden="true" /> {t('overview.refresh')}
         </button>
       </header>
+      {isAdmin && !companyId ? <OperationsAlerts /> : null}
       {query.isPending ? (
         <p role="status" className="rounded-xl bg-white p-8">
           {t('overview.loading')}

@@ -20,7 +20,7 @@ import { CredentialsPage } from '../credentials/CredentialsPage'
 import { CredentialTestDialog } from '../credentials/CredentialTestDialog'
 import { CompanyForm } from './CompanyForm'
 import { ZougDiagnosticDialog } from './ZougDiagnosticDialog'
-import { getCompany, getCompanyByPublicRef, getCompanyTestSends } from './api'
+import { getCompany, getCompanyByPublicRef, getCompanyTestSends, getCompanyHealth } from './api'
 import { UsersPage } from '../users/UsersPage'
 import { isPublicRef } from '../../lib/publicRef'
 
@@ -86,6 +86,47 @@ function CompanyTestHistory({ publicRef }: { publicRef: string }) {
       ) : null}
     </section>
   )
+}
+
+function CompanyIntegrationHealth({ publicRef }: { publicRef: string }) {
+  const { t } = useTranslation()
+  const query = useQuery({
+    queryKey: ['admin', 'company-health', publicRef],
+    queryFn: ({ signal }) => getCompanyHealth(publicRef, signal),
+    refetchInterval: 60_000,
+  })
+  const data = query.isError ? undefined : query.data
+  const metrics = data ? [
+    [t('companyDetail.activeCredentials'), data.activeCredentials],
+    [t('companyDetail.dlrConfigured'), data.dlrConfigured],
+    [t('companyDetail.moConfigured'), data.moConfigured],
+    [t('companyDetail.unknownSends'), data.unknownSends],
+    [t('companyDetail.pendingCallbacks'), data.pendingCallbacks],
+    [t('companyDetail.failedCallbacks'), data.failedCallbacks],
+  ] as const : []
+  return <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" aria-label={t('companyDetail.integrationHealth')}>
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div><h2 className="text-lg font-bold text-slate-900">{t('companyDetail.integrationHealth')}</h2>
+        <p className="mt-1 text-sm text-slate-600">{t('companyDetail.integrationHealthHint')}</p></div>
+      <button type="button" className="button-secondary" onClick={() => void query.refetch()} disabled={query.isFetching}>{t('companyDetail.refreshHealth')}</button>
+    </div>
+    {query.isPending ? <p className="mt-4 text-sm" role="status">{t('common.loading')}</p> : null}
+    {query.isError ? <p className="mt-4 text-sm text-rose-700" role="alert">{errorMessage(query.error)}</p> : null}
+    {data ? <>
+      <dl className="mt-5 grid gap-px overflow-hidden rounded-xl border border-slate-200 bg-slate-200 sm:grid-cols-2 xl:grid-cols-3">
+        {metrics.map(([label, value]) => <div className="bg-white p-4" key={label}><dt className="text-xs font-medium text-slate-600">{label}</dt><dd className={`mt-1 text-2xl font-bold tabular-nums ${label === t('companyDetail.failedCallbacks') && value > 0 ? 'text-rose-700' : 'text-slate-900'}`}>{value}</dd></div>)}
+      </dl>
+      {data.expiringSoon > 0 ? <p className="mt-4 text-sm text-amber-800">{t('companyDetail.expiringSoon', { count: data.expiringSoon })}</p> : null}
+      <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
+        {([
+          [t('companyDetail.lastSend'), data.lastSendAt],
+          [t('companyDetail.lastProvider'), data.lastProviderAt],
+          [t('companyDetail.lastClientDlr'), data.lastClientDlrAt],
+          [t('companyDetail.lastClientMo'), data.lastClientMoAt],
+        ] as const).map(([label, value]) => <div className="flex flex-wrap justify-between gap-2 border-b border-slate-100 pb-2" key={label}><dt className="text-slate-600">{label}</dt><dd className="font-medium text-slate-900">{value ? <DateCell value={value} /> : t('companyDetail.noActivity')}</dd></div>)}
+      </dl>
+    </> : null}
+  </section>
 }
 
 export function CompanyDetailPage() {
@@ -257,6 +298,7 @@ export function CompanyDetailPage() {
               ) : null}
             </div>
           </section>
+          <CompanyIntegrationHealth publicRef={query.data.publicRef} />
           <CompanyTestHistory publicRef={query.data.publicRef} />
           <section aria-label={t('companyDetail.accessSection')}>
             <div className="mb-3 flex items-center gap-2 text-brand-purple">

@@ -25,6 +25,11 @@ func TestPostgresSendReferencePublicationAndDuplicateDelivery(t *testing.T) {
 	if err != nil || len(results) != 2 {
 		t.Fatal("admission", err)
 	}
+	// The database clock can lag the process clock by a few milliseconds in
+	// containerized tests. Make the immediate fixture due by database time.
+	if err := db.Exec("UPDATE scheduled_sms SET due_at=NOW()-INTERVAL '1 second', available_at=NOW()-INTERVAL '1 second' WHERE send_reference=TRUE AND attempt_id=?", results[0].IDSMS).Error; err != nil {
+		t.Fatal(err)
+	}
 	first, err := refs.ClaimPublication(ctx)
 	if err != nil || first == nil || strconv.FormatUint(first.AttemptID, 10) != results[0].IDSMS {
 		t.Fatal("one immediate ID publication", err)
