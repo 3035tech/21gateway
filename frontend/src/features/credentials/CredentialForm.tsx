@@ -73,53 +73,54 @@ function CallbackAuthFields({
           )}
         />
       </label>
-      {mode === 'header' ? (
-        <label className="field mt-4">
-          {t('credentials.callbackHeaderName')}
-          <input
-            className="form-control w-full"
-            autoComplete="off"
-            placeholder="X-Client-Token"
-            {...form.register(`${prefix}.headerName`)}
-          />
-          <FieldError
-            message={form.formState.errors[prefix]?.headerName?.message}
-          />
-        </label>
-      ) : null}
-      {mode === 'basic' ? (
-        <label className="field mt-4">
-          {t('credentials.callbackBasicUsername')}
-          <input
-            className="form-control w-full"
-            autoComplete="off"
-            {...form.register(`${prefix}.username`)}
-          />
-          <FieldError
-            message={form.formState.errors[prefix]?.username?.message}
-          />
-        </label>
-      ) : null}
       {mode !== 'none' ? (
-        <label className="field mt-4">
-          {mode === 'basic'
-            ? t('credentials.callbackBasicPassword')
-            : t('credentials.callbackHeaderValue')}
-          <input
-            className="form-control w-full"
-            type="password"
-            autoComplete="new-password"
-            {...form.register(`${prefix}.secret`)}
-          />
-          <FieldError
-            message={form.formState.errors[prefix]?.secret?.message}
-          />
-          <span className="text-xs font-normal leading-5 text-slate-500">
-            {configured && mode === existingMode
-              ? t('credentials.callbackSecretSaved')
-              : t('credentials.callbackSecretNew')}
-          </span>
-        </label>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 sm:items-start">
+          {mode === 'header' ? (
+            <label className="field min-w-0">
+              {t('credentials.callbackHeaderName')}
+              <input
+                className="form-control w-full"
+                autoComplete="off"
+                placeholder="X-Client-Token"
+                {...form.register(`${prefix}.headerName`)}
+              />
+              <FieldError
+                message={form.formState.errors[prefix]?.headerName?.message}
+              />
+            </label>
+          ) : (
+            <label className="field min-w-0">
+              {t('credentials.callbackBasicUsername')}
+              <input
+                className="form-control w-full"
+                autoComplete="off"
+                {...form.register(`${prefix}.username`)}
+              />
+              <FieldError
+                message={form.formState.errors[prefix]?.username?.message}
+              />
+            </label>
+          )}
+          <label className="field min-w-0">
+            {mode === 'basic'
+              ? t('credentials.callbackBasicPassword')
+              : t('credentials.callbackHeaderValue')}
+            <input
+              className="form-control w-full"
+              type="password"
+              autoComplete="new-password"
+              {...form.register(`${prefix}.secret`)}
+            />
+            <FieldError
+              message={form.formState.errors[prefix]?.secret?.message}
+            />
+            <span className="text-xs font-normal leading-5 text-slate-500">
+              {configured && mode === existingMode
+                ? t('credentials.callbackSecretSaved')
+                : t('credentials.callbackSecretNew')}
+            </span>
+          </label>
+        </div>
       ) : null}
     </div>
   )

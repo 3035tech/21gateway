@@ -25,6 +25,8 @@ O formulário de nova credencial e edição usa abas **Acesso**, **Notificaçõe
 
 Na aba Notificações, DLR e MO ficam em blocos verticais para exibir URLs longas. Cada destino tem autenticação independente e opcional: nenhuma (padrão), cabeçalho personalizado ou Basic Auth. O segredo é campo de escrita; a tela indica quando já existe um valor salvo e permite substituí-lo sem revelá-lo.
 
+Dentro de cada destino, nome e valor do cabeçalho ou usuário e senha Basic Auth ficam lado a lado em telas largas e empilhados no celular.
+
 Polimento de 27/10/2026: a prévia ordena o formulário de credencial por empresa e acesso Basic Auth, permite gerar username e exibe a senha gerada uma vez em diálogo. O formulário real mostra a empresa fixa em campo somente leitura. Os links diretos de usuário e credencial apresentam estados de carregamento, erro e ID inválido. A prévia continua apenas em memória.
 
 Listagens compartilham DataTable, filtros, paginação/tamanho e ordenação no servidor. Envios separam submissão/entrega e resultados incertos. Callbacks separam eventos recebidos da Zoug (SMS e MO, sem conteúdo bruto) da fila/falhas das notificações aos clientes; o reprocessamento manual não reenvia SMS. Auditoria não inclui senhas ou conteúdo SMS. Resumo usa dados reais e não inventa saldo ou contagens.
