@@ -11,6 +11,8 @@
 
 A migração **025** cria índices para leitura de eventos/jobs por envio e envios incertos. Aplicá-la antes dos binários novos; como o migrador executa `CREATE INDEX` na transação de migração, programar a execução conforme o volume e observar bloqueios de escrita. Consultas e autorização permanecem nos domínios `message`, `company` e `operations`; o router somente compõe. A consulta de histórico é sob demanda e limitada, e os agregados por empresa são carregados apenas na ficha. Com volume real, medir essas consultas antes de fixar meta de latência.
 
+Em HML, a migração 025 foi aplicada em 29/10/2026 pelo Job PreSync da imagem `e2385b0`, após leitura prévia de 24 migrações e baixo volume nas tabelas envolvidas. A consulta posterior retornou 25 migrações e última versão `202610290025`. Argo CD sincronizou o GitOps `5ca5b45`; o worker passou a usar a mesma imagem da API. O frontend publicou o ajuste da linha do tempo e foi verificado visualmente em um envio já existente, sem disparar outro SMS. A fila SQS estava vazia no retrato consultado; isso não prova ausência de lotes abertos no banco em outros instantes.
+
 ## Evidência e limites
 
 `TestPostgresMessageTraceAndCompanyHealth` comprova eventos DLR/MO, jobs ao cliente, escopo por empresa, agregados e ausência de URL/conteúdo MO no JSON. A suíte de aceite PostgreSQL simula SMS, callbacks Zoug normalizados, DLR/MO ao cliente, repetição, falha e recuperação; ela não envia SMS real. As fixtures de fila agora liberam os jobs pelo relógio do banco, pois o relógio do processo Go no Colima estava alguns milissegundos adiantado. A regra de despacho de produção não mudou.

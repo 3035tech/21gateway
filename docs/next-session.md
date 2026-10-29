@@ -1,5 +1,9 @@
 # Ponto de retomada — 15/10/2026
 
+## Liberação HML — 29/10/2026
+
+O commit `e2385b0` está na `main`; os workflows de backend e frontend passaram. O GitOps de Dublin sincronizou `5ca5b45`, executou o Job de migração com a mesma imagem e atualizou o worker SQS sem alternar o transporte. Consulta direta ao banco `gateway21_hml` confirmou 25 migrações, com `202610290025` como última. Argo CD mostrou backend e frontend saudáveis, worker em execução e `/readyz` respondeu 200. O detalhe real de Envios foi inspecionado no navegador após o ajuste visual da linha do tempo. Isso não constitui novo aceite de SMS/MO ponta a ponta nem prova de alertas externos ou backup recorrente. A credencial SQS ainda está no Secret versionado no histórico GitOps; a transição para ExternalSecret e a rotação aguardam bootstrap seguro no cluster.
+
 ## Estado mais recente — 29/10/2026
 
 Há código novo para histórico por SMS, saúde da integração por empresa e avisos operacionais no painel do administrador. Aplicar migração 025 antes do backend novo; ela cria índices dentro da transação do migrador, portanto avaliar janela/volume de dados. Consulte `docs/product-observability-2026-10-29.md` para contratos e limites. Backup cifrado e restauração passaram no PostgreSQL local; backup recorrente de produção, entrega externa de alertas, aceite real Zoug → gateway → cliente e rotação/limpeza do segredo SQS histórico continuam pendentes. Não declarar esses itens homologados com base nos testes simulados.

@@ -236,6 +236,8 @@ Atualização de 29/10/2026: o manifesto ativo de SQS em GitOps usa `ExternalSec
 
 Evolução do produto em 29/10/2026: detalhe de Envios ganha linha do tempo persistida e limitada; ficha de empresa ganha saúde de integração; Visão geral ganha avisos operacionais para administrador, e operações contam envios incertos sem DLR terminal. Migração 025 adiciona índices de leitura antes dos binários novos. Sem SMS real ou reenvio automático. Prova PostgreSQL e backup/restauração local em `docs/product-observability-2026-10-29.md`; alertas externos, aceite real Zoug/cliente e backup recorrente permanecem pendentes.
 
+Liberação HML de 29/10/2026: `main` em `e2385b0`, GitOps `5ca5b45` sincronizado, migração 025 confirmada no banco `gateway21_hml`, backend/frontend saudáveis no Argo CD e `/readyz` HTTP 200. Worker SQS usa a imagem `sha-e2385b0`; fila vazia no retrato consultado. Revisão visual do histórico de um SMS preexistente passou, sem novo envio. Nota da versão em `docs/releases/v0.1.0.md`; tag, aceite real, alertas externos, backup recorrente e rotação do Secret SQS seguem pendentes até conclusão operacional.
+
 ## Diagnóstico temporário da resposta Zoug — 29/10/2026
 
 O ingress do callback Zoug agora aceita os três tipos SMS documentados. `UNKNOWN` no DLR é persistido sem alterar o DLR público; demais códigos de submissão diferentes de `ESME_ROK` são classificados provisoriamente como `GENERAL_ERROR` conforme orientação da Zoug de que geralmente são falhas definitivas. A flag `ZOUG_CALLBACK_LOG_FULL_REQUEST` permite em HML observar corpo, cabeçalhos não secretos, status HTTP e motivo de cada chamada autenticada; padrão desligado. Ver `docs/zoug-callback.md`.
