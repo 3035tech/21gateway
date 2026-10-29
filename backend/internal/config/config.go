@@ -57,6 +57,7 @@ type Config struct {
 	CallbackIngressToken            string   `env:"CALLBACK_INGRESS_TOKEN"`
 	CallbackIngressEnabled          bool     `env:"CALLBACK_INGRESS_ENABLED" envDefault:"false"`
 	ZougCallbackEnabled             bool     `env:"ZOUG_CALLBACK_ENABLED" envDefault:"false"`
+	ZougCallbackLogFullRequest      bool     `env:"ZOUG_CALLBACK_LOG_FULL_REQUEST" envDefault:"false"`
 	ZougCallbackTokenSHA256         string   `env:"ZOUG_CALLBACK_TOKEN_SHA256"`
 	ZougCallbackAllowedIPs          []string `env:"ZOUG_CALLBACK_ALLOWED_IPS" envSeparator:","`
 	Address                         string   `env:"HTTP_ADDRESS" envDefault:":8080"`

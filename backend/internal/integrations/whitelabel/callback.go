@@ -107,7 +107,9 @@ func NormalizeDeliveryCallback(raw []byte) (dtos.DeliveryInput, error) {
 		case "UNKNOWN_ERROR":
 			status = models.DeliveryNotDelivered
 		default:
-			return input, ErrUnsupportedCallback
+			// Zoug confirms non-ESME_ROK submission codes are generally final
+			// failures; preserve the original code in ingress diagnostics.
+			status = models.DeliveryError
 		}
 		occurredAt = parseCallbackTime(payload.SubmitDate)
 	case CallbackDelivery:
@@ -121,6 +123,8 @@ func NormalizeDeliveryCallback(raw []byte) (dtos.DeliveryInput, error) {
 			status = models.DeliveryCancelled
 		case "ACCEPTD", "ENROUTE":
 			status = models.DeliverySent
+		case "UNKNOWN":
+			status = models.DeliveryUnknown
 		default:
 			return input, ErrUnsupportedCallback
 		}

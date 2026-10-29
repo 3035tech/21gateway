@@ -68,6 +68,7 @@ func TestNormalizeOnlyKnownDeliveryStatuses(t *testing.T) {
 		{"DELETED", models.DeliveryCancelled},
 		{"ACCEPTD", models.DeliverySent},
 		{"ENROUTE", models.DeliverySent},
+		{"UNKNOWN", models.DeliveryUnknown},
 	} {
 		t.Run(tc.code, func(t *testing.T) {
 			input, err := NormalizeDeliveryCallback([]byte(strings.Replace(deliveryPayload, "DELIVRD", tc.code, 1)))
@@ -80,7 +81,11 @@ func TestNormalizeOnlyKnownDeliveryStatuses(t *testing.T) {
 	if err != nil || input.Body.Status != models.DeliverySent || !input.Body.OccurredAt.Equal(time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC)) {
 		t.Fatalf("unexpected submission translation: %+v %v", input, err)
 	}
-	for _, raw := range []string{strings.Replace(deliveryPayload, "DELIVRD", "UNKNOWN", 1), strings.Replace(submissionPayload, "ESME_ROK", "ESME_RSYSERR", 1), moPayload} {
+	otherSubmission, err := NormalizeDeliveryCallback([]byte(strings.Replace(submissionPayload, "ESME_ROK", "ESME_RSYSERR", 1)))
+	if err != nil || otherSubmission.Body.Status != models.DeliveryError {
+		t.Fatalf("non-success submission was not classified: %+v %v", otherSubmission, err)
+	}
+	for _, raw := range []string{strings.Replace(deliveryPayload, "DELIVRD", "UNRECOGNIZED", 1), moPayload} {
 		if _, err := NormalizeDeliveryCallback([]byte(raw)); !errors.Is(err, ErrUnsupportedCallback) {
 			t.Fatalf("unsupported event was translated: %v", err)
 		}

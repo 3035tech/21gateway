@@ -47,6 +47,8 @@ Administradores administram a operação global; podem existir vários. Operador
 
 ## Callbacks e workers
 
+O ingress Zoug permite temporariamente em HML o log integral do corpo e cabeçalhos não secretos por configuração opt-in. A exceção de diagnóstico foi autorizada pelo usuário para observar o contrato real; a rota mantém token e whitelist. Eventos `UNKNOWN` ficam em `delivery_events` sem atualizar o estado legado nem criar callback ao cliente. Não há migração nova nem exceção à separação por domínio.
+
 PostgreSQL armazena delivery_events e callback_jobs como outbox. Evento/estado/job gravados atomicamente; worker reconcilia UUIDs associados depois da chegada do evento. Callback do cliente é GET legado. Lease/SKIP LOCKED, concorrência limitada, oito tentativas, backoff com jitter, HTTP pooled/timeout, sem redirects. Entrega pelo menos uma vez: cliente deve deduplicar.
 
 safeurl bloqueia SSRF no dial, proxy desativado, HTTPS/443; saída IPv6 desabilitada. Bloqueio de conta/empresa impede entrega. Reprocessar callback não reenvia SMS. O payload Zoug é validado pelo adaptador de integração; o controller de callback externo verifica hash do segredo na URL e IP, então encaminha DLR ao serviço de callbacks e MO ao serviço MO. Cada domínio persiste seu evento antes da resposta 204. A rota é opt-in independente das rotas internas normalizadas. Não há exceção à separação por domínio: o controller só coordena o contrato HTTP do fornecedor; regras de DLR/MO continuam nos services e repositories respectivos. Consulte docs/zoug-callback.md e docs/backoffice.md.

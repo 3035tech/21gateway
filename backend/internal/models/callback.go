@@ -14,16 +14,17 @@ const (
 	DeliveryCancelled          DeliveryStatus = "MESSAGE_CANCELLED"
 	DeliveryInvalidFormat      DeliveryStatus = "INVALID_MESSAGE_FORMAT"
 	DeliveryError              DeliveryStatus = "GENERAL_ERROR"
+	DeliveryUnknown            DeliveryStatus = "UNKNOWN"
 )
 
 func (s DeliveryStatus) Valid() bool {
 	switch s {
-	case DeliverySent, DeliveryDelivered, DeliveryNotDelivered, DeliveryDuplicated, DeliveryInvalidDestination, DeliveryBlacklist, DeliveryCancelled, DeliveryInvalidFormat, DeliveryError:
+	case DeliverySent, DeliveryDelivered, DeliveryNotDelivered, DeliveryDuplicated, DeliveryInvalidDestination, DeliveryBlacklist, DeliveryCancelled, DeliveryInvalidFormat, DeliveryError, DeliveryUnknown:
 		return true
 	}
 	return false
 }
-func (s DeliveryStatus) Terminal() bool { return s != "" && s != DeliverySent }
+func (s DeliveryStatus) Terminal() bool { return s != "" && s != DeliverySent && s != DeliveryUnknown }
 
 type CallbackKind string
 

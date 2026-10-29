@@ -49,6 +49,11 @@ func reconcileEvent(tx *gorm.DB, event *models.DeliveryEvent) error {
 	}
 	event.AttemptID = &attempt.ID
 	event.Processed = true
+	if event.Status == models.DeliveryUnknown {
+		// Keep the supplier event for audit/reconciliation, but do not change
+		// the public DLR or notify the customer of an invented outcome.
+		return tx.Save(event).Error
+	}
 	current := models.DeliveryStatus(attempt.DeliveryStatus)
 	newer := attempt.DeliveryUpdatedAt == nil || event.OccurredAt.After(*attempt.DeliveryUpdatedAt)
 	if newer && !current.Terminal() {
