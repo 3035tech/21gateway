@@ -6,12 +6,14 @@ import (
 )
 
 type CredentialView struct {
-	ProviderTokenConfigured bool     `json:"providerTokenConfigured"`
-	WhitelistEnabled        bool     `json:"whitelistEnabled"`
-	AllowedIPs              []string `json:"allowedIPs"`
-	MOCallbackURL           string   `json:"moCallbackUrl"`
-	MOCallbacksEnabled      bool     `json:"moCallbacksEnabled"`
-	LegacyAccountID         string   `json:"legacyAccountId"`
+	CallbackAuth            CallbackAuthView `json:"callbackAuth"`
+	MOCallbackAuth          CallbackAuthView `json:"moCallbackAuth"`
+	ProviderTokenConfigured bool             `json:"providerTokenConfigured"`
+	WhitelistEnabled        bool             `json:"whitelistEnabled"`
+	AllowedIPs              []string         `json:"allowedIPs"`
+	MOCallbackURL           string           `json:"moCallbackUrl"`
+	MOCallbacksEnabled      bool             `json:"moCallbacksEnabled"`
+	LegacyAccountID         string           `json:"legacyAccountId"`
 
 	ID               uint64     `json:"id"`
 	PublicRef        string     `json:"publicRef" format:"uuid"`
@@ -25,24 +27,38 @@ type CredentialView struct {
 	ExpiresAt        *time.Time `json:"expiresAt"`
 }
 type CredentialBody struct {
-	LegacyPassword     *string    `json:"legacyPassword,omitempty" minLength:"1" maxLength:"128" writeOnly:"true"`
-	ManualPassword     *string    `json:"manualPassword,omitempty" minLength:"15" maxLength:"128" writeOnly:"true"`
-	GenerateUsername   bool       `json:"generateUsername,omitempty"`
-	ExpiresAt          *time.Time `json:"expiresAt,omitempty"`
-	ClearExpiry        bool       `json:"clearExpiry,omitempty"`
-	ProviderToken      *string    `json:"providerToken,omitempty" maxLength:"4096" writeOnly:"true"`
-	ClearProviderToken bool       `json:"clearProviderToken,omitempty"`
-	WhitelistEnabled   *bool      `json:"whitelistEnabled,omitempty"`
-	AllowedIPs         *[]string  `json:"allowedIPs,omitempty" maxItems:"100"`
-	MOCallbackURL      *string    `json:"moCallbackUrl,omitempty" maxLength:"2048"`
-	MOCallbacksEnabled *bool      `json:"moCallbacksEnabled,omitempty"`
-	LegacyAccountID    *string    `json:"legacyAccountId,omitempty" maxLength:"64" pattern:"^[0-9]+(_[0-9]+)?$"`
+	CallbackAuth       *CallbackAuthBody `json:"callbackAuth,omitempty"`
+	MOCallbackAuth     *CallbackAuthBody `json:"moCallbackAuth,omitempty"`
+	LegacyPassword     *string           `json:"legacyPassword,omitempty" minLength:"1" maxLength:"128" writeOnly:"true"`
+	ManualPassword     *string           `json:"manualPassword,omitempty" minLength:"15" maxLength:"128" writeOnly:"true"`
+	GenerateUsername   bool              `json:"generateUsername,omitempty"`
+	ExpiresAt          *time.Time        `json:"expiresAt,omitempty"`
+	ClearExpiry        bool              `json:"clearExpiry,omitempty"`
+	ProviderToken      *string           `json:"providerToken,omitempty" maxLength:"4096" writeOnly:"true"`
+	ClearProviderToken bool              `json:"clearProviderToken,omitempty"`
+	WhitelistEnabled   *bool             `json:"whitelistEnabled,omitempty"`
+	AllowedIPs         *[]string         `json:"allowedIPs,omitempty" maxItems:"100"`
+	MOCallbackURL      *string           `json:"moCallbackUrl,omitempty" maxLength:"2048"`
+	MOCallbacksEnabled *bool             `json:"moCallbacksEnabled,omitempty"`
+	LegacyAccountID    *string           `json:"legacyAccountId,omitempty" maxLength:"64" pattern:"^[0-9]+(_[0-9]+)?$"`
 
 	CompanyID        uint64 `json:"companyId" minimum:"1"`
 	Username         string `json:"username" maxLength:"120"`
 	Active           bool   `json:"active"`
 	CallbackURL      string `json:"callbackUrl" maxLength:"2048"`
 	CallbacksEnabled bool   `json:"callbacksEnabled"`
+}
+type CallbackAuthView struct {
+	Mode             models.CallbackAuthMode `json:"mode" enum:"none,header,basic"`
+	HeaderName       string                  `json:"headerName"`
+	Username         string                  `json:"username"`
+	SecretConfigured bool                    `json:"secretConfigured"`
+}
+type CallbackAuthBody struct {
+	Mode       models.CallbackAuthMode `json:"mode" enum:"none,header,basic"`
+	HeaderName string                  `json:"headerName,omitempty" maxLength:"100"`
+	Username   string                  `json:"username,omitempty" maxLength:"256"`
+	Secret     *string                 `json:"secret,omitempty" maxLength:"4096" writeOnly:"true"`
 }
 type CreateCredentialInput struct{ Body CredentialBody }
 type UpdateCredentialInput struct {
@@ -62,5 +78,12 @@ func CredentialDTO(value models.APICredential) CredentialView {
 	if allowedIPs == nil {
 		allowedIPs = []string{}
 	}
-	return CredentialView{ProviderTokenConfigured: value.CompanyProviderTokenEncrypted != "" || (value.CompanyProviderTokenLegacyFallback && value.ProviderTokenEncrypted != ""), WhitelistEnabled: value.WhitelistEnabled, AllowedIPs: allowedIPs, MOCallbackURL: value.MOCallbackURL, MOCallbacksEnabled: value.MOCallbacksEnabled, LegacyAccountID: value.LegacyAccountID, ID: value.ID, PublicRef: value.PublicRef, CompanyID: value.CompanyID, CompanyName: value.CompanyName, Username: value.Username, Active: value.Active, CallbackURL: value.CallbackURL, CallbacksEnabled: value.CallbacksEnabled, CreatedAt: value.CreatedAt, ExpiresAt: value.ExpiresAt}
+	return CredentialView{CallbackAuth: callbackAuthDTO(value.CallbackAuth), MOCallbackAuth: callbackAuthDTO(value.MOCallbackAuth), ProviderTokenConfigured: value.CompanyProviderTokenEncrypted != "" || (value.CompanyProviderTokenLegacyFallback && value.ProviderTokenEncrypted != ""), WhitelistEnabled: value.WhitelistEnabled, AllowedIPs: allowedIPs, MOCallbackURL: value.MOCallbackURL, MOCallbacksEnabled: value.MOCallbacksEnabled, LegacyAccountID: value.LegacyAccountID, ID: value.ID, PublicRef: value.PublicRef, CompanyID: value.CompanyID, CompanyName: value.CompanyName, Username: value.Username, Active: value.Active, CallbackURL: value.CallbackURL, CallbacksEnabled: value.CallbacksEnabled, CreatedAt: value.CreatedAt, ExpiresAt: value.ExpiresAt}
+}
+func callbackAuthDTO(value models.CallbackAuth) CallbackAuthView {
+	mode := value.Mode
+	if mode == "" {
+		mode = models.CallbackAuthNone
+	}
+	return CallbackAuthView{Mode: mode, HeaderName: value.HeaderName, Username: value.Username, SecretConfigured: value.SecretEncrypted != ""}
 }

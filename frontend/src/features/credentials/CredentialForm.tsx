@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Controller, useForm, useWatch } from 'react-hook-form'
+import type { UseFormReturn } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { credentialFormSchema, saveCredential } from './api'
 import type { Credential, CredentialBody } from './api'
@@ -29,6 +30,99 @@ function localDateTime(value?: string | null) {
   const date = new Date(value)
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
   return local.toISOString().slice(0, 16)
+}
+function CallbackAuthFields({
+  form,
+  prefix,
+}: {
+  form: UseFormReturn<CredentialBody>
+  prefix: 'callbackAuth' | 'moCallbackAuth'
+}) {
+  const { t } = useTranslation()
+  const mode = useWatch({ control: form.control, name: `${prefix}.mode` })
+  const configured = useWatch({
+    control: form.control,
+    name: `${prefix}.secretConfigured`,
+  })
+  const existingMode = useWatch({
+    control: form.control,
+    name: `${prefix}.existingMode`,
+  })
+  return (
+    <div className="mt-5 border-t border-slate-200 pt-5">
+      <label className="field">
+        {t('credentials.callbackAuthMode')}
+        <Controller
+          name={`${prefix}.mode`}
+          control={form.control}
+          render={({ field }) => (
+            <AppSelect
+              value={field.value}
+              label={t('credentials.callbackAuthMode')}
+              onValueChange={(value) => {
+                field.onChange(value)
+                form.setValue(`${prefix}.secret`, '')
+                form.clearErrors(prefix)
+              }}
+              options={[
+                { value: 'none', label: t('credentials.callbackAuthNone') },
+                { value: 'header', label: t('credentials.callbackAuthHeader') },
+                { value: 'basic', label: t('credentials.callbackAuthBasic') },
+              ]}
+            />
+          )}
+        />
+      </label>
+      {mode === 'header' ? (
+        <label className="field mt-4">
+          {t('credentials.callbackHeaderName')}
+          <input
+            className="form-control w-full"
+            autoComplete="off"
+            placeholder="X-Client-Token"
+            {...form.register(`${prefix}.headerName`)}
+          />
+          <FieldError
+            message={form.formState.errors[prefix]?.headerName?.message}
+          />
+        </label>
+      ) : null}
+      {mode === 'basic' ? (
+        <label className="field mt-4">
+          {t('credentials.callbackBasicUsername')}
+          <input
+            className="form-control w-full"
+            autoComplete="off"
+            {...form.register(`${prefix}.username`)}
+          />
+          <FieldError
+            message={form.formState.errors[prefix]?.username?.message}
+          />
+        </label>
+      ) : null}
+      {mode !== 'none' ? (
+        <label className="field mt-4">
+          {mode === 'basic'
+            ? t('credentials.callbackBasicPassword')
+            : t('credentials.callbackHeaderValue')}
+          <input
+            className="form-control w-full"
+            type="password"
+            autoComplete="new-password"
+            {...form.register(`${prefix}.secret`)}
+          />
+          <FieldError
+            message={form.formState.errors[prefix]?.secret?.message}
+          />
+          <span className="text-xs font-normal leading-5 text-slate-500">
+            {configured && mode === existingMode
+              ? t('credentials.callbackSecretSaved')
+              : t('credentials.callbackSecretNew')}
+          </span>
+        </label>
+      ) : null}
+    </div>
+  )
 }
 export function CredentialForm({
   credential,
@@ -89,6 +183,14 @@ export function CredentialForm({
       active: credential?.active ?? true,
       callbackUrl: credential?.callbackUrl ?? '',
       callbacksEnabled: credential?.callbacksEnabled ?? false,
+      callbackAuth: {
+        mode: credential?.callbackAuth?.mode ?? 'none',
+        headerName: credential?.callbackAuth?.headerName ?? '',
+        username: credential?.callbackAuth?.username ?? '',
+        secret: '',
+        secretConfigured: credential?.callbackAuth?.secretConfigured ?? false,
+        existingMode: credential?.callbackAuth?.mode ?? 'none',
+      },
       preserveLegacyPassword: false,
       legacyPassword: '',
       manualPassword: '',
@@ -99,6 +201,14 @@ export function CredentialForm({
       allowedIPsText: credential?.allowedIPs.join('\n') ?? '',
       moCallbackUrl: credential?.moCallbackUrl ?? '',
       moCallbacksEnabled: credential?.moCallbacksEnabled ?? false,
+      moCallbackAuth: {
+        mode: credential?.moCallbackAuth?.mode ?? 'none',
+        headerName: credential?.moCallbackAuth?.headerName ?? '',
+        username: credential?.moCallbackAuth?.username ?? '',
+        secret: '',
+        secretConfigured: credential?.moCallbackAuth?.secretConfigured ?? false,
+        existingMode: credential?.moCallbackAuth?.mode ?? 'none',
+      },
       legacyAccountId: credential?.legacyAccountId ?? '',
     },
   })
@@ -132,7 +242,12 @@ export function CredentialForm({
       errors.expiresAtText ||
       errors.providerToken
     ),
-    notifications: !!(errors.callbackUrl || errors.moCallbackUrl),
+    notifications: !!(
+      errors.callbackUrl ||
+      errors.moCallbackUrl ||
+      errors.callbackAuth ||
+      errors.moCallbackAuth
+    ),
     ips: !!errors.allowedIPsText,
   }
   function selectTab(tab: CredentialTab) {
@@ -179,7 +294,10 @@ export function CredentialForm({
                 invalid.expiresAtText ||
                 invalid.providerToken
                   ? 'access'
-                  : invalid.callbackUrl || invalid.moCallbackUrl
+                  : invalid.callbackUrl ||
+                      invalid.moCallbackUrl ||
+                      invalid.callbackAuth ||
+                      invalid.moCallbackAuth
                     ? 'notifications'
                     : 'ips'
               selectTab(tab)
@@ -627,7 +745,7 @@ export function CredentialForm({
               <p className="mb-4 text-sm leading-6 text-slate-600">
                 {t('credentials.notificationsHint')}
               </p>
-              <div className="grid gap-5 sm:grid-cols-2">
+              <div className="grid gap-5">
                 <fieldset className="min-w-0 rounded-xl border border-slate-200 p-4">
                   <legend className="px-1 text-sm font-semibold">
                     {t('credentials.dlrTitle')}
@@ -656,6 +774,7 @@ export function CredentialForm({
                   <p className="mt-3 text-xs leading-5 text-slate-500">
                     {t('credentials.dlrHint')}
                   </p>
+                  <CallbackAuthFields form={form} prefix="callbackAuth" />
                 </fieldset>
                 <fieldset className="min-w-0 rounded-xl border border-slate-200 p-4">
                   <legend className="px-1 text-sm font-semibold">
@@ -685,6 +804,7 @@ export function CredentialForm({
                   <p className="mt-3 text-xs leading-5 text-slate-500">
                     {t('credentials.moHint')}
                   </p>
+                  <CallbackAuthFields form={form} prefix="moCallbackAuth" />
                 </fieldset>
               </div>
               <p className="mt-4 text-xs leading-5 text-slate-500">

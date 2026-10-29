@@ -37,6 +37,27 @@ func TestLegacyMOTranslation(t *testing.T) {
 		t.Fatal(ok, code, calls)
 	}
 }
+func TestMOUsesIndependentBasicAuth(t *testing.T) {
+	message := moFixture()
+	message.CredentialID = 17
+	client := NewWithTransport(fakeTransport(func(r *http.Request) (*http.Response, error) {
+		user, password, ok := r.BasicAuth()
+		if r.Method != http.MethodPost || !ok || user != "recipient" || password != "secret" || r.Header.Get("Content-Type") != "application/json" {
+			t.Fatal("unexpected MO request")
+		}
+		return &http.Response{StatusCode: 204, Body: io.NopCloser(strings.NewReader(""))}, nil
+	}))
+	client.SetAuthResolver(func(_ context.Context, id uint64, kind models.CallbackKind) (RequestAuth, error) {
+		if id != 17 || kind != models.CallbackKindMO {
+			t.Fatal("wrong destination")
+		}
+		return RequestAuth{Mode: models.CallbackAuthBasic, Username: "recipient", Secret: "secret"}, nil
+	})
+	ok, code := client.DeliverMO(context.Background(), "https://client.example/mo", message)
+	if !ok || code != "" {
+		t.Fatal(ok, code)
+	}
+}
 func TestMOInvalidInputsNeverReachTransport(t *testing.T) {
 	calls := 0
 	client := NewWithTransport(fakeTransport(func(*http.Request) (*http.Response, error) { calls++; return nil, nil }))

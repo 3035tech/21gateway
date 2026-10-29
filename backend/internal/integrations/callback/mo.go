@@ -35,6 +35,9 @@ func (c *Client) DeliverMO(ctx context.Context, destination string, message mode
 	}
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("X-21Mobile-Event-ID", "mo:"+strconv.FormatUint(message.ID, 10))
+	if !c.applyAuth(request, message.CredentialID, models.CallbackKindMO) {
+		return false, models.CallbackNetworkError
+	}
 	return c.dispatch(request)
 }
 func validMOPhone(phone string) bool {

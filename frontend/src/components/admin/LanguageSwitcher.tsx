@@ -15,8 +15,8 @@ export function LanguageSwitcher() {
         label={t('language.label')}
         onValueChange={(value) => void i18n.changeLanguage(value as Language)}
         options={[
-          { value: 'pt-BR', label: t('language.portuguese') },
-          { value: 'en-US', label: t('language.english') },
+          { value: 'pt-BR', label: `🇧🇷 ${t('language.portuguese')}` },
+          { value: 'en-US', label: `🇺🇸 ${t('language.english')}` },
         ]}
       />
     </label>

@@ -3,6 +3,22 @@ import { api } from '../../lib/api'
 import { list } from '../../lib/admin'
 import type { ListParams } from '../../lib/admin'
 export const credentialSchema = z.object({
+  callbackAuth: z
+    .object({
+      mode: z.enum(['none', 'header', 'basic']),
+      headerName: z.string(),
+      username: z.string(),
+      secretConfigured: z.boolean(),
+    })
+    .optional(),
+  moCallbackAuth: z
+    .object({
+      mode: z.enum(['none', 'header', 'basic']),
+      headerName: z.string(),
+      username: z.string(),
+      secretConfigured: z.boolean(),
+    })
+    .optional(),
   providerTokenConfigured: z.boolean(),
   whitelistEnabled: z.boolean(),
   allowedIPs: z.array(z.string()),
@@ -21,8 +37,75 @@ export const credentialSchema = z.object({
   expiresAt: z.string().nullable(),
 })
 export type Credential = z.infer<typeof credentialSchema>
+const hasControlCharacter = (value: string, allowTab = false) =>
+  Array.from(value).some((char) => {
+    const code = char.charCodeAt(0)
+    return (code < 32 && !(allowTab && code === 9)) || code === 127
+  })
+const callbackAuthFormSchema = z
+  .object({
+    mode: z.enum(['none', 'header', 'basic']),
+    headerName: z.string().max(100),
+    username: z.string().max(256),
+    secret: z.string().max(4096),
+    secretConfigured: z.boolean(),
+    existingMode: z.enum(['none', 'header', 'basic']),
+  })
+  .superRefine((value, context) => {
+    if (
+      value.mode === 'header' &&
+      (!/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/.test(value.headerName) ||
+        [
+          'host',
+          'content-length',
+          'content-type',
+          'connection',
+          'transfer-encoding',
+          'x-21mobile-event-id',
+          'proxy-authorization',
+        ].includes(value.headerName.toLowerCase()))
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['headerName'],
+        message: 'validation.invalidHeaderName',
+      })
+    }
+    if (
+      value.mode === 'basic' &&
+      (!value.username.trim() ||
+        value.username.includes(':') ||
+        hasControlCharacter(value.username))
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['username'],
+        message: 'validation.invalidUsername',
+      })
+    }
+    if (value.mode !== 'none' && hasControlCharacter(value.secret, true)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['secret'],
+        message: 'validation.invalidCallbackSecret',
+      })
+    }
+    if (
+      value.mode !== 'none' &&
+      !value.secret &&
+      !(value.secretConfigured && value.mode === value.existingMode)
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['secret'],
+        message: 'validation.required',
+      })
+    }
+  })
 export const credentialFormSchema = z
   .object({
+    callbackAuth: callbackAuthFormSchema,
+    moCallbackAuth: callbackAuthFormSchema,
     companyId: z.number().int().positive('validation.selectCompany'),
     generateUsername: z.boolean(),
     passwordMode: z.enum(['generated', 'manual', 'legacy']),
@@ -174,10 +257,20 @@ export async function saveCredential(
     expiresAtText,
     generateUsername,
     passwordMode,
+    callbackAuth,
+    moCallbackAuth,
     ...fields
   } = body
+  const authPayload = (value: typeof callbackAuth) => ({
+    mode: value.mode,
+    headerName: value.mode === 'header' ? value.headerName : '',
+    username: value.mode === 'basic' ? value.username : '',
+    secret: value.secret || undefined,
+  })
   const payload = {
     ...fields,
+    callbackAuth: authPayload(callbackAuth),
+    moCallbackAuth: authPayload(moCallbackAuth),
     legacyPassword:
       preserveLegacyPassword && passwordMode === 'legacy'
         ? legacyPassword

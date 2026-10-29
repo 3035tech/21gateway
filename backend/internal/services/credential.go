@@ -8,7 +8,9 @@ import (
 	"github.com/21mobile/sms-gateway/internal/models"
 	"github.com/21mobile/sms-gateway/internal/repositories"
 	"github.com/21mobile/sms-gateway/internal/security"
+	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -17,6 +19,14 @@ import (
 type CredentialService struct {
 	repository *repositories.Credentials
 	vault      *security.TokenVault
+}
+
+var callbackHeaderNamePattern = regexp.MustCompile("^[!#$%&'*+.^_`|~0-9A-Za-z-]+$")
+
+var reservedCallbackHeaders = map[string]bool{
+	"Host": true, "Content-Length": true, "Content-Type": true,
+	"Connection": true, "Transfer-Encoding": true,
+	"X-21mobile-Event-Id": true, "Proxy-Authorization": true,
 }
 
 func NewCredentialService(repo *repositories.Credentials) *CredentialService {
@@ -107,6 +117,8 @@ func (s *CredentialService) SaveCredential(ctx context.Context, actor, id uint64
 		} else {
 			result.Username = username
 			result.PasswordHash = hash
+			result.CallbackAuth.Mode = models.CallbackAuthNone
+			result.MOCallbackAuth.Mode = models.CallbackAuthNone
 		}
 		result.CompanyID = &body.CompanyID
 		result.CompanyName = company.Name
@@ -115,6 +127,12 @@ func (s *CredentialService) SaveCredential(ctx context.Context, actor, id uint64
 		result.Active = body.Active
 		result.CallbackURL = body.CallbackURL
 		result.CallbacksEnabled = body.CallbacksEnabled
+		if result.CallbackAuth, err = s.applyCallbackAuth(result.CallbackAuth, body.CallbackAuth, result.Username, "dlr"); err != nil {
+			return err
+		}
+		if result.MOCallbackAuth, err = s.applyCallbackAuth(result.MOCallbackAuth, body.MOCallbackAuth, result.Username, "mo"); err != nil {
+			return err
+		}
 		if body.ClearExpiry {
 			result.ExpiresAt = nil
 		} else if body.ExpiresAt != nil {
@@ -135,6 +153,63 @@ func (s *CredentialService) SaveCredential(ctx context.Context, actor, id uint64
 		return repo.Audit(ctx, &actor, action, string(security.ResourceCredentials), &result.ID)
 	})
 	return dtos.CredentialSecret{Credential: dtos.CredentialDTO(result), Password: secret}, dbError(err)
+}
+
+func (s *CredentialService) applyCallbackAuth(current models.CallbackAuth, input *dtos.CallbackAuthBody, username, kind string) (models.CallbackAuth, error) {
+	if input == nil {
+		return current, nil
+	}
+	invalid := func() (models.CallbackAuth, error) {
+		return models.CallbackAuth{}, apperrors.Wrap(apperrors.CodeInvalidRequest, nil)
+	}
+	if input.Mode == models.CallbackAuthNone {
+		if input.Secret != nil && *input.Secret != "" {
+			return invalid()
+		}
+		return models.CallbackAuth{Mode: models.CallbackAuthNone}, nil
+	}
+	if input.Mode != models.CallbackAuthHeader && input.Mode != models.CallbackAuthBasic {
+		return invalid()
+	}
+	updated := models.CallbackAuth{Mode: input.Mode}
+	if len(input.HeaderName) > 100 || len(input.Username) > 256 {
+		return invalid()
+	}
+	if input.Mode == models.CallbackAuthHeader {
+		name := http.CanonicalHeaderKey(input.HeaderName)
+		if !callbackHeaderNamePattern.MatchString(input.HeaderName) || reservedCallbackHeaders[name] || input.Username != "" {
+			return invalid()
+		}
+		updated.HeaderName = name
+	} else {
+		if input.HeaderName != "" || strings.TrimSpace(input.Username) == "" || strings.ContainsAny(input.Username, ":\r\n") {
+			return invalid()
+		}
+		for _, char := range input.Username {
+			if char < 32 || char == 127 {
+				return invalid()
+			}
+		}
+		updated.Username = input.Username
+	}
+	if input.Secret != nil && *input.Secret != "" {
+		for _, char := range *input.Secret {
+			if char < 32 && char != '\t' || char == 127 {
+				return invalid()
+			}
+		}
+		var err error
+		updated.SecretEncrypted, err = s.vault.Encrypt("callback-auth:"+kind+":"+username, *input.Secret)
+		if err != nil {
+			return models.CallbackAuth{}, err
+		}
+	} else if current.Mode == updated.Mode && current.SecretEncrypted != "" {
+		updated.SecretEncrypted = current.SecretEncrypted
+	}
+	if updated.SecretEncrypted == "" {
+		return invalid()
+	}
+	return updated, nil
 }
 func (s *CredentialService) RotateCredential(ctx context.Context, actor, id uint64) (dtos.CredentialSecret, error) {
 	secret := rand.Text()

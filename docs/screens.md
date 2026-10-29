@@ -15,9 +15,15 @@ O administrador pode abrir **Testar credencial** após salvar: instrução para 
 
 Cadastro de credenciais: permite várias credenciais por empresa, username gerado ou informado, senha gerada, manual ou legada e validade opcional no fuso do navegador. A listagem mostra validade e o status vencido; a edição pode definir ou remover a validade. O usuário e o vínculo da credencial não mudam após criação. O painel oferece português e inglês no login e no cabeçalho, com preferência salva no navegador; textos de telas reais, validações e erros vêm dos catálogos em `frontend/src/locales/`.
 
+O seletor de idioma exibe as bandeiras do Brasil e dos Estados Unidos ao lado do nome de cada opção; o nome acessível permanece no controle.
+
+Na listagem de envios, a primeira coluna usa apenas “ID” para reservar espaço horizontal aos demais campos; o detalhe continua identificando explicitamente “ID do envio”.
+
 Credencial Zoug: a ficha da empresa exibe o estado e o cadastro/substituição/remoção do token fornecido pela Zoug. O gateway gera apenas usuário e senha Basic Auth das credenciais de API; não gera o token do fornecedor. Várias credenciais Basic Auth da mesma empresa compartilham seu token Zoug. A edição de credencial da API abre a empresa para gerenciar esse token. Tokens antigos individuais continuam em fallback temporário até a configuração do token da empresa; nenhum valor secreto é devolvido pelo painel.
 
 O formulário de nova credencial e edição usa abas **Acesso**, **Notificações** e **IPs autorizados**. Na aba Acesso, busca de empresa precede os campos alinhados de empresa e usuário; a criação abre com usuário e senha Basic Auth manuais editáveis, enquanto geração automática e preservação legada são escolhas explícitas. O ID da conta legada fica em uma seção opcional recolhida. A senha é persistida apenas como hash Argon2id. Status e validade compartilham uma linha quando há espaço. A gestão do token Zoug é uma ação contextual que abre a ficha da empresa e fecha o modal; o token é cifrado no banco. O editor de IPs aceita entradas individuais e redes CIDR, normaliza e agrupa ambas as listas, e permite removê-las separadamente. Erros de validação levam à aba correspondente.
+
+Na aba Notificações, DLR e MO ficam em blocos verticais para exibir URLs longas. Cada destino tem autenticação independente e opcional: nenhuma (padrão), cabeçalho personalizado ou Basic Auth. O segredo é campo de escrita; a tela indica quando já existe um valor salvo e permite substituí-lo sem revelá-lo.
 
 Polimento de 27/10/2026: a prévia ordena o formulário de credencial por empresa e acesso Basic Auth, permite gerar username e exibe a senha gerada uma vez em diálogo. O formulário real mostra a empresa fixa em campo somente leitura. Os links diretos de usuário e credencial apresentam estados de carregamento, erro e ID inválido. A prévia continua apenas em memória.
 

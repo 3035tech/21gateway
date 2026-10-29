@@ -29,8 +29,10 @@ export const receivedCallbackSchema = z.object({
   receivedAt: z.string(),
 })
 export type ReceivedCallback = z.infer<typeof receivedCallbackSchema>
-export const listReceivedCallbacks = (params: ListParams, signal?: AbortSignal) =>
-  list('callbacks/received', receivedCallbackSchema, params, signal)
+export const listReceivedCallbacks = (
+  params: ListParams,
+  signal?: AbortSignal,
+) => list('callbacks/received', receivedCallbackSchema, params, signal)
 export const listCallbacks = (params: ListParams, signal?: AbortSignal) =>
   list('callbacks', callbackSchema, params, signal)
 export async function retryCallback(id: number) {

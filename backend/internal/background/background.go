@@ -33,6 +33,22 @@ type Workers struct {
 
 func New(ctx context.Context, cfg config.Config, db *gorm.DB, provider *whitelabel.Client, tokenVault *security.TokenVault, moVault *security.MOContentVault) (*Workers, error) {
 	w := &Workers{sender: callback.New(), days: cfg.MORetentionDays}
+	authCredentials := repositories.NewCredentials(db)
+	w.sender.SetAuthResolver(func(ctx context.Context, credentialID uint64, kind models.CallbackKind) (callback.RequestAuth, error) {
+		credential, err := authCredentials.CallbackAuthentication(ctx, credentialID)
+		if err != nil {
+			return callback.RequestAuth{}, err
+		}
+		config := credential.CallbackAuth
+		if kind == models.CallbackKindMO {
+			config = credential.MOCallbackAuth
+		}
+		result := callback.RequestAuth{Mode: config.Mode, HeaderName: config.HeaderName, Username: config.Username}
+		if config.SecretEncrypted != "" {
+			result.Secret, err = tokenVault.Decrypt("callback-auth:"+string(kind)+":"+credential.Username, config.SecretEncrypted)
+		}
+		return result, err
+	})
 	if cfg.SMSSQSEnabled {
 		var open int64
 		if err := db.WithContext(ctx).Model(&models.DispatchBatch{}).Where("completed_at IS NULL").Count(&open).Error; err != nil {

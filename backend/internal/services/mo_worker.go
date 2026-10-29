@@ -78,7 +78,7 @@ func (w *MOWorker) process(ctx context.Context) error {
 		if err != nil {
 			code = models.CallbackContentUnavailable
 		} else {
-			message := models.MOMessage{ID: event.ID, AttemptID: attempt.ID, CorrelationID: attempt.CorrelationID, PhoneNumber: event.PhoneNumber, Message: text, ReceivedAt: event.ReceivedAt}
+			message := models.MOMessage{ID: event.ID, CredentialID: event.CredentialID, AttemptID: attempt.ID, CorrelationID: attempt.CorrelationID, PhoneNumber: event.PhoneNumber, Message: text, ReceivedAt: event.ReceivedAt}
 			delivered, code = w.sender.DeliverMO(ctx, job.URL, message)
 		}
 	}

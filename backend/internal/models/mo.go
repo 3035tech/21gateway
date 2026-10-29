@@ -6,6 +6,7 @@ import "time"
 // IDs refer to the gateway MO event and original SMS, never supplier UUIDs.
 type MOMessage struct {
 	ID            uint64
+	CredentialID  uint64
 	AttemptID     uint64
 	CorrelationID string
 	PhoneNumber   string

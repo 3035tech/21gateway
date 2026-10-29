@@ -1,6 +1,14 @@
 import { expect, it, vi } from 'vitest'
 import { api } from '../../lib/api'
 import { credentialFormSchema, saveCredential } from './api'
+const noAuth = {
+  mode: 'none',
+  headerName: '',
+  username: '',
+  secret: '',
+  secretConfigured: false,
+  existingMode: 'none',
+}
 it('preserves existing secrets when empty and converts the whitelist to an array', async () => {
   const dto = {
     id: 1,
@@ -24,6 +32,8 @@ it('preserves existing secrets when empty and converts the whitelist to an array
     .spyOn(api, 'put')
     .mockResolvedValue({ data: { credential: dto, password: '' } })
   const body = credentialFormSchema.parse({
+    callbackAuth: noAuth,
+    moCallbackAuth: noAuth,
     companyId: 1,
     generateUsername: false,
     passwordMode: 'generated',
@@ -48,12 +58,66 @@ it('preserves existing secrets when empty and converts the whitelist to an array
     providerToken: undefined,
     legacyPassword: undefined,
     allowedIPs: ['203.0.113.1', '198.51.100.0/24'],
+    callbackAuth: { mode: 'none' },
+    moCallbackAuth: { mode: 'none' },
   })
   expect(put.mock.calls[0][1]).not.toHaveProperty('allowedIPsText')
   put.mockRestore()
 })
+it('requires a new secret when changing callback authentication mode', () => {
+  const base = {
+    callbackAuth: {
+      mode: 'basic',
+      headerName: '',
+      username: 'recipient',
+      secret: '',
+      secretConfigured: true,
+      existingMode: 'header',
+    },
+    moCallbackAuth: noAuth,
+    companyId: 1,
+    generateUsername: false,
+    passwordMode: 'generated',
+    username: 'client',
+    active: true,
+    callbackUrl: 'https://client.example/dlr',
+    callbacksEnabled: true,
+    providerToken: '',
+    clearProviderToken: false,
+    whitelistEnabled: false,
+    allowedIPsText: '',
+    moCallbackUrl: '',
+    moCallbacksEnabled: false,
+    legacyAccountId: '',
+    preserveLegacyPassword: false,
+    legacyPassword: '',
+    manualPassword: '',
+    expiresAtText: '',
+  }
+  expect(credentialFormSchema.safeParse(base).success).toBe(false)
+  expect(
+    credentialFormSchema.safeParse({
+      ...base,
+      callbackAuth: { ...base.callbackAuth, secret: 'new-secret' },
+    }).success,
+  ).toBe(true)
+  expect(
+    credentialFormSchema.safeParse({
+      ...base,
+      callbackAuth: {
+        ...base.callbackAuth,
+        mode: 'header',
+        headerName: 'Content-Type',
+        username: '',
+        secret: 'new-secret',
+      },
+    }).success,
+  ).toBe(false)
+})
 it('requires an existing password when choosing to preserve legacy access', () => {
   const value = {
+    callbackAuth: noAuth,
+    moCallbackAuth: noAuth,
     companyId: 1,
     generateUsername: false,
     passwordMode: 'legacy',
@@ -105,6 +169,8 @@ it('sends generated username, manual password and optional expiration explicitly
   })
   const expiresAtText = '2099-01-02T10:30'
   const body = credentialFormSchema.parse({
+    callbackAuth: noAuth,
+    moCallbackAuth: noAuth,
     companyId: 1,
     generateUsername: true,
     passwordMode: 'manual',

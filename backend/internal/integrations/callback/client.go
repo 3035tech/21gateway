@@ -20,8 +20,20 @@ type HTTPDoer interface {
 	Do(*http.Request) (*http.Response, error)
 }
 type Client struct {
-	http  HTTPDoer
-	close func()
+	http        HTTPDoer
+	close       func()
+	resolveAuth func(context.Context, uint64, models.CallbackKind) (RequestAuth, error)
+}
+
+type RequestAuth struct {
+	Mode       models.CallbackAuthMode
+	HeaderName string
+	Username   string
+	Secret     string
+}
+
+func (c *Client) SetAuthResolver(resolve func(context.Context, uint64, models.CallbackKind) (RequestAuth, error)) {
+	c.resolveAuth = resolve
 }
 
 func New() *Client {
@@ -51,7 +63,37 @@ func (c *Client) Deliver(ctx context.Context, job models.CallbackJob, attempt mo
 		return false, models.CallbackNetworkError
 	}
 	request.Header.Set("X-21Mobile-Event-ID", strconv.FormatUint(job.EventID, 10))
+	if !c.applyAuth(request, job.CredentialID, models.CallbackKindDLR) {
+		return false, models.CallbackNetworkError
+	}
 	return c.dispatch(request)
+}
+
+func (c *Client) applyAuth(request *http.Request, credentialID uint64, kind models.CallbackKind) bool {
+	if c.resolveAuth == nil {
+		return true
+	}
+	auth, err := c.resolveAuth(request.Context(), credentialID, kind)
+	if err != nil {
+		return false
+	}
+	switch auth.Mode {
+	case "", models.CallbackAuthNone:
+		return true
+	case models.CallbackAuthHeader:
+		if auth.HeaderName == "" || auth.Secret == "" {
+			return false
+		}
+		request.Header.Set(auth.HeaderName, auth.Secret)
+	case models.CallbackAuthBasic:
+		if auth.Username == "" || auth.Secret == "" {
+			return false
+		}
+		request.SetBasicAuth(auth.Username, auth.Secret)
+	default:
+		return false
+	}
+	return true
 }
 
 func callbackTarget(raw string) (*url.URL, error) {

@@ -40,6 +40,11 @@ func (r *Credentials) ForTestSend(ctx context.Context, id uint64) (models.APICre
 	err := r.credentialQuery(ctx).Where("api_credentials.id = ?", id).First(&credential).Error
 	return credential, err
 }
+func (r *Credentials) CallbackAuthentication(ctx context.Context, id uint64) (models.APICredential, error) {
+	var credential models.APICredential
+	err := r.db.WithContext(ctx).Select("id,username,callback_auth,mo_callback_auth").Where("id = ? AND active AND archived_at IS NULL", id).First(&credential).Error
+	return credential, err
+}
 func (r *Credentials) CredentialView(ctx context.Context, id uint64) (models.APICredential, error) {
 	var credential models.APICredential
 	err := r.credentialQuery(ctx).Where("api_credentials.id = ?", id).First(&credential).Error
@@ -55,7 +60,7 @@ func (r *Credentials) credentialQuery(ctx context.Context) *gorm.DB {
 }
 func (r *Credentials) Credentials(ctx context.Context, q dtos.ListQuery) (dtos.Page[models.APICredential], error) {
 	result := dtos.Page[models.APICredential]{Items: []models.APICredential{}, Page: q.Page, PageSize: q.PageSize}
-	db := r.credentialQuery(ctx).Select("api_credentials.id,api_credentials.public_ref,api_credentials.company_id,companies.name AS company_name,api_credentials.username,api_credentials.active,api_credentials.callback_url,api_credentials.callbacks_enabled,api_credentials.created_at,api_credentials.expires_at,api_credentials.provider_token_encrypted,companies.provider_token_encrypted AS company_provider_token_encrypted,companies.provider_token_legacy_fallback AS company_provider_token_legacy_fallback,api_credentials.whitelist_enabled,api_credentials.allowed_ips,api_credentials.mo_callback_url,api_credentials.mo_callbacks_enabled,api_credentials.legacy_account_id")
+	db := r.credentialQuery(ctx).Select("api_credentials.id,api_credentials.public_ref,api_credentials.company_id,companies.name AS company_name,api_credentials.username,api_credentials.active,api_credentials.callback_url,api_credentials.callbacks_enabled,api_credentials.callback_auth,api_credentials.created_at,api_credentials.expires_at,api_credentials.provider_token_encrypted,companies.provider_token_encrypted AS company_provider_token_encrypted,companies.provider_token_legacy_fallback AS company_provider_token_legacy_fallback,api_credentials.whitelist_enabled,api_credentials.allowed_ips,api_credentials.mo_callback_url,api_credentials.mo_callbacks_enabled,api_credentials.mo_callback_auth,api_credentials.legacy_account_id")
 	if q.Search != "" {
 		db = db.Where("api_credentials.username ILIKE ?", searchTerm(q.Search))
 	}

@@ -52,3 +52,22 @@ func TestCallbackSSRFBlocksLoopback(t *testing.T) {
 		t.Fatal("loopback request allowed")
 	}
 }
+
+func TestDLRUsesConfiguredHeaderWithoutChangingLegacyQuery(t *testing.T) {
+	client := NewWithTransport(fakeTransport(func(r *http.Request) (*http.Response, error) {
+		if r.Method != http.MethodGet || r.Header.Get("X-Client-Token") != "secret" || r.Header.Get("X-21Mobile-Event-ID") != "9" || r.URL.Query().Get("status") != "DELIVERED" {
+			t.Fatal("unexpected DLR request")
+		}
+		return &http.Response{StatusCode: 204, Body: io.NopCloser(strings.NewReader(""))}, nil
+	}))
+	client.SetAuthResolver(func(_ context.Context, id uint64, kind models.CallbackKind) (RequestAuth, error) {
+		if id != 7 || kind != models.CallbackKindDLR {
+			t.Fatal("wrong destination")
+		}
+		return RequestAuth{Mode: models.CallbackAuthHeader, HeaderName: "X-Client-Token", Secret: "secret"}, nil
+	})
+	ok, code := client.Deliver(context.Background(), models.CallbackJob{CredentialID: 7, URL: "https://client.example/dlr", EventID: 9, Status: models.DeliveryDelivered}, models.SMSAttempt{ID: 42})
+	if !ok || code != "" {
+		t.Fatal(ok, code)
+	}
+}

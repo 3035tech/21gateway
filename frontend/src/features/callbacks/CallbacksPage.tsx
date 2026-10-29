@@ -36,11 +36,17 @@ export function CallbacksPage() {
     {
       accessorKey: 'status',
       header: t('callbacks.smsDelivery'),
-      cell: ({ row }) => row.original.kind === 'mo'
-        ? t('callbacks.moReceived')
-        : <StatusBadge status={row.original.status} />,
+      cell: ({ row }) =>
+        row.original.kind === 'mo' ? (
+          t('callbacks.moReceived')
+        ) : (
+          <StatusBadge status={row.original.status} />
+        ),
     },
-    { accessorKey: 'providerMessageId', header: t('callbacks.providerMessageId') },
+    {
+      accessorKey: 'providerMessageId',
+      header: t('callbacks.providerMessageId'),
+    },
     {
       accessorKey: 'occurredAt',
       header: t('callbacks.providerTime'),

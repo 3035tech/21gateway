@@ -111,6 +111,8 @@ Após autorização para seguir com a validação, Docker ps e docker compose up
 
 URLs de callback já fazem parte da credencial externa: callbackUrl/callbacksEnabled para DLR e moCallbackUrl/moCallbacksEnabled para MO, editáveis no painel. Configurar MO não significa fluxo MO implementado; integração real do fornecedor segue pendente.
 
+Em 29/10, o formulário de notificações passou a empilhar DLR e MO, com autenticação opcional por destino (sem autenticação, cabeçalho personalizado ou Basic Auth). A extensão preserva GET DLR e POST MO do manual 21 Mobile; migração 024 guarda segredos cifrados e a API administrativa não os devolve. Validar a migração antes do rollout e homologar com um endpoint receptor do cliente.
+
 ## Preparação corrigida da verificação PostgreSQL
 
 Target verification separado no Dockerfile com build-base/CGO para go test -race; runtime de produção preservado. Compose exige REQUIRE_DATABASE_TESTS=true e usa saída verbose. Integração ampliada para persistência DLR/MO e consumo paralelo sem duplicação. Banco e imagem de verificação ainda não executados: socket Docker continua negado. Testes locais sem banco e vet passaram; configuração Compose válida. O modo obrigatório sem DSN deve falhar explicitamente. Reexecutar com docker compose --profile verification run --build --rm backend-test.

@@ -14,6 +14,7 @@ type APICredential struct {
 	AllowedIPs                         []string `gorm:"serializer:json;type:jsonb"`
 	MOCallbackURL                      string
 	MOCallbacksEnabled                 bool
+	MOCallbackAuth                     CallbackAuth `gorm:"serializer:json;type:jsonb"`
 	LegacyAccountID                    string
 
 	CompanyID        *uint64
@@ -21,6 +22,7 @@ type APICredential struct {
 	CompanyActive    *bool  `gorm:"->;-:migration"`
 	CallbackURL      string
 	CallbacksEnabled bool
+	CallbackAuth     CallbackAuth `gorm:"serializer:json;type:jsonb"`
 	ArchivedAt       *time.Time
 	ExpiresAt        *time.Time
 	ID               uint64 `gorm:"primaryKey"`
