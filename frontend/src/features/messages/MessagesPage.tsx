@@ -28,38 +28,95 @@ function MessageDetails({
     queryKey: ['admin', 'message-trace', message.id],
     queryFn: ({ signal }) => getMessageTrace(message.id, signal),
   })
-  const timeline = trace.isPending ? t('common.loading') : trace.isError ? (
+  const timeline = trace.isPending ? (
+    t('common.loading')
+  ) : trace.isError ? (
     errorMessage(trace.error)
   ) : (
     <div>
-      <p className="mb-3 text-xs font-normal text-slate-500">{t('messages.timelineHint')}</p>
-      {trace.data.providerMessageId ? <p className="mb-4 break-all text-xs font-normal text-slate-600">{t('messages.providerId')}: {trace.data.providerMessageId}</p> : null}
+      <p className="mb-3 text-xs font-normal text-slate-500">
+        {t('messages.timelineHint')}
+      </p>
+      {trace.data.providerMessageId ? (
+        <p className="mb-4 break-all text-xs font-normal text-slate-600">
+          {t('messages.providerId')}: {trace.data.providerMessageId}
+        </p>
+      ) : null}
+      {trace.data.submissionState !== 'pending' ? (
+        <div className="mb-5 border-l-2 border-brand-purple bg-purple-50 px-3 py-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-semibold">
+              {t('messages.submissionResult')}
+            </span>
+            <StatusBadge status={trace.data.submissionState} />
+          </div>
+          <p className="mt-1 text-xs font-normal text-slate-600">
+            {t('messages.submissionTimeUnavailable')}
+          </p>
+        </div>
+      ) : null}
       <ol className="border-l-2 border-purple-200 pl-4">
         <li className="relative pb-4 before:absolute before:-left-[21px] before:top-1 before:size-2.5 before:rounded-full before:bg-brand-purple">
-          <span className="font-semibold">{t('messages.acceptedByGateway')}</span>
-          <span className="ml-2 font-normal text-slate-600"><DateCell value={trace.data.createdAt} /></span>
+          <span className="font-semibold">
+            {t('messages.acceptedByGateway')}
+          </span>
+          <span className="ml-2 font-normal text-slate-600">
+            <DateCell value={trace.data.createdAt} />
+          </span>
         </li>
-        {trace.data.dispatchedAt ? <li className="relative pb-4 before:absolute before:-left-[21px] before:top-1 before:size-2.5 before:rounded-full before:bg-brand-purple">
-          <span className="font-semibold">{t('messages.dispatched')}</span>
-          <span className="ml-2 font-normal text-slate-600"><DateCell value={trace.data.dispatchedAt} /></span>
-        </li> : null}
-        {trace.data.submissionState !== 'pending' ? <li className="relative pb-4 before:absolute before:-left-[21px] before:top-1 before:size-2.5 before:rounded-full before:bg-brand-purple">
-          <span className="font-semibold">{t('messages.submissionResult')}</span>
-          <span className="ml-2"><StatusBadge status={trace.data.submissionState} /></span>
-          <p className="mt-1 text-xs font-normal text-slate-500">{t('messages.submissionTimeUnavailable')}</p>
-        </li> : null}
-        {trace.data.events.map((event) => <li key={`${event.kind}-${event.id}`} className="relative pb-4 before:absolute before:-left-[21px] before:top-1 before:size-2.5 before:rounded-full before:bg-brand-purple">
-          <span className="font-semibold">{t(`messages.traceKind.${event.kind}`, { defaultValue: event.kind })}</span>
-          <span className="ml-2 font-normal text-slate-600"><DateCell value={event.occurredAt} /></span>
-          <p className="mt-1 flex flex-wrap items-center gap-2 font-normal text-slate-700">
-            {event.kind === 'mo' ? t('callbacks.moReceived') : <StatusBadge status={event.status} />}
-            {event.attempts ? <span>{t('callbacks.attempts')}: {event.attempts}</span> : null}
-            {event.failureCode ? <span>{event.failureCode}</span> : null}
-          </p>
-          {event.kind === 'zoug_delivery' || event.kind === 'mo' ? <p className="mt-1 text-xs font-normal text-slate-500">{t('messages.recordedAt')}: <DateCell value={event.recordedAt} /></p> : null}
-        </li>)}
+        {trace.data.dispatchedAt ? (
+          <li className="relative pb-4 before:absolute before:-left-[21px] before:top-1 before:size-2.5 before:rounded-full before:bg-brand-purple">
+            <span className="font-semibold">{t('messages.dispatched')}</span>
+            <span className="ml-2 font-normal text-slate-600">
+              <DateCell value={trace.data.dispatchedAt} />
+            </span>
+          </li>
+        ) : null}
+        {trace.data.events.map((event) => (
+          <li
+            key={`${event.kind}-${event.id}`}
+            className="relative pb-4 before:absolute before:-left-[21px] before:top-1 before:size-2.5 before:rounded-full before:bg-brand-purple"
+          >
+            <span className="font-semibold">
+              {t(`messages.traceKind.${event.kind}`, {
+                defaultValue: event.kind,
+              })}
+            </span>
+            <span className="ml-2 font-normal text-slate-600">
+              <DateCell value={event.occurredAt} />
+            </span>
+            <p className="mt-1 flex flex-wrap items-center gap-2 font-normal text-slate-700">
+              {event.kind === 'mo' ? (
+                t('callbacks.moReceived')
+              ) : (
+                <StatusBadge status={event.status} />
+              )}
+              {event.attempts ? (
+                <span>
+                  {t('callbacks.attempts')}: {event.attempts}
+                </span>
+              ) : null}
+              {event.failureCode ? <span>{event.failureCode}</span> : null}
+            </p>
+            {event.kind === 'zoug_delivery' || event.kind === 'mo' ? (
+              <p className="mt-1 text-xs font-normal text-slate-500">
+                {t('messages.recordedAt')}:{' '}
+                <DateCell value={event.recordedAt} />
+              </p>
+            ) : null}
+          </li>
+        ))}
       </ol>
-      {trace.data.truncated ? <p className="text-xs font-normal text-amber-800">{t('messages.timelineTruncated')}</p> : null}
+      {trace.data.events.length === 0 ? (
+        <p className="mt-2 text-xs font-normal text-slate-600">
+          {t('messages.noTraceEvents')}
+        </p>
+      ) : null}
+      {trace.data.truncated ? (
+        <p className="text-xs font-normal text-amber-800">
+          {t('messages.timelineTruncated')}
+        </p>
+      ) : null}
     </div>
   )
   const contentValue = content.isPending ? (

@@ -15,6 +15,7 @@ import { errorMessage } from '../../lib/admin'
 import { useTranslation } from 'react-i18next'
 import { useCompanyView } from '../companies/CompanyViewContext'
 import { useUser } from '../auth/context'
+import { DateCell } from '../../components/admin/DateCell'
 
 function olderThan(value: string | null, minutes: number, now: number) {
   return value !== null && now - new Date(value).getTime() >= minutes * 60_000
@@ -29,23 +30,102 @@ function OperationsAlerts() {
   })
   const data = query.isError ? undefined : query.data
   const now = data ? new Date(data.observedAt).getTime() : 0
-  const alerts = data ? [
-    data.unresolvedSends > 0 && t('overview.alertUnknownSends', { count: data.unresolvedSends }),
-    data.dlr.expiredLeases + data.mo.expiredLeases > 0 && t('overview.alertExpiredLeases'),
-    olderThan(data.dlr.oldestPendingAt, 15, now) && t('overview.alertDlrPending'),
-    olderThan(data.mo.oldestPendingAt, 15, now) && t('overview.alertMoPending'),
-    olderThan(data.dlr.oldestUnmatchedAt, 15, now) && t('overview.alertDlrUnmatched'),
-    olderThan(data.mo.oldestUnmatchedAt, 15, now) && t('overview.alertMoUnmatched'),
-    olderThan(data.scheduler.oldestDueAt, 5, now) && t('overview.alertSchedulerDue'),
-    data.dlr.failedLastHour + data.mo.failedLastHour > 0 && t('overview.alertCallbackFailed'),
-  ].filter((item): item is string => typeof item === 'string') : []
-  return <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5" aria-label={t('overview.operationsHealth')}>
-    <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-base font-bold text-slate-900">{t('overview.operationsHealth')}</h2><span className="text-xs text-slate-500">{t('overview.operationsRefresh')}</span></div>
-    {query.isPending ? <p className="mt-2 text-sm text-slate-600">{t('common.loading')}</p> : null}
-    {query.isError ? <p className="mt-2 text-sm text-amber-800" role="alert">{t('overview.operationsUnavailable')}</p> : null}
-    {data && alerts.length === 0 ? <p className="mt-2 text-sm text-emerald-800">{t('overview.operationsClear')}</p> : null}
-    {alerts.length > 0 ? <ul className="mt-3 grid gap-2" role="alert">{alerts.map((alert) => <li key={alert} className="flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900"><TriangleAlert size={16} className="mt-0.5 shrink-0" aria-hidden="true" />{alert}</li>)}</ul> : null}
-  </section>
+  const alerts: { message: string; to: string }[] = []
+  if (data) {
+    if (data.unresolvedSends > 0)
+      alerts.push({
+        message: t('overview.alertUnknownSends', {
+          count: data.unresolvedSends,
+        }),
+        to: '/envios',
+      })
+    if (data.dlr.expiredLeases + data.mo.expiredLeases > 0)
+      alerts.push({
+        message: t('overview.alertExpiredLeases'),
+        to: '/callbacks',
+      })
+    if (olderThan(data.dlr.oldestPendingAt, 15, now))
+      alerts.push({ message: t('overview.alertDlrPending'), to: '/callbacks' })
+    if (olderThan(data.mo.oldestPendingAt, 15, now))
+      alerts.push({ message: t('overview.alertMoPending'), to: '/callbacks' })
+    if (olderThan(data.dlr.oldestUnmatchedAt, 15, now))
+      alerts.push({
+        message: t('overview.alertDlrUnmatched'),
+        to: '/callbacks',
+      })
+    if (olderThan(data.mo.oldestUnmatchedAt, 15, now))
+      alerts.push({ message: t('overview.alertMoUnmatched'), to: '/callbacks' })
+    if (olderThan(data.scheduler.oldestDueAt, 5, now))
+      alerts.push({
+        message: t('overview.alertSchedulerDue'),
+        to: '/agendamentos',
+      })
+    if (data.dlr.failedLastHour + data.mo.failedLastHour > 0)
+      alerts.push({
+        message: t('overview.alertCallbackFailed'),
+        to: '/callbacks',
+      })
+  }
+  return (
+    <section
+      className="mb-6 rounded-2xl border border-slate-200 bg-white p-5"
+      aria-label={t('overview.operationsHealth')}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-base font-bold text-slate-900">
+          {t('overview.operationsHealth')}
+        </h2>
+        <span className="text-xs text-slate-500">
+          {t('overview.operationsRefresh')}
+          {data ? (
+            <>
+              {' '}
+              · {t('overview.operationsObservedAt')}{' '}
+              <DateCell value={data.observedAt} />
+            </>
+          ) : null}
+        </span>
+      </div>
+      {query.isPending ? (
+        <p className="mt-2 text-sm text-slate-600">{t('common.loading')}</p>
+      ) : null}
+      {query.isError ? (
+        <p className="mt-2 text-sm text-amber-800" role="alert">
+          {t('overview.operationsUnavailable')}
+        </p>
+      ) : null}
+      {data && alerts.length === 0 ? (
+        <p className="mt-2 text-sm text-emerald-800">
+          {t('overview.operationsClear')}
+        </p>
+      ) : null}
+      {alerts.length > 0 ? (
+        <ul className="mt-3 grid gap-2" role="alert">
+          {alerts.map((alert) => (
+            <li
+              key={alert.message}
+              className="flex flex-wrap items-start gap-x-3 gap-y-1 border-l-2 border-amber-500 bg-amber-50 px-3 py-2 text-sm text-amber-900"
+            >
+              <span className="flex min-w-0 flex-1 items-start gap-2">
+                <TriangleAlert
+                  size={16}
+                  className="mt-0.5 shrink-0"
+                  aria-hidden="true"
+                />
+                {alert.message}
+              </span>
+              <Link
+                to={alert.to}
+                className="ml-6 font-semibold underline underline-offset-2 hover:text-amber-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-800"
+              >
+                {t('overview.inspectAlert')}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
+  )
 }
 
 export function OverviewPage() {

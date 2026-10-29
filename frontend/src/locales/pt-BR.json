@@ -273,11 +273,12 @@
     "description": "Aceite pelo fornecedor e entrega são etapas diferentes. Não reenvie automaticamente resultados incertos.",
     "timeline": "Histórico do envio",
     "timelineHint": "Etapas registradas. A ausência de callback não confirma falha nem entrega.",
+    "noTraceEvents": "Ainda não há eventos de entrega, resposta ou notificação registrados.",
     "timelineTruncated": "Histórico limitado aos primeiros 100 eventos. Consulte a equipe de operação para o restante.",
     "providerId": "ID da Zoug",
     "acceptedByGateway": "Pedido registrado na 21 Mobile",
     "dispatched": "Processamento iniciado",
-    "submissionResult": "Resultado registrado da submissão",
+    "submissionResult": "Estado atual da submissão",
     "submissionTimeUnavailable": "Horário exato da resposta indisponível no histórico atual.",
     "recordedAt": "Recebido aqui",
     "traceKind": {
@@ -566,6 +567,8 @@
   "overview": {
     "operationsHealth": "Alertas da operação",
     "operationsRefresh": "Atualiza a cada minuto",
+    "operationsObservedAt": "Leitura de",
+    "inspectAlert": "Ver registros",
     "operationsUnavailable": "Não foi possível consultar os indicadores operacionais.",
     "operationsClear": "Nenhum alerta detectado no último retrato da operação.",
     "alertExpiredLeases": "Há processamento com prazo expirado. Verifique os workers.",

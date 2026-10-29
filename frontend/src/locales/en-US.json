@@ -273,11 +273,12 @@
     "description": "Provider acceptance and delivery are separate steps. Do not automatically retry uncertain results.",
     "timeline": "Message history",
     "timelineHint": "Recorded stages. A missing callback proves neither failure nor delivery.",
+    "noTraceEvents": "No delivery, reply, or notification events have been recorded yet.",
     "timelineTruncated": "History is limited to the first 100 events. Contact operations for the remainder.",
     "providerId": "Zoug ID",
     "acceptedByGateway": "Request recorded by 21 Mobile",
     "dispatched": "Processing started",
-    "submissionResult": "Recorded submission outcome",
+    "submissionResult": "Current submission state",
     "submissionTimeUnavailable": "The exact response time is unavailable in the current history.",
     "recordedAt": "Received here",
     "traceKind": {
@@ -566,6 +567,8 @@
   "overview": {
     "operationsHealth": "Operations alerts",
     "operationsRefresh": "Refreshes every minute",
+    "operationsObservedAt": "Snapshot from",
+    "inspectAlert": "View records",
     "operationsUnavailable": "Operational indicators could not be loaded.",
     "operationsClear": "No alerts detected in the latest operations snapshot.",
     "alertExpiredLeases": "Some processing leases have expired. Check the workers.",
