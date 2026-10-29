@@ -20,7 +20,7 @@ O código do aplicativo é digitado em seis campos numéricos: cada dígito avan
 
 ## Sessões web
 
-Sem a opção “Lembrar de mim”, a sessão tem prazo absoluto de oito horas, cookie de sessão e expira após 30 minutos de inatividade. Com a opção, o cookie persiste e o prazo absoluto é de 14 dias, com inatividade máxima de sete dias. O servidor impõe ambos os limites; o cookie é HttpOnly e, em produção, Secure. Mudanças de senha, perfil ou status revogam todas as sessões pela versão do usuário. Alterações de MFA renovam a sessão atual e revogam as demais. Estes prazos só se aplicam a `/admin`; os endpoints `/v1` de envio mantêm autenticação e limites independentes.
+Sem a opção “Lembrar de mim”, a sessão tem prazo absoluto de oito horas, cookie de sessão e expira após oito horas de inatividade. Com a opção, o cookie persiste e o prazo absoluto e a inatividade máxima são de 14 dias. O servidor impõe ambos os limites; o cookie é HttpOnly e, em produção, Secure. Mudanças de senha, perfil ou status revogam todas as sessões pela versão do usuário. Alterações de MFA renovam a sessão atual e revogam as demais. Estes prazos só se aplicam a `/admin`; os endpoints `/v1` de envio mantêm autenticação e limites independentes.
 
 ## Implantação e rollback
 
