@@ -235,6 +235,8 @@
     "providerManage": "Manage token"
   },
   "companyDetail": {
+    "sections": "Company sections",
+    "operationTab": "Operations",
     "integrationHealth": "Integration health",
     "integrationHealthHint": "Company indicators. Configuration does not prove delivery or approval; Zoug's callback URL is still global in its panel.",
     "refreshHealth": "Refresh indicators",
@@ -711,6 +713,7 @@
   },
   "notifications": {
     "title": "Notifications",
+    "occurrences": "Incidents",
     "intro": "Operational notices for gateway administrators.",
     "bellLabel": "Notifications: {{count}} unread",
     "viewAll": "View all",

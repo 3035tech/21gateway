@@ -235,6 +235,8 @@
     "providerManage": "Gerenciar token"
   },
   "companyDetail": {
+    "sections": "Seções da empresa",
+    "operationTab": "Operação",
     "integrationHealth": "Saúde da integração",
     "integrationHealthHint": "Indicadores desta empresa. Configuração não confirma entrega nem homologação; a URL da Zoug ainda é global no painel do fornecedor.",
     "refreshHealth": "Atualizar indicadores",
@@ -711,6 +713,7 @@
   },
   "notifications": {
     "title": "Notificações",
+    "occurrences": "Ocorrências",
     "intro": "Avisos operacionais para os administradores do gateway.",
     "bellLabel": "Notificações: {{count}} não lidas",
     "viewAll": "Ver todas",

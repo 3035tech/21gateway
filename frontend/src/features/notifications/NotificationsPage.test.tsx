@@ -47,6 +47,13 @@ it('shows save feedback and updates the email preference after confirmation', as
       </MemoryRouter>
     </QueryClientProvider>,
   )
+  expect(screen.getByRole('tab', { name: 'Ocorrências' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  )
+  await userEvent
+    .setup()
+    .click(screen.getByRole('tab', { name: 'Alertas por e-mail' }))
   const toggle = await screen.findByRole('checkbox', {
     name: 'Envios com resultado incerto: Enviar por e-mail',
   })

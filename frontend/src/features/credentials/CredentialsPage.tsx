@@ -361,7 +361,7 @@ export function CredentialsPage({
             else
               navigate(
                 returnCompanyRef
-                  ? `/empresas/${returnCompanyRef}`
+                  ? `/empresas/${returnCompanyRef}?tab=credentials`
                   : '/credenciais',
               )
           }}

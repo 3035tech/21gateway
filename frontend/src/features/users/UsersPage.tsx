@@ -233,7 +233,7 @@ export function UsersPage({
             else
               navigate(
                 returnCompanyRef
-                  ? `/empresas/${returnCompanyRef}`
+                  ? `/empresas/${returnCompanyRef}?tab=users`
                   : '/usuarios',
               )
           }}

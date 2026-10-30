@@ -89,6 +89,7 @@ Contas não administradoras com dois ou mais vínculos exibem um seletor estiliz
 No cadastro de credenciais, operadores usam automaticamente a empresa em visualização; quando há só um vínculo, esse vínculo é assumido. O modal mostra o nome em campo somente leitura. A prévia inclui Pedro Lima, operador de uma empresa, para verificar esse caso.
 
 A listagem de empresas abre `/empresas/{id}` pelo nome. A página mostra cadastro, estado, credenciais da API e usuários de operação/consulta vinculados, com criação e edição no próprio contexto; a seleção da empresa fica fixa. A listagem geral de credenciais e usuários permanece disponível. Administradores não possuem vínculo e, por isso, não entram na lista de usuários de uma empresa. Essa seção de usuários só aparece para administradores.
+Revisão operacional de 30/10: a ficha mantém nome, estado e referência sempre visíveis; as abas Operação (padrão), Credenciais e Usuários (somente administrador) separam saúde da integração/testes dos cadastros. A aba selecionada fica na URL, de modo que o retorno de um detalhe de credencial/usuário reabre a aba de origem. Consultas das abas de credenciais/usuários só são montadas ao abrir a aba.
 
 As listagens oferecem Visualizar para consultar os campos disponíveis sem entrar em edição. Empresas abrem a página de detalhes; usuários, credenciais, envios, agendamentos, callbacks e auditoria mostram detalhes em diálogo. Empresas, usuários e credenciais oferecem Arquivar para perfis autorizados, com confirmação e preservação do histórico. Registros de envio, agendamento e auditoria continuam somente leitura; callbacks falhos mantêm a operação de tentativa manual. A prévia fictícia também permite visualizar e arquivar cadastros em memória.
 
@@ -111,3 +112,4 @@ Perfil usa a largura do conteúdo administrativo: dados da conta ocupam uma faix
 # Notificações internas — 30/10/2026
 
 Tela real `/notificacoes` exclusiva do administrador: histórico paginado/filtrado e configuração global de e-mail por tipo. Sininho no cabeçalho mostra não lidas e últimas ocorrências. Todos os tipos aparecem no painel; somente tipos ativados também geram e-mail para administradores ativos.
+Revisão operacional de 30/10: a aba Ocorrências abre primeiro com histórico e filtros; Alertas por e-mail reúne as preferências. A consulta de cada aba só inicia quando ela é aberta, e o polling do histórico pausa fora da aba de ocorrências.

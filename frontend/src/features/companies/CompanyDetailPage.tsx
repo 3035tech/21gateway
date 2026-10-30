@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   ArrowLeft,
+  Activity,
   Building2,
   CheckCircle2,
   KeyRound,
@@ -9,8 +10,9 @@ import {
   Send,
   ShieldCheck,
   TriangleAlert,
+  Users,
 } from 'lucide-react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { DateCell } from '../../components/admin/DateCell'
 import { StatusBadge } from '../../components/admin/StatusBadge'
@@ -28,6 +30,7 @@ import {
 } from './api'
 import { UsersPage } from '../users/UsersPage'
 import { isPublicRef } from '../../lib/publicRef'
+import { PageTabs, PageTabPanel } from '../../components/admin/PageTabs'
 
 function CompanyTestHistory({ publicRef }: { publicRef: string }) {
   const { t } = useTranslation()
@@ -223,6 +226,7 @@ export function CompanyDetailPage() {
   const { t } = useTranslation()
   const { id } = useParams()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const legacyId = /^\d+$/.test(id ?? '') ? Number(id) : null
   const validCompanyRef =
     legacyId !== null
@@ -233,6 +237,17 @@ export function CompanyDetailPage() {
   const [diagnosing, setDiagnosing] = useState(false)
   const canEdit = useUser()?.role !== 'viewer'
   const canViewUsers = useUser()?.role === 'admin'
+  const requestedTab = searchParams.get('tab')
+  const activeTab: 'operation' | 'credentials' | 'users' =
+    requestedTab === 'credentials' || (canViewUsers && requestedTab === 'users')
+      ? requestedTab
+      : 'operation'
+  const setActiveTab = (tab: 'operation' | 'credentials' | 'users') => {
+    const next = new URLSearchParams(searchParams)
+    if (tab === 'operation') next.delete('tab')
+    else next.set('tab', tab)
+    setSearchParams(next, { replace: true })
+  }
   const query = useQuery({
     queryKey: ['admin', 'company', id],
     queryFn: ({ signal }) =>
@@ -243,8 +258,11 @@ export function CompanyDetailPage() {
   })
   useEffect(() => {
     if (legacyId !== null && query.data)
-      navigate(`/empresas/${query.data.publicRef}`, { replace: true })
-  }, [legacyId, navigate, query.data])
+      navigate(
+        `/empresas/${query.data.publicRef}${searchParams.size ? `?${searchParams}` : ''}`,
+        { replace: true },
+      )
+  }, [legacyId, navigate, query.data, searchParams])
   if (!validCompanyRef) return <p role="alert">{t('app.notFoundTitle')}</p>
   return (
     <div className="space-y-8">
@@ -310,107 +328,161 @@ export function CompanyDetailPage() {
               </div>
             </dl>
           </section>
-          <section
-            className={`rounded-2xl border p-6 ${query.data.providerTokenConfigured ? 'border-emerald-200 bg-emerald-50/70' : 'border-amber-200 bg-amber-50/70'}`}
+          <PageTabs
+            idPrefix="company-detail"
+            label={t('companyDetail.sections')}
+            tabs={[
+              {
+                id: 'operation',
+                label: t('companyDetail.operationTab'),
+                icon: Activity,
+              },
+              {
+                id: 'credentials',
+                label: t('companyDetail.credentialsTitle'),
+                icon: KeyRound,
+              },
+              ...(canViewUsers
+                ? [
+                    {
+                      id: 'users' as const,
+                      label: t('users.companyUsersTitle'),
+                      icon: Users,
+                    },
+                  ]
+                : []),
+            ]}
+            active={activeTab}
+            onChange={setActiveTab}
+          />
+          <PageTabPanel
+            idPrefix="company-detail"
+            tab="operation"
+            active={activeTab === 'operation'}
           >
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="flex min-w-0 items-start gap-4">
-                <span
-                  className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${query.data.providerTokenConfigured ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}
+            {activeTab === 'operation' ? (
+              <>
+                <section
+                  className={`rounded-2xl border p-6 ${query.data.providerTokenConfigured ? 'border-emerald-200 bg-emerald-50/70' : 'border-amber-200 bg-amber-50/70'}`}
                 >
-                  <KeyRound size={21} aria-hidden="true" />
-                </span>
-                <div>
-                  <h2 className="text-lg font-bold text-slate-900">
-                    {t('companies.providerAccess')}
-                  </h2>
-                  <span
-                    className={`mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${query.data.providerTokenConfigured ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'}`}
-                  >
-                    {query.data.providerTokenConfigured ? (
-                      <CheckCircle2 size={14} aria-hidden="true" />
-                    ) : (
-                      <TriangleAlert size={14} aria-hidden="true" />
-                    )}
-                    {t(
-                      query.data.providerTokenConfigured
-                        ? 'companies.providerSaved'
-                        : 'companies.providerNotSaved',
-                    )}
-                  </span>
-                  <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-700">
-                    {query.data.providerTokenConfigured
-                      ? t('companies.providerConfigured')
-                      : query.data.legacyProviderTokenFallback
-                        ? t('companies.providerLegacy')
-                        : t('companies.providerMissing')}
-                  </p>
-                  {query.data.providerTokenConfigured ? (
-                    <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-600">
-                      <ShieldCheck size={15} aria-hidden="true" />
-                      {t('companies.providerStoredHint')}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-              {canEdit ? (
-                <div className="flex flex-wrap gap-2">
-                  {query.data.providerTokenConfigured && query.data.active ? (
-                    <>
-                      <button
-                        className="button-primary"
-                        onClick={() => setTestingToken(true)}
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div className="flex min-w-0 items-start gap-4">
+                      <span
+                        className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${query.data.providerTokenConfigured ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}
                       >
-                        <Send size={16} aria-hidden="true" />{' '}
-                        {t('companies.providerTest')}
-                      </button>
-                      {canViewUsers ? (
+                        <KeyRound size={21} aria-hidden="true" />
+                      </span>
+                      <div>
+                        <h2 className="text-lg font-bold text-slate-900">
+                          {t('companies.providerAccess')}
+                        </h2>
+                        <span
+                          className={`mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${query.data.providerTokenConfigured ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'}`}
+                        >
+                          {query.data.providerTokenConfigured ? (
+                            <CheckCircle2 size={14} aria-hidden="true" />
+                          ) : (
+                            <TriangleAlert size={14} aria-hidden="true" />
+                          )}
+                          {t(
+                            query.data.providerTokenConfigured
+                              ? 'companies.providerSaved'
+                              : 'companies.providerNotSaved',
+                          )}
+                        </span>
+                        <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-700">
+                          {query.data.providerTokenConfigured
+                            ? t('companies.providerConfigured')
+                            : query.data.legacyProviderTokenFallback
+                              ? t('companies.providerLegacy')
+                              : t('companies.providerMissing')}
+                        </p>
+                        {query.data.providerTokenConfigured ? (
+                          <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-600">
+                            <ShieldCheck size={15} aria-hidden="true" />
+                            {t('companies.providerStoredHint')}
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                    {canEdit ? (
+                      <div className="flex flex-wrap gap-2">
+                        {query.data.providerTokenConfigured &&
+                        query.data.active ? (
+                          <>
+                            <button
+                              className="button-primary"
+                              onClick={() => setTestingToken(true)}
+                            >
+                              <Send size={16} aria-hidden="true" />{' '}
+                              {t('companies.providerTest')}
+                            </button>
+                            {canViewUsers ? (
+                              <button
+                                className="button-secondary"
+                                onClick={() => setDiagnosing(true)}
+                              >
+                                {t('companyDetail.diagnosticTitle')}
+                              </button>
+                            ) : null}
+                          </>
+                        ) : null}
                         <button
                           className="button-secondary"
-                          onClick={() => setDiagnosing(true)}
+                          onClick={() => setEditing(true)}
                         >
-                          {t('companyDetail.diagnosticTitle')}
+                          {t(
+                            query.data.providerTokenConfigured
+                              ? 'companies.providerReplace'
+                              : 'companies.providerManage',
+                          )}
                         </button>
-                      ) : null}
-                    </>
-                  ) : null}
-                  <button
-                    className="button-secondary"
-                    onClick={() => setEditing(true)}
-                  >
-                    {t(
-                      query.data.providerTokenConfigured
-                        ? 'companies.providerReplace'
-                        : 'companies.providerManage',
-                    )}
-                  </button>
+                      </div>
+                    ) : null}
+                  </div>
+                </section>
+                <CompanyIntegrationHealth publicRef={query.data.publicRef} />
+                <CompanyTestHistory publicRef={query.data.publicRef} />
+              </>
+            ) : null}
+          </PageTabPanel>
+          <PageTabPanel
+            idPrefix="company-detail"
+            tab="credentials"
+            active={activeTab === 'credentials'}
+          >
+            {activeTab === 'credentials' ? (
+              <section aria-label={t('companyDetail.accessSection')}>
+                <div className="mb-3 flex items-center gap-2 text-brand-purple">
+                  <KeyRound size={19} aria-hidden="true" />
+                  <span className="text-xs font-bold uppercase tracking-[0.16em]">
+                    {t('companyDetail.accessSection')}
+                  </span>
                 </div>
-              ) : null}
-            </div>
-          </section>
-          <CompanyIntegrationHealth publicRef={query.data.publicRef} />
-          <CompanyTestHistory publicRef={query.data.publicRef} />
-          <section aria-label={t('companyDetail.accessSection')}>
-            <div className="mb-3 flex items-center gap-2 text-brand-purple">
-              <KeyRound size={19} aria-hidden="true" />
-              <span className="text-xs font-bold uppercase tracking-[0.16em]">
-                {t('companyDetail.accessSection')}
-              </span>
-            </div>
-            <CredentialsPage
-              companyId={query.data.id}
-              companyRef={query.data.publicRef}
-              companyName={query.data.name}
-            />
-          </section>
+                <CredentialsPage
+                  companyId={query.data.id}
+                  companyRef={query.data.publicRef}
+                  companyName={query.data.name}
+                />
+              </section>
+            ) : null}
+          </PageTabPanel>
           {canViewUsers ? (
-            <section aria-label={t('users.companyUsersTitle')}>
-              <UsersPage
-                companyId={query.data.id}
-                companyRef={query.data.publicRef}
-                companyName={query.data.name}
-              />
-            </section>
+            <PageTabPanel
+              idPrefix="company-detail"
+              tab="users"
+              active={activeTab === 'users'}
+            >
+              {activeTab === 'users' ? (
+                <section aria-label={t('users.companyUsersTitle')}>
+                  <UsersPage
+                    companyId={query.data.id}
+                    companyRef={query.data.publicRef}
+                    companyName={query.data.name}
+                  />
+                </section>
+              ) : null}
+            </PageTabPanel>
           ) : null}
           {editing ? (
             <CompanyForm
