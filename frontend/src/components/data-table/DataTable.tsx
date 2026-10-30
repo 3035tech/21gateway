@@ -165,13 +165,13 @@ export function DataTable<T>({
                               ? 'descending'
                               : 'none'
                         }
-                        className={`whitespace-nowrap py-3 font-semibold ${dense ? 'px-3' : 'px-5'} ${compact ? 'data-grid-compact' : ''} ${header.column.id === 'actions' ? `text-center ${stickyActions ? 'data-grid-sticky-action' : ''}` : ''}`}
+                        className={`whitespace-nowrap py-3 font-semibold ${dense ? 'px-3' : 'px-5'} ${compact ? 'data-grid-compact' : ''} ${header.column.columnDef.meta?.centered || header.column.id === 'actions' ? 'text-center' : ''} ${header.column.id === 'actions' && stickyActions ? 'data-grid-sticky-action' : ''}`}
                       >
                         {header.isPlaceholder ? null : header.column.getCanSort() ? (
                           <button
                             type="button"
                             onClick={header.column.getToggleSortingHandler()}
-                            className="button-sort"
+                            className={`button-sort ${header.column.columnDef.meta?.centered ? 'justify-center' : ''}`}
                           >
                             {flexRender(
                               header.column.columnDef.header,
@@ -219,7 +219,7 @@ export function DataTable<T>({
                       {row.getVisibleCells().map((cell) => (
                         <td
                           key={cell.id}
-                          className={`py-3.5 align-middle text-slate-700 ${dense ? 'px-3' : 'px-5'} ${cell.column.id === 'actions' || cell.column.columnDef.meta?.compact ? 'data-grid-compact' : ''} ${cell.column.id === 'actions' ? `data-grid-actions text-center ${stickyActions ? 'data-grid-sticky-action' : ''}` : ''}`}
+                          className={`py-3.5 align-middle text-slate-700 ${dense ? 'px-3' : 'px-5'} ${cell.column.id === 'actions' || cell.column.columnDef.meta?.compact ? 'data-grid-compact' : ''} ${cell.column.columnDef.meta?.centered || cell.column.id === 'actions' ? 'text-center' : ''} ${cell.column.id === 'actions' ? `data-grid-actions ${stickyActions ? 'data-grid-sticky-action' : ''}` : ''}`}
                         >
                           {cell.column.id === 'actions' ? (
                             <div className="flex justify-center">

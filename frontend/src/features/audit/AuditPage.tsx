@@ -27,7 +27,7 @@ function auditColumns(
   onView: (row: Audit) => void,
 ): ColumnDef<Audit>[] {
   return [
-    { accessorKey: 'id', header: 'ID', meta: { compact: true } },
+    { accessorKey: 'id', header: 'ID', meta: { compact: true, centered: true } },
     {
       accessorKey: 'actorName',
       header: t('audit.actor'),
@@ -58,7 +58,7 @@ function auditColumns(
     {
       accessorKey: 'resourceId',
       header: t('audit.tableResourceId'),
-      meta: { compact: true },
+      meta: { compact: true, centered: true },
     },
     {
       accessorKey: 'createdAt',

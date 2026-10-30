@@ -31,7 +31,7 @@ export function CallbacksPage() {
     {
       accessorKey: 'attemptId',
       header: t('common.sending'),
-      meta: { compact: true },
+      meta: { compact: true, centered: true },
     },
     { accessorKey: 'companyName', header: t('common.client') },
     {
@@ -69,11 +69,11 @@ export function CallbacksPage() {
     },
   ]
   const columns: ColumnDef<Callback>[] = [
-    { accessorKey: 'id', header: 'ID', meta: { compact: true } },
+    { accessorKey: 'id', header: 'ID', meta: { compact: true, centered: true } },
     {
       accessorKey: 'attemptId',
       header: t('common.sending'),
-      meta: { compact: true },
+      meta: { compact: true, centered: true },
     },
     {
       accessorKey: 'companyName',

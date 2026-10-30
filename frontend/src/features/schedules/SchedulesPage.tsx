@@ -23,7 +23,7 @@ function scheduleColumns(
     {
       accessorKey: 'attemptId',
       header: t('common.id'),
-      meta: { compact: true },
+      meta: { compact: true, centered: true },
     },
     {
       accessorKey: 'companyName',

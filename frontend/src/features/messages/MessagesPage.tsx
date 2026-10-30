@@ -169,7 +169,7 @@ export function MessagesPage() {
   const { t } = useTranslation()
   const [viewing, setViewing] = useState<Message | null>(null)
   const columns: ColumnDef<Message>[] = [
-    { accessorKey: 'id', header: t('common.id'), meta: { compact: true } },
+    { accessorKey: 'id', header: t('common.id'), meta: { compact: true, centered: true } },
     {
       accessorKey: 'companyName',
       header: t('common.client'),

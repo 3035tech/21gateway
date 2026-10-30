@@ -99,6 +99,8 @@ Revisão de largura em 30/10: colunas curtas (IDs, estados, datas, papéis, tent
 
 Os cabeçalhos das listas usam o contexto da tela para reduzir texto repetido: Agendamentos mostra “ID”, “Credencial”, “Solicitado”, “Agendado” e “Despachado”; Credenciais mostra “Usuário”, “IPs” e “Notificações”; Callbacks usa “Entrega”, “ID Zoug”, “Data Zoug” e “Recebido”; Usuários usa “Perfil”. Rótulos completos permanecem em formulários e detalhes. Campos que distinguem conceitos próximos, como fila/entrega/callback e código de falha, conservam nomes específicos.
 
+IDs internos de envio, callback e auditoria ficam centralizados no cabeçalho e nas células; o alinhamento é declarado por coluna no componente de tabela. Nomes, referências e dados descritivos continuam alinhados à esquerda.
+
 Atualização de 30/10: as colunas Ações das listagens reais e da prévia usam botões de ícone de 44 px em uma linha, com dica nativa no hover, nome acessível e foco visível. Visualizar, testar credencial, editar, trocar senha, reenviar convite, tentar novamente e arquivar têm ícones distintos; arquivar mantém cor de perigo e confirmação. Ações principais de formulário, diálogo e recuperação de erro continuam com texto para preservar clareza.
 Na listagem de credenciais, os chips DLR/MO da coluna Notificações ao cliente ficam centralizados na largura da célula, inclusive quando precisam quebrar de linha.
 
