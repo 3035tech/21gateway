@@ -4,6 +4,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { LanguageSwitcher } from './LanguageSwitcher'
 import { AppSelect } from './AppSelect'
+import { NotificationBell } from '../../features/notifications/NotificationBell'
 import {
   Building2,
   Users,
@@ -16,6 +17,7 @@ import {
   LogOut,
   Menu,
   ChevronRight,
+  Bell,
 } from 'lucide-react'
 const navigation = [
   ['/', 'nav.overview', LayoutDashboard, false],
@@ -26,6 +28,7 @@ const navigation = [
   ['/agendamentos', 'nav.schedules', CalendarClock, false],
   ['/callbacks', 'nav.callbacks', Webhook, false],
   ['/auditoria', 'nav.audit', History, true],
+  ['/notificacoes', 'nav.notifications', Bell, true],
 ] as const
 function Navigation({
   admin,
@@ -233,6 +236,7 @@ export function PanelShell({
                 />
               </div>
             ) : null}
+            {admin && !demo ? <NotificationBell /> : null}
             <LanguageSwitcher />
             {demo ? (
               <span className="hidden rounded-md bg-purple-50 px-3 py-1 text-xs font-semibold text-brand-purple sm:block">

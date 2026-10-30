@@ -49,6 +49,11 @@ const Callbacks = lazy(() =>
 const Audit = lazy(() =>
   import('../features/audit/AuditPage').then((m) => ({ default: m.AuditPage })),
 )
+const Notifications = lazy(() =>
+  import('../features/notifications/NotificationsPage').then((m) => ({
+    default: m.NotificationsPage,
+  })),
+)
 const Profile = lazy(() =>
   import('../features/users/ProfilePage').then((m) => ({
     default: m.ProfilePage,
@@ -111,6 +116,14 @@ export default function AdminApp() {
                   <Route path="/agendamentos" element={<Schedules />} />
                   <Route path="/perfil" element={<Profile />} />
                   <Route path="/callbacks" element={<Callbacks />} />
+                  <Route
+                    path="/notificacoes"
+                    element={
+                      <AdminOnly>
+                        <Notifications />
+                      </AdminOnly>
+                    }
+                  />
                   <Route
                     path="/auditoria"
                     element={

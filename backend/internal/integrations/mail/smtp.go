@@ -3,7 +3,11 @@ package mail
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
+	"mime"
+	"mime/quotedprintable"
 	"net"
+	"net/mail"
 	"net/smtp"
 	"net/url"
 	"strings"
@@ -52,6 +56,27 @@ func (s *SMTP) SendPasswordReset(ctx context.Context, to, token string) error {
 func (s *SMTP) SendInvitation(ctx context.Context, to, token string) error {
 	return s.send(ctx, to, token, invitationMessage)
 }
+func (s *SMTP) SendCriticalAlert(ctx context.Context, to, title, description, path string) error {
+	if _, err := mail.ParseAddress(to); err != nil {
+		return err
+	}
+	if strings.ContainsAny(to+title+description, "\r\n") || !strings.HasPrefix(path, "/") || strings.HasPrefix(path, "//") {
+		return fmt.Errorf("invalid alert message")
+	}
+	link := *s.AppURL
+	link.Path = strings.TrimRight(link.Path, "/") + path
+	var body strings.Builder
+	fmt.Fprintf(&body, "From: %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\n", s.From, to, mime.QEncoding.Encode("utf-8", "21 Mobile: "+title))
+	encoded := quotedprintable.NewWriter(&body)
+	_, err := fmt.Fprintf(encoded, "%s\n\n%s\n\nAcesse o painel: %s\n", title, description, link.String())
+	if err != nil {
+		return err
+	}
+	if err := encoded.Close(); err != nil {
+		return err
+	}
+	return s.sendRaw(ctx, to, []byte(body.String()))
+}
 func (s *SMTP) send(ctx context.Context, to, token string, content messageContent) error {
 	link := *s.AppURL
 	link.Path = strings.TrimRight(link.Path, "/") + "/resetar-senha"
@@ -60,6 +85,9 @@ func (s *SMTP) send(ctx context.Context, to, token string, content messageConten
 	if err != nil {
 		return err
 	}
+	return s.sendRaw(ctx, to, message)
+}
+func (s *SMTP) sendRaw(ctx context.Context, to string, message []byte) error {
 	address := net.JoinHostPort(s.Host, s.Port)
 	conn, err := (&net.Dialer{Timeout: dialTimeout}).DialContext(ctx, "tcp", address)
 	if err != nil {

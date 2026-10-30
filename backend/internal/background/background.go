@@ -4,12 +4,14 @@ package background
 import (
 	"context"
 	"log/slog"
+	"net/url"
 	"sync"
 
 	"github.com/21mobile/sms-gateway/internal/config"
 	apperrors "github.com/21mobile/sms-gateway/internal/errors"
 	"github.com/21mobile/sms-gateway/internal/integrations/callback"
 	"github.com/21mobile/sms-gateway/internal/integrations/dispatchqueue"
+	"github.com/21mobile/sms-gateway/internal/integrations/mail"
 	"github.com/21mobile/sms-gateway/internal/integrations/whitelabel"
 	"github.com/21mobile/sms-gateway/internal/models"
 	"github.com/21mobile/sms-gateway/internal/repositories"
@@ -23,6 +25,7 @@ type Workers struct {
 	mo               *services.MOWorker
 	retention        *services.MaintenanceService
 	messageRetention *services.MessageRetentionWorker
+	notifications    *services.NotificationService
 	scheduled        *services.ScheduledSMSWorker
 	pipeline         *services.DispatchPipeline
 	sendReferences   *services.SendReferencePipeline
@@ -61,6 +64,16 @@ func New(ctx context.Context, cfg config.Config, db *gorm.DB, provider *whitelab
 		}
 	}
 	w.messageRetention = services.NewMessageRetentionWorker(repositories.NewSMSAttempts(db))
+	var alertMailer services.NotificationMailer
+	if cfg.RecoverySMTPHost != "" {
+		appURL, err := url.Parse(cfg.PublicAppURL)
+		if err != nil {
+			w.Close()
+			return nil, err
+		}
+		alertMailer = &mail.SMTP{Host: cfg.RecoverySMTPHost, Port: cfg.RecoverySMTPPort, Username: cfg.RecoverySMTPUser, Password: cfg.RecoverySMTPPassword, From: cfg.RecoverySMTPFrom, AppURL: appURL}
+	}
+	w.notifications = services.NewNotificationService(repositories.NewNotifications(db), services.NewOperationsService(repositories.NewOperations(db)), alertMailer)
 	w.callback = services.NewCallbackWorker(repositories.NewCallbacks(db), w.sender)
 	if moVault.Enabled() {
 		w.mo = services.NewMOWorker(repositories.NewMOs(db), w.sender, moVault)
@@ -123,6 +136,9 @@ func (w *Workers) Run(ctx context.Context) {
 	}
 	if w.messageRetention != nil {
 		start(w.messageRetention.Run)
+	}
+	if w.notifications != nil {
+		start(w.notifications.Run)
 	}
 	slog.Info("Callback worker started")
 	w.callback.Run(ctx)

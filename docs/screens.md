@@ -103,3 +103,6 @@ Visão geral, empresas e detalhe, usuários, credenciais e detalhe, envios, agen
 O seletor de empresas autorizadas no formulário de usuário usa busca e paginação no servidor (20 resultados por página). A seleção permanece no formulário entre páginas. Para usuários vinculados a muitas empresas, somente cinco selecionadas aparecem por página e apenas esses cinco nomes são consultados; o total continua visível. Ao selecionar uma empresa, a página das selecionadas avança para mostrar o novo vínculo. A remoção permanece possível em qualquer página.
 
 Perfil usa a largura do conteúdo administrativo: dados da conta ocupam uma faixa, e os cartões de senha e verificação em duas etapas ficam lado a lado em telas largas e empilhados nas demais. Campos preenchem a largura do respectivo cartão. Erros de validação aparecem somente quando presentes, sem reservar espaços vazios entre os campos.
+# Notificações internas — 30/10/2026
+
+Tela real `/notificacoes` exclusiva do administrador: histórico paginado/filtrado e configuração global de e-mail por tipo. Sininho no cabeçalho mostra não lidas e últimas ocorrências. Todos os tipos aparecem no painel; somente tipos ativados também geram e-mail para administradores ativos.

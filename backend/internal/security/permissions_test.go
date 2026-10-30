@@ -26,6 +26,10 @@ func TestPermissionsEnforceInternalRoles(t *testing.T) {
 		{models.Role("external_api"), ResourceCompanies, ActionRead, false},
 		{models.RoleAdmin, ResourceMessages, ActionWrite, true},
 		{models.RoleOperator, ResourceMessages, ActionWrite, false},
+		{models.RoleAdmin, ResourceNotifications, ActionRead, true},
+		{models.RoleAdmin, ResourceNotifications, ActionWrite, true},
+		{models.RoleOperator, ResourceNotifications, ActionRead, false},
+		{models.RoleViewer, ResourceNotifications, ActionRead, false},
 	}
 	for _, c := range cases {
 		if got := permissions.Allow(c.role, c.resource, c.action); got != c.allowed {

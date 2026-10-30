@@ -22,6 +22,7 @@ type Dependencies struct {
 	SMTPProbe                     func(context.Context) error
 	SQSProbe                      func(context.Context) error
 	Operations                    *services.OperationsService
+	Notifications                 *services.NotificationService
 	OperationsEnabled             bool
 	OperationsToken               string
 	HealthDependenciesTokenSHA256 string
@@ -118,6 +119,9 @@ func New(origins []string, docsEnabled bool, ping func(context.Context) error, d
 		}
 		if dependencies.Operations != nil {
 			controllers.NewOperationsController(dependencies.Operations).RegisterAdmin(api, guard)
+		}
+		if dependencies.Notifications != nil {
+			controllers.NewNotificationController(dependencies.Notifications, guard).Register(api)
 		}
 	}
 	if dependencies.Callbacks != nil && dependencies.CallbackIngressEnabled {

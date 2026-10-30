@@ -39,6 +39,8 @@ O envio direto de teste do token da empresa usa `company_test_sends`, separado d
 
 ## Segurança e sessões
 
+Notificações operacionais pertencem ao domínio `notification` em controller, service, DTO, model e repository; o router e o worker apenas compõem. A migração 026 cria ocorrências deduplicadas e recibos por administrador. Preferências globais por tipo definem e-mail para novas ocorrências, usando o SMTP existente. Leitura e configuração exigem `RoleAdmin` via `ResourceNotifications`; a Visão geral mantém seus avisos imediatos, enquanto o sininho oferece histórico persistido. Detalhes em [notifications.md](notifications.md).
+
 Argon2id; verificação concorrente limitada, hash fictício para contas inexistentes. SCS mantém sessões no PostgreSQL; cookies HttpOnly/Secure em produção, oito horas máximas e oito horas de inatividade sem “Lembrar de mim”; com a opção, até 14 dias. Renovação no login, destruição no logout, lookup da conta/versionamento a cada request. Casbin controla perfis internos. APIcredentials/clientes não ganham sessão de painel.
 
 CSRF com CrossOriginProtection da biblioteca padrão Go, origens exatas compartilhadas com CORS, somente no prefixo /admin. API externa e ingress de callback têm autenticação independente. HTTPS terminado pela infraestrutura. SameSite=None é configurável para hosting em sites distintos e exige Secure.

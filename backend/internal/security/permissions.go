@@ -10,14 +10,15 @@ type Resource string
 type Action string
 
 const (
-	ResourceCompanies   Resource = "companies"
-	ResourceUsers       Resource = "users"
-	ResourceCredentials Resource = "credentials"
-	ResourceMessages    Resource = "messages"
-	ResourceCallbacks   Resource = "callbacks"
-	ResourceAudit       Resource = "audit"
-	ActionRead          Action   = "read"
-	ActionWrite         Action   = "write"
+	ResourceCompanies     Resource = "companies"
+	ResourceUsers         Resource = "users"
+	ResourceCredentials   Resource = "credentials"
+	ResourceMessages      Resource = "messages"
+	ResourceCallbacks     Resource = "callbacks"
+	ResourceAudit         Resource = "audit"
+	ResourceNotifications Resource = "notifications"
+	ActionRead            Action   = "read"
+	ActionWrite           Action   = "write"
 )
 
 type Permissions struct{ enforcer *casbin.Enforcer }
@@ -57,6 +58,11 @@ m = g(r.sub, p.sub) && r.obj == p.obj && r.act == p.act`)
 	}
 	if _, err := enforcer.AddPolicy(string(models.RoleAdmin), string(ResourceAudit), string(ActionRead)); err != nil {
 		return nil, err
+	}
+	for _, action := range []Action{ActionRead, ActionWrite} {
+		if _, err := enforcer.AddPolicy(string(models.RoleAdmin), string(ResourceNotifications), string(action)); err != nil {
+			return nil, err
+		}
 	}
 	if _, err := enforcer.AddPolicy(string(models.RoleAdmin), string(ResourceMessages), string(ActionWrite)); err != nil {
 		return nil, err

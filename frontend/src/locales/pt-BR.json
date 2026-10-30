@@ -709,6 +709,27 @@
       "apiPasswordChanged": "Senha da API alterada"
     }
   },
+  "notifications": {
+    "title": "Notificações",
+    "intro": "Avisos operacionais para os administradores do gateway.",
+    "bellLabel": "Notificações: {{count}} não lidas",
+    "viewAll": "Ver todas",
+    "empty": "Nenhuma notificação encontrada.",
+    "loadFailed": "Não foi possível carregar as notificações.",
+    "saveFailed": "Não foi possível salvar a preferência de e-mail.",
+    "emailSettings": "Alertas por e-mail",
+    "emailHint": "Todos os tipos aparecem no sininho. Os tipos selecionados também são enviados aos administradores ativos quando uma nova ocorrência começa. A alteração não envia e-mails de ocorrências anteriores.",
+    "smtpUnavailable": "O envio de e-mail ainda não está configurado neste ambiente.",
+    "sendEmail": "Enviar por e-mail",
+    "history": "Histórico",
+    "unreadOnly": "Somente não lidas",
+    "date": "Data",
+    "type": "Tipo",
+    "description": "Descrição",
+    "resolved": "Resolvido",
+    "active": "Em aberto",
+    "markRead": "Marcar como lida"
+  },
   "nav": {
     "overview": "Visão geral",
     "companies": "Empresas",
@@ -718,6 +739,7 @@
     "schedules": "Agendamentos",
     "callbacks": "Callbacks",
     "audit": "Auditoria",
+    "notifications": "Notificações",
     "profile": "Meu perfil",
     "menu": "Menu",
     "logout": "Sair",
