@@ -217,7 +217,7 @@ export function CredentialsPage({
       id: 'notifications',
       header: t('credentials.notificationsSection'),
       cell: ({ row }) => (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap justify-center gap-1.5">
           {[
             ['DLR', row.original.callbacksEnabled],
             ['MO', row.original.moCallbacksEnabled],
