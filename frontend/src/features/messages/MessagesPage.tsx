@@ -169,7 +169,7 @@ export function MessagesPage() {
   const { t } = useTranslation()
   const [viewing, setViewing] = useState<Message | null>(null)
   const columns: ColumnDef<Message>[] = [
-    { accessorKey: 'id', header: t('common.id') },
+    { accessorKey: 'id', header: t('common.id'), meta: { compact: true } },
     {
       accessorKey: 'companyName',
       header: t('common.client'),
@@ -179,16 +179,22 @@ export function MessagesPage() {
           ? t('common.companyNumber', { id: row.original.companyId })
           : t('common.noCompany')),
     },
-    { accessorKey: 'destination', header: t('common.destination') },
+    {
+      accessorKey: 'destination',
+      header: t('common.destination'),
+      meta: { compact: true },
+    },
     { accessorKey: 'correlationId', header: t('common.reference') },
     {
       accessorKey: 'state',
       header: t('common.sending'),
+      meta: { compact: true },
       cell: ({ row }) => <StatusBadge status={row.original.state} />,
     },
     {
       accessorKey: 'deliveryStatus',
       header: t('common.delivery'),
+      meta: { compact: true },
       cell: ({ row }) =>
         row.original.deliveryStatus ? (
           <StatusBadge status={row.original.deliveryStatus} />
@@ -199,10 +205,12 @@ export function MessagesPage() {
     {
       accessorKey: 'failureCode',
       header: t('common.failureCode'),
+      meta: { compact: true },
     },
     {
       accessorKey: 'createdAt',
       header: t('common.date'),
+      meta: { compact: true },
       cell: ({ row }) => <DateCell value={row.original.createdAt} />,
     },
     {

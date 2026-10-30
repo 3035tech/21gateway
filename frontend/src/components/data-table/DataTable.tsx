@@ -76,6 +76,7 @@ export function DataTable<T>({
   const id = useId()
   const [draft, setDraft] = useState(search)
   const isFiltered = !!search.trim() || hasActiveFilters
+  const dense = columns.length >= 7
   // eslint-disable-next-line react-hooks/incompatible-library -- React Compiler is not enabled; this table is not memoized.
   const table = useReactTable({
     columns,
@@ -150,6 +151,9 @@ export function DataTable<T>({
                 <tr key={group.id}>
                   {group.headers.map((header) => {
                     const direction = header.column.getIsSorted()
+                    const compact =
+                      header.column.id === 'actions' ||
+                      header.column.columnDef.meta?.compact
                     return (
                       <th
                         key={header.id}
@@ -161,7 +165,7 @@ export function DataTable<T>({
                               ? 'descending'
                               : 'none'
                         }
-                        className={`whitespace-nowrap px-5 py-3 font-semibold ${header.column.id === 'actions' ? `text-center ${stickyActions ? 'data-grid-sticky-action' : ''}` : ''}`}
+                        className={`whitespace-nowrap py-3 font-semibold ${dense ? 'px-3' : 'px-5'} ${compact ? 'data-grid-compact' : ''} ${header.column.id === 'actions' ? `text-center ${stickyActions ? 'data-grid-sticky-action' : ''}` : ''}`}
                       >
                         {header.isPlaceholder ? null : header.column.getCanSort() ? (
                           <button
@@ -215,7 +219,7 @@ export function DataTable<T>({
                       {row.getVisibleCells().map((cell) => (
                         <td
                           key={cell.id}
-                          className={`px-5 py-3.5 align-middle text-slate-700 ${cell.column.id === 'actions' ? `data-grid-actions text-center ${stickyActions ? 'data-grid-sticky-action' : ''}` : ''}`}
+                          className={`py-3.5 align-middle text-slate-700 ${dense ? 'px-3' : 'px-5'} ${cell.column.id === 'actions' || cell.column.columnDef.meta?.compact ? 'data-grid-compact' : ''} ${cell.column.id === 'actions' ? `data-grid-actions text-center ${stickyActions ? 'data-grid-sticky-action' : ''}` : ''}`}
                         >
                           {cell.column.id === 'actions' ? (
                             <div className="flex justify-center">

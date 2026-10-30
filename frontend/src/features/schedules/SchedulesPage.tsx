@@ -20,7 +20,11 @@ function scheduleColumns(
   onView: (row: Schedule) => void,
 ): ColumnDef<Schedule>[] {
   return [
-    { accessorKey: 'attemptId', header: t('common.messageId') },
+    {
+      accessorKey: 'attemptId',
+      header: t('common.messageId'),
+      meta: { compact: true },
+    },
     {
       accessorKey: 'companyName',
       header: t('common.client'),
@@ -30,28 +34,37 @@ function scheduleColumns(
     {
       accessorKey: 'createdAt',
       header: t('schedules.requestedAt'),
+      meta: { compact: true },
       cell: ({ row }) => <DateCell value={row.original.createdAt} />,
     },
     {
       accessorKey: 'scheduledAt',
       header: t('schedules.scheduledFor'),
+      meta: { compact: true },
       cell: ({ row }) => <DateCell value={row.original.scheduledAt} />,
     },
     {
       accessorKey: 'state',
       header: t('schedules.queue'),
+      meta: { compact: true },
       cell: ({ row }) => <StatusBadge status={row.original.state} />,
     },
     {
       accessorKey: 'submissionState',
       header: t('common.sending'),
+      meta: { compact: true },
       cell: ({ row }) => <StatusBadge status={row.original.submissionState} />,
     },
-    { accessorKey: 'destination', header: t('common.destination') },
+    {
+      accessorKey: 'destination',
+      header: t('common.destination'),
+      meta: { compact: true },
+    },
     { accessorKey: 'correlationId', header: t('common.reference') },
     {
       accessorKey: 'dispatchedAt',
       header: t('schedules.dispatchedAt'),
+      meta: { compact: true },
       cell: ({ row }) =>
         row.original.dispatchedAt ? (
           <DateCell value={row.original.dispatchedAt} />

@@ -100,6 +100,14 @@
     @apply max-w-80;
     overflow-wrap: anywhere;
   }
+  .data-grid .data-grid-compact {
+    width: 1%;
+    white-space: nowrap;
+  }
+  .data-grid td.data-grid-compact {
+    max-width: none;
+    overflow-wrap: normal;
+  }
   .data-grid td.data-grid-actions {
     max-width: none;
     overflow-wrap: normal;

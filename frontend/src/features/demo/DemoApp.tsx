@@ -601,10 +601,12 @@ function Listing({
     {
       accessorKey: 'status',
       header: t('common.status'),
+      meta: { compact: true },
       cell: ({ row }) => <Badge value={row.original.status} />,
     },
     {
       accessorKey: 'date',
+      meta: { compact: true },
       header:
         section === 'agendamentos'
           ? t('schedules.requestedAt')

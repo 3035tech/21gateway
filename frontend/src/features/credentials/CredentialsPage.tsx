@@ -173,6 +173,7 @@ export function CredentialsPage({
     {
       accessorKey: 'providerTokenConfigured',
       header: 'Zoug',
+      meta: { compact: true },
       cell: ({ row }) =>
         row.original.providerTokenConfigured
           ? t('credentials.tokenConfigured')
@@ -181,6 +182,7 @@ export function CredentialsPage({
     {
       accessorKey: 'whitelistEnabled',
       header: t('credentials.ipAccess'),
+      meta: { compact: true },
       cell: ({ row }) =>
         row.original.whitelistEnabled
           ? t('credentials.ipCount', { count: row.original.allowedIPs.length })
@@ -189,6 +191,7 @@ export function CredentialsPage({
     {
       accessorKey: 'active',
       header: t('common.status'),
+      meta: { compact: true },
       cell: ({ row }) => (
         <StatusBadge
           status={
@@ -205,6 +208,7 @@ export function CredentialsPage({
     {
       accessorKey: 'expiresAt',
       header: t('credentials.expiresAt'),
+      meta: { compact: true },
       cell: ({ row }) =>
         row.original.expiresAt ? (
           <DateCell value={row.original.expiresAt} />
@@ -216,6 +220,7 @@ export function CredentialsPage({
       accessorKey: 'callbacksEnabled',
       id: 'notifications',
       header: t('credentials.notificationsSection'),
+      meta: { compact: true },
       cell: ({ row }) => (
         <div className="flex flex-wrap justify-center gap-1.5">
           {[
@@ -243,6 +248,7 @@ export function CredentialsPage({
     {
       accessorKey: 'createdAt',
       header: t('common.createdAt'),
+      meta: { compact: true },
       cell: ({ row }) => <DateCell value={row.original.createdAt} />,
     },
   ]

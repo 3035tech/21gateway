@@ -334,10 +334,10 @@ export function NotificationsPage() {
             ))}
           </ul>
           <div className="mt-4 hidden overflow-x-auto md:block">
-            <table className="w-full text-left text-sm">
+            <table className="w-full min-w-[720px] text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-200 text-slate-600">
-                  <th className="p-2">
+                  <th className="w-px whitespace-nowrap p-2">
                     <button
                       onClick={() => changeSort('openedAt')}
                       className="font-semibold hover:underline"
@@ -355,9 +355,15 @@ export function NotificationsPage() {
                       {sort === 'title' ? (order === 'asc' ? '↑' : '↓') : ''}
                     </button>
                   </th>
-                  <th className="p-2">{t('notifications.description')}</th>
-                  <th className="p-2">{t('common.status')}</th>
-                  <th className="p-2">{t('common.actions')}</th>
+                  <th className="min-w-56 p-2">
+                    {t('notifications.description')}
+                  </th>
+                  <th className="w-px whitespace-nowrap p-2">
+                    {t('common.status')}
+                  </th>
+                  <th className="w-px whitespace-nowrap p-2">
+                    {t('common.actions')}
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -366,7 +372,7 @@ export function NotificationsPage() {
                     key={item.id}
                     className="border-b border-slate-100 align-top"
                   >
-                    <td className="whitespace-nowrap p-2 text-slate-600">
+                    <td className="w-px whitespace-nowrap p-2 text-slate-600">
                       {new Date(item.openedAt).toLocaleString(i18n.language)}
                     </td>
                     <td className="p-2 font-semibold text-slate-900">
@@ -380,10 +386,10 @@ export function NotificationsPage() {
                         {item.title}
                       </span>
                     </td>
-                    <td className="max-w-md p-2 leading-6 text-slate-600">
+                    <td className="min-w-56 p-2 leading-6 text-slate-600">
                       {item.description}
                     </td>
-                    <td className="p-2">
+                    <td className="w-px whitespace-nowrap p-2">
                       <span
                         className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${item.resolvedAt ? 'bg-slate-100 text-slate-600' : 'bg-amber-50 text-amber-900'}`}
                       >
@@ -392,7 +398,7 @@ export function NotificationsPage() {
                           : t('notifications.active')}
                       </span>
                     </td>
-                    <td className="whitespace-nowrap p-2">
+                    <td className="w-px whitespace-nowrap p-2">
                       <div className="flex w-max items-center gap-1">
                         <TableIconLink
                           icon={Eye}

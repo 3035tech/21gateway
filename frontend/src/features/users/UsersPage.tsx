@@ -111,11 +111,13 @@ export function UsersPage({
     {
       accessorKey: 'role',
       header: t('roles.label'),
+      meta: { compact: true },
       cell: ({ row }) => t(roleLabels[row.original.role]),
     },
     {
       accessorKey: 'active',
       header: t('common.status'),
+      meta: { compact: true },
       cell: ({ row }) => (
         <StatusBadge status={row.original.active ? 'active' : 'blocked'} />
       ),
@@ -123,6 +125,7 @@ export function UsersPage({
     {
       accessorKey: 'createdAt',
       header: t('common.createdAt'),
+      meta: { compact: true },
       cell: ({ row }) => <DateCell value={row.original.createdAt} />,
     },
   ]

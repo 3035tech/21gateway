@@ -28,16 +28,22 @@ export function CallbacksPage() {
     'feedback.retryScheduled',
   )
   const receivedColumns: ColumnDef<ReceivedCallback>[] = [
-    { accessorKey: 'attemptId', header: t('common.sending') },
+    {
+      accessorKey: 'attemptId',
+      header: t('common.sending'),
+      meta: { compact: true },
+    },
     { accessorKey: 'companyName', header: t('common.client') },
     {
       accessorKey: 'kind',
       header: t('callbacks.eventKind'),
+      meta: { compact: true },
       cell: ({ row }) => t(`callbacks.kind.${row.original.kind}`),
     },
     {
       accessorKey: 'status',
       header: t('callbacks.smsDelivery'),
+      meta: { compact: true },
       cell: ({ row }) =>
         row.original.kind === 'mo' ? (
           t('callbacks.moReceived')
@@ -52,17 +58,23 @@ export function CallbacksPage() {
     {
       accessorKey: 'occurredAt',
       header: t('callbacks.providerTime'),
+      meta: { compact: true },
       cell: ({ row }) => <DateCell value={row.original.occurredAt} />,
     },
     {
       accessorKey: 'receivedAt',
       header: t('callbacks.receivedAt'),
+      meta: { compact: true },
       cell: ({ row }) => <DateCell value={row.original.receivedAt} />,
     },
   ]
   const columns: ColumnDef<Callback>[] = [
-    { accessorKey: 'id', header: 'ID' },
-    { accessorKey: 'attemptId', header: t('common.sending') },
+    { accessorKey: 'id', header: 'ID', meta: { compact: true } },
+    {
+      accessorKey: 'attemptId',
+      header: t('common.sending'),
+      meta: { compact: true },
+    },
     {
       accessorKey: 'companyName',
       header: t('common.client'),
@@ -76,14 +88,20 @@ export function CallbacksPage() {
     {
       accessorKey: 'status',
       header: t('callbacks.smsDelivery'),
+      meta: { compact: true },
       cell: ({ row }) => <StatusBadge status={row.original.status} />,
     },
     {
       accessorKey: 'state',
       header: 'Callback',
+      meta: { compact: true },
       cell: ({ row }) => <StatusBadge status={row.original.state} />,
     },
-    { accessorKey: 'attempts', header: t('callbacks.attempts') },
+    {
+      accessorKey: 'attempts',
+      header: t('callbacks.attempts'),
+      meta: { compact: true },
+    },
     {
       accessorKey: 'lastError',
       header: t('callbacks.lastFailure'),
@@ -101,6 +119,7 @@ export function CallbacksPage() {
     {
       accessorKey: 'createdAt',
       header: t('common.date'),
+      meta: { compact: true },
       cell: ({ row }) => <DateCell value={row.original.createdAt} />,
     },
   ]
