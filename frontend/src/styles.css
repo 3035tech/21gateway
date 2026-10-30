@@ -101,7 +101,7 @@
     overflow-wrap: anywhere;
   }
   .data-grid .data-grid-compact {
-    width: 1%;
+    width: 1px;
     white-space: nowrap;
   }
   .data-grid td.data-grid-compact {
