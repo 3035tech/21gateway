@@ -329,7 +329,7 @@ export function CredentialForm({
                 aria-controls={`credential-panel-${tab}`}
                 tabIndex={activeTab === tab ? 0 : -1}
                 disabled={mutation.isPending}
-                className={`flex min-w-0 items-center justify-center gap-2 rounded-lg border-b-2 px-2 py-3 text-xs font-semibold sm:text-sm ${activeTab === tab ? 'border-brand-purple bg-purple-50 text-brand-purple' : 'border-transparent text-slate-600 hover:bg-slate-50'}`}
+                className={`flex min-w-0 items-center justify-center gap-2 rounded-lg border-b-2 px-0 py-3 text-xs font-semibold sm:px-2 sm:text-sm ${activeTab === tab ? 'border-brand-purple bg-purple-50 text-brand-purple' : 'border-transparent text-slate-600 hover:bg-slate-50'}`}
                 onClick={() => selectTab(tab)}
                 onKeyDown={(event) => {
                   if (
