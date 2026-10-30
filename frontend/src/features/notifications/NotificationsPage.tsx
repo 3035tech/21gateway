@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Bell, Mail } from 'lucide-react'
+import type { NotificationPreference } from './api'
 import {
   listNotifications,
   listNotificationPreferences,
@@ -45,10 +46,24 @@ export function NotificationsPage() {
   const save = useMutation({
     mutationFn: ({ code, enabled }: { code: string; enabled: boolean }) =>
       setNotificationPreference(code, enabled),
-    onSuccess: () =>
+    onSuccess: (saved) => {
+      client.setQueryData<{
+        items: NotificationPreference[]
+        emailAvailable: boolean
+      }>(['admin', 'notification-preferences'], (current) =>
+        current
+          ? {
+              ...current,
+              items: current.items.map((item) =>
+                item.code === saved.code ? saved : item,
+              ),
+            }
+          : current,
+      )
       client.invalidateQueries({
         queryKey: ['admin', 'notification-preferences'],
-      }),
+      })
+    },
   })
   const changeSort = (field: 'openedAt' | 'title') => {
     setPage(1)
@@ -93,11 +108,6 @@ export function NotificationsPage() {
             {t('notifications.loadFailed')}
           </p>
         ) : null}
-        {save.isError ? (
-          <p role="alert" className="mx-5 mt-4 text-sm text-rose-700 sm:mx-6">
-            {t('notifications.saveFailed')}
-          </p>
-        ) : null}
         {preferences.isPending ? (
           <p className="px-5 py-6 text-sm text-slate-600 sm:px-6">
             {t('common.loading')}
@@ -122,34 +132,50 @@ export function NotificationsPage() {
                   </span>
                 </span>
               </span>
-              <span className="flex shrink-0 items-center gap-3 font-medium text-slate-600">
-                <span className="inline-flex items-center gap-1.5">
-                  <Mail size={15} aria-hidden="true" />
-                  <span className="hidden sm:inline">
-                    {t('notifications.sendEmail')}
+              <span className="flex shrink-0 flex-col items-end gap-1">
+                <span className="flex items-center gap-3 font-medium text-slate-600">
+                  <span className="inline-flex items-center gap-1.5">
+                    <Mail size={15} aria-hidden="true" />
+                    <span className="hidden sm:inline">
+                      {t('notifications.sendEmail')}
+                    </span>
                   </span>
+                  <input
+                    type="checkbox"
+                    checked={preference.emailEnabled}
+                    disabled={
+                      save.isPending ||
+                      (!preferences.data.emailAvailable &&
+                        !preference.emailEnabled)
+                    }
+                    onChange={(event) =>
+                      save.mutate({
+                        code: preference.code,
+                        enabled: event.target.checked,
+                      })
+                    }
+                    aria-label={`${preference.title}: ${t('notifications.sendEmail')}`}
+                    className="peer sr-only"
+                  />
+                  <span
+                    aria-hidden="true"
+                    className="relative h-7 w-12 rounded-full bg-slate-300 transition-colors before:absolute before:left-1 before:top-1 before:size-5 before:rounded-full before:bg-white before:shadow-sm before:transition-transform peer-checked:bg-brand-purple peer-checked:before:translate-x-5 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand-purple peer-disabled:opacity-50"
+                  />
                 </span>
-                <input
-                  type="checkbox"
-                  checked={preference.emailEnabled}
-                  disabled={
-                    save.isPending ||
-                    (!preferences.data.emailAvailable &&
-                      !preference.emailEnabled)
-                  }
-                  onChange={(event) =>
-                    save.mutate({
-                      code: preference.code,
-                      enabled: event.target.checked,
-                    })
-                  }
-                  aria-label={`${preference.title}: ${t('notifications.sendEmail')}`}
-                  className="peer sr-only"
-                />
-                <span
-                  aria-hidden="true"
-                  className="relative h-7 w-12 rounded-full bg-slate-300 transition-colors before:absolute before:left-1 before:top-1 before:size-5 before:rounded-full before:bg-white before:shadow-sm before:transition-transform peer-checked:bg-brand-purple peer-checked:before:translate-x-5 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand-purple peer-disabled:opacity-50"
-                />
+                {save.variables?.code === preference.code ? (
+                  <span
+                    className={`max-w-36 text-right text-xs ${save.isError ? 'text-rose-700' : 'text-slate-500'}`}
+                    role={save.isError ? 'alert' : 'status'}
+                  >
+                    {save.isPending
+                      ? t('notifications.saving')
+                      : save.isError
+                        ? t('notifications.saveFailed')
+                        : save.isSuccess
+                          ? t('notifications.saved')
+                          : null}
+                  </span>
+                ) : null}
               </span>
             </label>
           ))}
@@ -205,7 +231,80 @@ export function NotificationsPage() {
             {t('notifications.empty')}
           </p>
         ) : null}
-        <div className="mt-4 overflow-x-auto">
+        <div
+          className="mt-4 flex gap-2 md:hidden"
+          role="group"
+          aria-label={t('notifications.sortBy')}
+        >
+          {(['openedAt', 'title'] as const).map((field) => (
+            <button
+              key={field}
+              type="button"
+              onClick={() => changeSort(field)}
+              className={`rounded-lg border px-3 py-2 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-brand-purple ${sort === field ? 'border-brand-purple bg-purple-50 text-brand-purple' : 'border-slate-200 text-slate-600'}`}
+            >
+              {field === 'openedAt'
+                ? t('notifications.date')
+                : t('notifications.type')}{' '}
+              {sort === field ? (order === 'asc' ? '↑' : '↓') : null}
+            </button>
+          ))}
+        </div>
+        <ul className="mt-4 divide-y divide-slate-100 md:hidden">
+          {list.data?.items.map((item) => (
+            <li key={item.id} className="py-4 first:pt-0 last:pb-0">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="flex items-start gap-2 text-sm font-semibold text-slate-900">
+                    {!item.readAt ? (
+                      <span
+                        className="mt-1.5 size-2 shrink-0 rounded-full bg-brand-purple"
+                        aria-label={t('notifications.unread')}
+                      />
+                    ) : null}
+                    {item.title}
+                  </p>
+                  <time
+                    dateTime={item.openedAt}
+                    className="mt-1 block text-xs text-slate-500"
+                  >
+                    {new Date(item.openedAt).toLocaleString(i18n.language)}
+                  </time>
+                </div>
+                <span
+                  className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${item.resolvedAt ? 'bg-slate-100 text-slate-600' : 'bg-amber-50 text-amber-900'}`}
+                >
+                  {item.resolvedAt
+                    ? t('notifications.resolved')
+                    : t('notifications.active')}
+                </span>
+              </div>
+              <p className="mt-3 text-sm leading-6 text-slate-600">
+                {item.description}
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-4 text-sm font-semibold">
+                <Link
+                  className="text-brand-purple underline"
+                  to={item.path}
+                  onClick={() => {
+                    if (!item.readAt) read.mutate(item.id)
+                  }}
+                >
+                  {t('common.view')}
+                </Link>
+                {!item.readAt ? (
+                  <button
+                    className="text-brand-purple underline"
+                    onClick={() => read.mutate(item.id)}
+                  >
+                    {t('notifications.markRead')}
+                  </button>
+                ) : null}
+              </div>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-4 hidden overflow-x-auto md:block">
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-slate-200 text-slate-600">
