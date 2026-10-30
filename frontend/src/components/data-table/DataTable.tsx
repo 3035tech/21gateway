@@ -171,7 +171,7 @@ export function DataTable<T>({
                           <button
                             type="button"
                             onClick={header.column.getToggleSortingHandler()}
-                            className={`button-sort ${header.column.columnDef.meta?.centered ? 'justify-center' : ''}`}
+                            className={`button-sort ${header.column.columnDef.meta?.centered ? 'button-sort-centered' : ''}`}
                           >
                             {flexRender(
                               header.column.columnDef.header,
@@ -219,7 +219,7 @@ export function DataTable<T>({
                       {row.getVisibleCells().map((cell) => (
                         <td
                           key={cell.id}
-                          className={`py-3.5 align-middle text-slate-700 ${dense ? 'px-3' : 'px-5'} ${cell.column.id === 'actions' || cell.column.columnDef.meta?.compact ? 'data-grid-compact' : ''} ${cell.column.columnDef.meta?.centered || cell.column.id === 'actions' ? 'text-center' : ''} ${cell.column.id === 'actions' ? `data-grid-actions ${stickyActions ? 'data-grid-sticky-action' : ''}` : ''}`}
+                          className={`py-3.5 align-middle text-slate-700 ${dense ? 'px-3' : 'px-5'} ${cell.column.id === 'actions' || cell.column.columnDef.meta?.compact ? 'data-grid-compact' : ''} ${cell.column.columnDef.meta?.centered ? 'text-center tabular-nums' : ''} ${cell.column.id === 'actions' ? `data-grid-actions text-center ${stickyActions ? 'data-grid-sticky-action' : ''}` : ''}`}
                         >
                           {cell.column.id === 'actions' ? (
                             <div className="flex justify-center">
