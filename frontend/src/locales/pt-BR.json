@@ -721,6 +721,8 @@
     "emailHint": "Todos os tipos aparecem no sininho. Os tipos selecionados também são enviados aos administradores ativos quando uma nova ocorrência começa. A alteração não envia e-mails de ocorrências anteriores.",
     "smtpUnavailable": "O envio de e-mail ainda não está configurado neste ambiente.",
     "sendEmail": "Enviar por e-mail",
+    "inAppAlways": "Sempre no sininho",
+    "unread": "Não lida",
     "history": "Histórico",
     "unreadOnly": "Somente não lidas",
     "date": "Data",

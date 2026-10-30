@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { Bell, Mail } from 'lucide-react'
 import {
   listNotifications,
   listNotificationPreferences,
@@ -10,7 +11,7 @@ import {
 } from './api'
 
 export function NotificationsPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const client = useQueryClient()
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
@@ -68,50 +69,86 @@ export function NotificationsPage() {
         </p>
       </div>
       <section
-        className="rounded-2xl border border-slate-200 bg-white p-5"
+        className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
         aria-label={t('notifications.emailSettings')}
       >
-        <h2 className="text-lg font-bold text-slate-900">
-          {t('notifications.emailSettings')}
-        </h2>
-        <p className="mt-1 text-sm text-slate-600">
-          {t('notifications.emailHint')}
-        </p>
+        <div className="border-b border-slate-100 px-5 py-5 sm:px-6">
+          <h2 className="text-lg font-bold text-slate-900">
+            {t('notifications.emailSettings')}
+          </h2>
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">
+            {t('notifications.emailHint')}
+          </p>
+        </div>
         {preferences.data && !preferences.data.emailAvailable ? (
-          <p role="status" className="mt-3 text-sm text-amber-800">
+          <p
+            role="status"
+            className="mx-5 mt-4 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:mx-6"
+          >
             {t('notifications.smtpUnavailable')}
           </p>
         ) : null}
         {preferences.isError ? (
-          <p role="alert" className="mt-3 text-sm text-rose-700">
+          <p role="alert" className="mx-5 mt-4 text-sm text-rose-700 sm:mx-6">
             {t('notifications.loadFailed')}
           </p>
         ) : null}
         {save.isError ? (
-          <p role="alert" className="mt-3 text-sm text-rose-700">
+          <p role="alert" className="mx-5 mt-4 text-sm text-rose-700 sm:mx-6">
             {t('notifications.saveFailed')}
           </p>
         ) : null}
-        <div className="mt-4 divide-y divide-slate-100">
+        {preferences.isPending ? (
+          <p className="px-5 py-6 text-sm text-slate-600 sm:px-6">
+            {t('common.loading')}
+          </p>
+        ) : null}
+        <div className="divide-y divide-slate-100">
           {preferences.data?.items.map((preference) => (
             <label
               key={preference.code}
-              className="flex min-h-14 cursor-pointer items-center justify-between gap-4 py-3 text-sm text-slate-800"
+              className="flex min-h-20 cursor-pointer items-center justify-between gap-4 px-5 py-4 text-sm text-slate-800 hover:bg-slate-50 sm:px-6"
             >
-              <span>{preference.title}</span>
-              <span className="flex shrink-0 items-center gap-2 font-semibold text-brand-purple">
-                {t('notifications.sendEmail')}
+              <span className="flex min-w-0 items-center gap-3">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-purple-50 text-brand-purple">
+                  <Bell size={17} aria-hidden="true" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block font-semibold text-slate-900">
+                    {preference.title}
+                  </span>
+                  <span className="mt-0.5 block text-xs text-slate-500">
+                    {t('notifications.inAppAlways')}
+                  </span>
+                </span>
+              </span>
+              <span className="flex shrink-0 items-center gap-3 font-medium text-slate-600">
+                <span className="inline-flex items-center gap-1.5">
+                  <Mail size={15} aria-hidden="true" />
+                  <span className="hidden sm:inline">
+                    {t('notifications.sendEmail')}
+                  </span>
+                </span>
                 <input
                   type="checkbox"
                   checked={preference.emailEnabled}
-                  disabled={save.isPending || !preferences.data.emailAvailable}
+                  disabled={
+                    save.isPending ||
+                    (!preferences.data.emailAvailable &&
+                      !preference.emailEnabled)
+                  }
                   onChange={(event) =>
                     save.mutate({
                       code: preference.code,
                       enabled: event.target.checked,
                     })
                   }
-                  className="size-5 accent-brand-purple"
+                  aria-label={`${preference.title}: ${t('notifications.sendEmail')}`}
+                  className="peer sr-only"
+                />
+                <span
+                  aria-hidden="true"
+                  className="relative h-7 w-12 rounded-full bg-slate-300 transition-colors before:absolute before:left-1 before:top-1 before:size-5 before:rounded-full before:bg-white before:shadow-sm before:transition-transform peer-checked:bg-brand-purple peer-checked:before:translate-x-5 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand-purple peer-disabled:opacity-50"
                 />
               </span>
             </label>
@@ -201,15 +238,31 @@ export function NotificationsPage() {
                   key={item.id}
                   className="border-b border-slate-100 align-top"
                 >
-                  <td className="whitespace-nowrap p-2">
-                    {new Date(item.openedAt).toLocaleString()}
+                  <td className="whitespace-nowrap p-2 text-slate-600">
+                    {new Date(item.openedAt).toLocaleString(i18n.language)}
                   </td>
-                  <td className="p-2 font-semibold">{item.title}</td>
-                  <td className="max-w-md p-2">{item.description}</td>
+                  <td className="p-2 font-semibold text-slate-900">
+                    <span className="flex items-start gap-2">
+                      {!item.readAt ? (
+                        <span
+                          className="mt-1.5 size-2 shrink-0 rounded-full bg-brand-purple"
+                          aria-label={t('notifications.unread')}
+                        />
+                      ) : null}
+                      {item.title}
+                    </span>
+                  </td>
+                  <td className="max-w-md p-2 leading-6 text-slate-600">
+                    {item.description}
+                  </td>
                   <td className="p-2">
-                    {item.resolvedAt
-                      ? t('notifications.resolved')
-                      : t('notifications.active')}
+                    <span
+                      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${item.resolvedAt ? 'bg-slate-100 text-slate-600' : 'bg-amber-50 text-amber-900'}`}
+                    >
+                      {item.resolvedAt
+                        ? t('notifications.resolved')
+                        : t('notifications.active')}
+                    </span>
                   </td>
                   <td className="whitespace-nowrap p-2">
                     <Link

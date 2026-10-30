@@ -721,6 +721,8 @@
     "emailHint": "Every type appears in the bell. Selected types are also emailed to active administrators when a new incident starts. Changing this setting does not email past incidents.",
     "smtpUnavailable": "Email delivery is not configured in this environment yet.",
     "sendEmail": "Send email",
+    "inAppAlways": "Always in the bell",
+    "unread": "Unread",
     "history": "History",
     "unreadOnly": "Unread only",
     "date": "Date",

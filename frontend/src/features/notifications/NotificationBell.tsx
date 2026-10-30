@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Bell } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -8,6 +8,26 @@ import { listNotifications, markNotificationRead } from './api'
 export function NotificationBell() {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
+  const rootRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const onPointerDown = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false)
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpen(false)
+        triggerRef.current?.focus()
+      }
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [open])
   const client = useQueryClient()
   const query = useQuery({
     queryKey: ['admin', 'notifications', 'bell'],
@@ -31,11 +51,13 @@ export function NotificationBell() {
   })
   const count = query.data?.unreadCount ?? 0
   return (
-    <div className="relative">
+    <div ref={rootRef} className="relative">
       <button
+        ref={triggerRef}
         type="button"
         aria-label={t('notifications.bellLabel', { count })}
         aria-expanded={open}
+        aria-controls="notification-bell-panel"
         onClick={() => setOpen((value) => !value)}
         className="relative flex size-10 items-center justify-center rounded-xl text-slate-600 hover:bg-purple-50 hover:text-brand-purple focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-purple"
       >
@@ -48,6 +70,7 @@ export function NotificationBell() {
       </button>
       {open ? (
         <div
+          id="notification-bell-panel"
           className="absolute right-0 z-30 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-slate-200 bg-white p-3 shadow-xl"
           role="region"
           aria-label={t('notifications.title')}
@@ -77,11 +100,11 @@ export function NotificationBell() {
               {t('notifications.empty')}
             </p>
           ) : null}
-          <ul className="max-h-96 overflow-y-auto">
+          <ul className="max-h-96 space-y-1 overflow-y-auto pt-2">
             {query.data?.items.map((item) => (
               <li
                 key={item.id}
-                className={`border-b border-slate-100 p-2 text-sm last:border-0 ${item.readAt ? 'text-slate-600' : 'bg-purple-50 text-slate-900'}`}
+                className={`rounded-lg p-2 text-sm ${item.readAt ? 'text-slate-600' : 'bg-purple-50 text-slate-900'}`}
               >
                 <Link
                   to={item.path}
@@ -89,9 +112,17 @@ export function NotificationBell() {
                     if (!item.readAt) read.mutate(item.id)
                     setOpen(false)
                   }}
-                  className="block rounded-md p-1 hover:bg-purple-100"
+                  className="block rounded-md p-1 hover:bg-purple-100 focus-visible:outline-2 focus-visible:outline-brand-purple"
                 >
-                  <span className="font-semibold">{item.title}</span>
+                  <span className="flex items-center gap-2 font-semibold">
+                    {!item.readAt ? (
+                      <span
+                        className="size-2 shrink-0 rounded-full bg-brand-purple"
+                        aria-label={t('notifications.unread')}
+                      />
+                    ) : null}
+                    {item.title}
+                  </span>
                   <span className="mt-1 block text-xs leading-5">
                     {item.description}
                   </span>
