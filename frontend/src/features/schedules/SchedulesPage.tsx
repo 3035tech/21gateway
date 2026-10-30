@@ -22,7 +22,7 @@ function scheduleColumns(
   return [
     {
       accessorKey: 'attemptId',
-      header: t('common.messageId'),
+      header: t('common.id'),
       meta: { compact: true },
     },
     {
@@ -30,16 +30,16 @@ function scheduleColumns(
       header: t('common.client'),
       cell: ({ row }) => row.original.companyName || t('common.noCompany'),
     },
-    { accessorKey: 'username', header: t('common.apiUsername') },
+    { accessorKey: 'username', header: t('schedules.tableCredential') },
     {
       accessorKey: 'createdAt',
-      header: t('schedules.requestedAt'),
+      header: t('schedules.tableRequestedAt'),
       meta: { compact: true },
       cell: ({ row }) => <DateCell value={row.original.createdAt} />,
     },
     {
       accessorKey: 'scheduledAt',
-      header: t('schedules.scheduledFor'),
+      header: t('schedules.tableScheduledFor'),
       meta: { compact: true },
       cell: ({ row }) => <DateCell value={row.original.scheduledAt} />,
     },
@@ -63,7 +63,7 @@ function scheduleColumns(
     { accessorKey: 'correlationId', header: t('common.reference') },
     {
       accessorKey: 'dispatchedAt',
-      header: t('schedules.dispatchedAt'),
+      header: t('schedules.tableDispatchedAt'),
       meta: { compact: true },
       cell: ({ row }) =>
         row.original.dispatchedAt ? (

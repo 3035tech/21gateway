@@ -97,6 +97,8 @@ O cabeçalho e os controles da coluna Ações são centralizados pelo componente
 
 Revisão de largura em 30/10: colunas curtas (IDs, estados, datas, papéis, tentativas e ações) usam a largura do próprio conteúdo; nomes, emails, referências, IDs externos, URLs e falhas recebem o espaço livre. Listagens com sete ou mais colunas usam padding horizontal menor e mantêm rolagem acessível quando necessário. Empresas e usuários preservam uma tabela ampla, com o espaço adicional destinado a nome, referência e email. O histórico de notificações aplica a mesma distinção entre metadados curtos e descrição, com largura mínima para leitura no desktop.
 
+Os cabeçalhos das listas usam o contexto da tela para reduzir texto repetido: Agendamentos mostra “ID”, “Credencial”, “Solicitado”, “Agendado” e “Despachado”; Credenciais mostra “Usuário”, “IPs” e “Notificações”; Callbacks usa “Entrega”, “ID Zoug”, “Data Zoug” e “Recebido”; Usuários usa “Perfil”. Rótulos completos permanecem em formulários e detalhes. Campos que distinguem conceitos próximos, como fila/entrega/callback e código de falha, conservam nomes específicos.
+
 Atualização de 30/10: as colunas Ações das listagens reais e da prévia usam botões de ícone de 44 px em uma linha, com dica nativa no hover, nome acessível e foco visível. Visualizar, testar credencial, editar, trocar senha, reenviar convite, tentar novamente e arquivar têm ícones distintos; arquivar mantém cor de perigo e confirmação. Ações principais de formulário, diálogo e recuperação de erro continuam com texto para preservar clareza.
 Na listagem de credenciais, os chips DLR/MO da coluna Notificações ao cliente ficam centralizados na largura da célula, inclusive quando precisam quebrar de linha.
 

@@ -154,7 +154,7 @@ export function CredentialsPage({
   const columns: ColumnDef<Credential>[] = [
     {
       accessorKey: 'username',
-      header: t('common.apiUsername'),
+      header: t('credentials.tableUsername'),
       cell: ({ row }) =>
         companyId ? (
           <Link
@@ -181,7 +181,7 @@ export function CredentialsPage({
     },
     {
       accessorKey: 'whitelistEnabled',
-      header: t('credentials.ipAccess'),
+      header: t('credentials.tableIpAccess'),
       meta: { compact: true },
       cell: ({ row }) =>
         row.original.whitelistEnabled
@@ -219,7 +219,7 @@ export function CredentialsPage({
     {
       accessorKey: 'callbacksEnabled',
       id: 'notifications',
-      header: t('credentials.notificationsSection'),
+      header: t('credentials.tableNotifications'),
       meta: { compact: true },
       cell: ({ row }) => (
         <div className="flex flex-wrap justify-center gap-1.5">

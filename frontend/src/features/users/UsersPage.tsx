@@ -110,7 +110,7 @@ export function UsersPage({
     { accessorKey: 'email', header: t('common.email') },
     {
       accessorKey: 'role',
-      header: t('roles.label'),
+      header: t('users.tableRole'),
       meta: { compact: true },
       cell: ({ row }) => t(roleLabels[row.original.role]),
     },

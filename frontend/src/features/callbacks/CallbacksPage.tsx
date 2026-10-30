@@ -42,7 +42,7 @@ export function CallbacksPage() {
     },
     {
       accessorKey: 'status',
-      header: t('callbacks.smsDelivery'),
+      header: t('common.delivery'),
       meta: { compact: true },
       cell: ({ row }) =>
         row.original.kind === 'mo' ? (
@@ -53,17 +53,17 @@ export function CallbacksPage() {
     },
     {
       accessorKey: 'providerMessageId',
-      header: t('callbacks.providerMessageId'),
+      header: t('callbacks.tableProviderMessageId'),
     },
     {
       accessorKey: 'occurredAt',
-      header: t('callbacks.providerTime'),
+      header: t('callbacks.tableProviderTime'),
       meta: { compact: true },
       cell: ({ row }) => <DateCell value={row.original.occurredAt} />,
     },
     {
       accessorKey: 'receivedAt',
-      header: t('callbacks.receivedAt'),
+      header: t('callbacks.tableReceivedAt'),
       meta: { compact: true },
       cell: ({ row }) => <DateCell value={row.original.receivedAt} />,
     },
@@ -87,7 +87,7 @@ export function CallbacksPage() {
     { accessorKey: 'url', header: t('common.target') },
     {
       accessorKey: 'status',
-      header: t('callbacks.smsDelivery'),
+      header: t('common.delivery'),
       meta: { compact: true },
       cell: ({ row }) => <StatusBadge status={row.original.status} />,
     },

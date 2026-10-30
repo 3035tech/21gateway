@@ -57,7 +57,7 @@ function auditColumns(
     },
     {
       accessorKey: 'resourceId',
-      header: t('audit.resourceId'),
+      header: t('audit.tableResourceId'),
       meta: { compact: true },
     },
     {

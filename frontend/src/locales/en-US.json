@@ -301,6 +301,9 @@
     "unknown": "Uncertain results"
   },
   "callbacks": {
+    "tableProviderMessageId": "Zoug ID",
+    "tableProviderTime": "Zoug time",
+    "tableReceivedAt": "Received",
     "receivedTitle": "Callbacks received from Zoug",
     "receivedDescription": "Received submissions and DLRs appear as SMS with internal status; replies appear as MO. Notifications sent to clients are below.",
     "receivedSearchPlaceholder": "Send ID, Zoug UUID or status",
@@ -328,6 +331,10 @@
     "ACCESS_BLOCKED": "Delivery blocked by the account configuration"
   },
   "schedules": {
+    "tableCredential": "Credential",
+    "tableRequestedAt": "Requested",
+    "tableScheduledFor": "Scheduled",
+    "tableDispatchedAt": "Dispatched",
     "requestedAt": "Requested at",
     "scheduledFor": "Scheduled for",
     "queue": "Queue",
@@ -343,6 +350,7 @@
     "to": "To"
   },
   "audit": {
+    "tableResourceId": "Resource ID",
     "actor": "Actor",
     "actorNumber": "{{name}} #{{id}}",
     "user": "User",
@@ -371,6 +379,7 @@
     }
   },
   "users": {
+    "tableRole": "Role",
     "editTitle": "Edit user",
     "new": "New user",
     "editDescription": "Update this internal user's details and access.",
@@ -406,6 +415,9 @@
     "removeCompany": "Remove company #{{id}}"
   },
   "credentials": {
+    "tableUsername": "Username",
+    "tableIpAccess": "IPs",
+    "tableNotifications": "Notifications",
     "editTitle": "Edit credential",
     "newTitle": "New API credential",
     "formDescription": "Set up company access. Generated username and password are shown only once after saving.",

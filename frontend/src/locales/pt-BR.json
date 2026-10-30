@@ -301,6 +301,9 @@
     "unknown": "Resultados incertos"
   },
   "callbacks": {
+    "tableProviderMessageId": "ID Zoug",
+    "tableProviderTime": "Data Zoug",
+    "tableReceivedAt": "Recebido",
     "receivedTitle": "Callbacks recebidos da Zoug",
     "receivedDescription": "Submissões e DLR recebidos aparecem como SMS com status interno; respostas aparecem como MO. Notificações enviadas aos clientes estão abaixo.",
     "receivedSearchPlaceholder": "ID do envio, UUID da Zoug ou status",
@@ -328,6 +331,10 @@
     "ACCESS_BLOCKED": "Entrega bloqueada pela configuração da conta"
   },
   "schedules": {
+    "tableCredential": "Credencial",
+    "tableRequestedAt": "Solicitado",
+    "tableScheduledFor": "Agendado",
+    "tableDispatchedAt": "Despachado",
     "requestedAt": "Solicitado em",
     "scheduledFor": "Agendado para",
     "queue": "Fila",
@@ -343,6 +350,7 @@
     "to": "Até"
   },
   "audit": {
+    "tableResourceId": "ID recurso",
     "actor": "Responsável",
     "actorNumber": "{{name}} #{{id}}",
     "user": "Usuário",
@@ -371,6 +379,7 @@
     }
   },
   "users": {
+    "tableRole": "Perfil",
     "editTitle": "Editar usuário",
     "new": "Novo usuário",
     "editDescription": "Atualize os dados e o acesso deste usuário interno.",
@@ -406,6 +415,9 @@
     "removeCompany": "Remover empresa #{{id}}"
   },
   "credentials": {
+    "tableUsername": "Usuário",
+    "tableIpAccess": "IPs",
+    "tableNotifications": "Notificações",
     "editTitle": "Editar credencial",
     "newTitle": "Nova credencial da API",
     "formDescription": "Defina o acesso da empresa. O usuário e a senha gerados serão exibidos uma única vez após salvar.",
