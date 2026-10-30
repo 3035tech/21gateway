@@ -121,3 +121,4 @@ Perfil usa a largura do conteúdo administrativo: dados da conta ocupam uma faix
 
 Tela real `/notificacoes` exclusiva do administrador: histórico paginado/filtrado e configuração global de e-mail por tipo. Sininho no cabeçalho mostra não lidas e últimas ocorrências. Todos os tipos aparecem no painel; somente tipos ativados também geram e-mail para administradores ativos.
 Revisão operacional de 30/10: a aba Ocorrências abre primeiro com histórico e filtros; Alertas por e-mail reúne as preferências. A consulta de cada aba só inicia quando ela é aberta, e o polling do histórico pausa fora da aba de ocorrências.
+Os títulos das preferências, do histórico e do sininho acompanham o idioma do painel a partir do código estável de cada tipo. Descrições de ocorrências geradas no formato conhecido também são apresentadas no idioma selecionado; o texto recebido permanece como fallback para formatos desconhecidos.

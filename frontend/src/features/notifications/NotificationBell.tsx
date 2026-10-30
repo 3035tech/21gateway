@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { listNotifications, markNotificationRead } from './api'
+import { notificationDescription, notificationTitle } from './display'
 
 export function NotificationBell() {
   const { t } = useTranslation()
@@ -121,10 +122,10 @@ export function NotificationBell() {
                         aria-label={t('notifications.unread')}
                       />
                     ) : null}
-                    {item.title}
+                    {notificationTitle(t, item.type, item.title)}
                   </span>
                   <span className="mt-1 block text-xs leading-5">
-                    {item.description}
+                    {notificationDescription(t, item.type, item.description)}
                   </span>
                 </Link>
               </li>

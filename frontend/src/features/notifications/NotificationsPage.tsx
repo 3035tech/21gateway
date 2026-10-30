@@ -9,6 +9,7 @@ import {
   TableIconLink,
 } from '../../components/admin/TableIconAction'
 import type { NotificationPreference } from './api'
+import { notificationDescription, notificationTitle } from './display'
 import {
   listNotifications,
   listNotificationPreferences,
@@ -148,7 +149,7 @@ export function NotificationsPage() {
                   </span>
                   <span className="min-w-0">
                     <span className="block font-semibold text-slate-900">
-                      {preference.title}
+                      {notificationTitle(t, preference.code, preference.title)}
                     </span>
                     <span className="mt-0.5 block text-xs text-slate-500">
                       {t('notifications.inAppAlways')}
@@ -177,7 +178,7 @@ export function NotificationsPage() {
                           enabled: event.target.checked,
                         })
                       }
-                      aria-label={`${preference.title}: ${t('notifications.sendEmail')}`}
+                      aria-label={`${notificationTitle(t, preference.code, preference.title)}: ${t('notifications.sendEmail')}`}
                       className="peer sr-only"
                     />
                     <span
@@ -291,7 +292,7 @@ export function NotificationsPage() {
                           aria-label={t('notifications.unread')}
                         />
                       ) : null}
-                      {item.title}
+                      {notificationTitle(t, item.type, item.title)}
                     </p>
                     <time
                       dateTime={item.openedAt}
@@ -309,7 +310,7 @@ export function NotificationsPage() {
                   </span>
                 </div>
                 <p className="mt-3 text-sm leading-6 text-slate-600">
-                  {item.description}
+                  {notificationDescription(t, item.type, item.description)}
                 </p>
                 <div className="mt-3 flex flex-wrap items-center gap-4 text-sm font-semibold">
                   <Link
@@ -383,11 +384,11 @@ export function NotificationsPage() {
                             aria-label={t('notifications.unread')}
                           />
                         ) : null}
-                        {item.title}
+                        {notificationTitle(t, item.type, item.title)}
                       </span>
                     </td>
                     <td className="min-w-56 p-2 leading-6 text-slate-600">
-                      {item.description}
+                      {notificationDescription(t, item.type, item.description)}
                     </td>
                     <td className="w-px whitespace-nowrap p-2">
                       <span

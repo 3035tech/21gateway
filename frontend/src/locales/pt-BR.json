@@ -724,6 +724,34 @@
     }
   },
   "notifications": {
+    "types": {
+      "unknown_sends": "Envios com resultado incerto",
+      "expired_leases": "Processamento com prazo expirado",
+      "dlr_pending": "Notificações DLR atrasadas",
+      "mo_pending": "Notificações MO atrasadas",
+      "dlr_unmatched": "DLR sem envio associado",
+      "mo_unmatched": "MO sem envio associado",
+      "schedule_overdue": "SMS agendados atrasados",
+      "callback_failed": "Falhas definitivas de notificação"
+    },
+    "details": {
+      "unknown_sends_one": "{{count}} envio sem resultado conclusivo; investigue antes de reenviar.",
+      "unknown_sends_other": "{{count}} envios sem resultado conclusivo; investigue antes de reenviar.",
+      "expired_leases_one": "{{count}} job com lease expirado; confira os workers.",
+      "expired_leases_other": "{{count}} jobs com lease expirado; confira os workers.",
+      "dlr_pending_one": "{{count}} notificação DLR pendente há mais de 15 minutos.",
+      "dlr_pending_other": "{{count}} notificações DLR pendentes há mais de 15 minutos.",
+      "mo_pending_one": "{{count}} notificação MO pendente há mais de 15 minutos.",
+      "mo_pending_other": "{{count}} notificações MO pendentes há mais de 15 minutos.",
+      "dlr_unmatched_one": "{{count}} evento DLR sem envio associado há mais de 15 minutos.",
+      "dlr_unmatched_other": "{{count}} eventos DLR sem envio associado há mais de 15 minutos.",
+      "mo_unmatched_one": "{{count}} evento MO sem envio associado há mais de 15 minutos.",
+      "mo_unmatched_other": "{{count}} eventos MO sem envio associado há mais de 15 minutos.",
+      "schedule_overdue_one": "{{count}} SMS agendado atrasado há mais de 5 minutos.",
+      "schedule_overdue_other": "{{count}} SMS agendados atrasados há mais de 5 minutos.",
+      "callback_failed_one": "{{count}} notificação ao cliente com falha definitiva na última hora.",
+      "callback_failed_other": "{{count}} notificações ao cliente com falha definitiva na última hora."
+    },
     "title": "Notificações",
     "occurrences": "Ocorrências",
     "intro": "Avisos operacionais para os administradores do gateway.",

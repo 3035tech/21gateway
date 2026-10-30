@@ -724,6 +724,34 @@
     }
   },
   "notifications": {
+    "types": {
+      "unknown_sends": "Messages with uncertain outcomes",
+      "expired_leases": "Processing deadline exceeded",
+      "dlr_pending": "Delayed DLR notifications",
+      "mo_pending": "Delayed MO notifications",
+      "dlr_unmatched": "DLR without a matching message",
+      "mo_unmatched": "MO without a matching message",
+      "schedule_overdue": "Overdue scheduled SMS",
+      "callback_failed": "Permanent notification failures"
+    },
+    "details": {
+      "unknown_sends_one": "{{count}} message has an uncertain outcome; investigate before resending.",
+      "unknown_sends_other": "{{count}} messages have uncertain outcomes; investigate before resending.",
+      "expired_leases_one": "{{count}} job has an expired lease; check the workers.",
+      "expired_leases_other": "{{count}} jobs have expired leases; check the workers.",
+      "dlr_pending_one": "{{count}} DLR notification has been pending for over 15 minutes.",
+      "dlr_pending_other": "{{count}} DLR notifications have been pending for over 15 minutes.",
+      "mo_pending_one": "{{count}} MO notification has been pending for over 15 minutes.",
+      "mo_pending_other": "{{count}} MO notifications have been pending for over 15 minutes.",
+      "dlr_unmatched_one": "{{count}} DLR event has had no matching message for over 15 minutes.",
+      "dlr_unmatched_other": "{{count}} DLR events have had no matching message for over 15 minutes.",
+      "mo_unmatched_one": "{{count}} MO event has had no matching message for over 15 minutes.",
+      "mo_unmatched_other": "{{count}} MO events have had no matching message for over 15 minutes.",
+      "schedule_overdue_one": "{{count}} scheduled SMS is over 5 minutes late.",
+      "schedule_overdue_other": "{{count}} scheduled SMS are over 5 minutes late.",
+      "callback_failed_one": "{{count}} client notification failed permanently in the last hour.",
+      "callback_failed_other": "{{count}} client notifications failed permanently in the last hour."
+    },
     "title": "Notifications",
     "occurrences": "Incidents",
     "intro": "Operational notices for gateway administrators.",
