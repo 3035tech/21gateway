@@ -1,5 +1,9 @@
 # Ponto de retomada — 15/10/2026
 
+## Notificações em HML — 30/10/2026
+
+O commit `00d4203` está na `main` e a tag candidata `v0.2.0-rc.1` foi publicada; os builds de backend e frontend passaram. O GitOps `5932bdc` aplicou a migração 026 antes dos binários novos. Consulta direta ao banco `gateway21_hml` confirmou a migração e mostrou uma ocorrência com recibos para dois administradores; nenhum tipo está habilitado para e-mail. Argo CD mostrou API, frontend e worker saudáveis, e `/readyz` e a raiz do frontend responderam HTTP 200. O envio SMTP real não foi exercitado; habilitar tipos em `/notificacoes` somente após conferir os destinatários administrativos e o remetente.
+
 ## Liberação HML — 29/10/2026
 
 O commit `e2385b0` está na `main`; os workflows de backend e frontend passaram. O GitOps de Dublin sincronizou `5ca5b45`, executou o Job de migração com a mesma imagem e atualizou o worker SQS sem alternar o transporte. Consulta direta ao banco `gateway21_hml` confirmou 25 migrações, com `202610290025` como última. Argo CD mostrou backend e frontend saudáveis, worker em execução e `/readyz` respondeu 200. O detalhe real de Envios foi inspecionado no navegador após o ajuste visual da linha do tempo. Isso não constitui novo aceite de SMS/MO ponta a ponta nem prova de alertas externos ou backup recorrente. A credencial SQS ainda está no Secret versionado no histórico GitOps; a transição para ExternalSecret e a rotação aguardam bootstrap seguro no cluster.
