@@ -122,6 +122,7 @@ export function DataTable<T>({
         </div>
         {filters}
         <button type="submit" className="button-primary">
+          <Search size={17} aria-hidden="true" />
           {t('common.search')}
         </button>
       </form>

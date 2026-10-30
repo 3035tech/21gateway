@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { ReactNode } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useQuery } from '@tanstack/react-query'
-import { Plus } from 'lucide-react'
+import { Plus, RotateCcw } from 'lucide-react'
 import { DataTable } from '../data-table/DataTable'
 import { useListState } from '../data-table/useListState'
 import type { ListParams, Page } from '../../lib/admin'
@@ -176,6 +176,7 @@ export function Listing<T extends { id: number }>({
           className="button-secondary mt-4"
           onClick={() => void query.refetch()}
         >
+          <RotateCcw size={17} aria-hidden="true" />
           {t('common.retry')}
         </button>
       ) : null}

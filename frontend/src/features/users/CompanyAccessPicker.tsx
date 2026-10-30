@@ -1,4 +1,4 @@
-import { Check, Search, X } from 'lucide-react'
+import { Check, RotateCcw, Search, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 type CompanyOption = { id: string; name: string }
@@ -140,6 +140,7 @@ export function CompanyAccessPicker({
                   className="button-ghost mt-2 min-h-9 px-2"
                   onClick={onRetry}
                 >
+                  <RotateCcw size={16} aria-hidden="true" />
                   {t('common.retry')}
                 </button>
               ) : null}

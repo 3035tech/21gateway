@@ -11,7 +11,7 @@ import { useTranslation } from 'react-i18next'
 import { RecordDetailsDialog } from '../../components/admin/RecordDetailsDialog'
 import { AppSelect } from '../../components/admin/AppSelect'
 import { TableIconButton } from '../../components/admin/TableIconAction'
-import { Eye } from 'lucide-react'
+import { Eye, RotateCcw } from 'lucide-react'
 
 const actions = [
   'created',
@@ -216,6 +216,7 @@ export function AuditPage() {
           className="button-secondary mt-4"
           onClick={() => void query.refetch()}
         >
+          <RotateCcw size={17} aria-hidden="true" />
           {t('common.retry')}
         </button>
       ) : null}

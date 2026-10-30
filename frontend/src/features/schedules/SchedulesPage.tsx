@@ -6,7 +6,7 @@ import { DataTable } from '../../components/data-table/DataTable'
 import { useListState } from '../../components/data-table/useListState'
 import { DateCell } from '../../components/admin/DateCell'
 import { TableIconButton } from '../../components/admin/TableIconAction'
-import { Eye } from 'lucide-react'
+import { Eye, RotateCcw } from 'lucide-react'
 import { StatusBadge } from '../../components/admin/StatusBadge'
 import { errorMessage } from '../../lib/admin'
 import { listSchedules, scheduleStates } from './api'
@@ -257,6 +257,7 @@ export function SchedulesPage() {
           className="button-secondary mt-4"
           onClick={() => void query.refetch()}
         >
+          <RotateCcw size={17} aria-hidden="true" />
           {t('common.retry')}
         </button>
       ) : null}

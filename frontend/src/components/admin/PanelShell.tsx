@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import type { PropsWithChildren } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -18,7 +18,19 @@ import {
   Menu,
   ChevronRight,
   Bell,
+  PanelLeftClose,
+  PanelLeftOpen,
+  CircleUserRound,
 } from 'lucide-react'
+const sidebarPreferenceKey = '21mobile.sidebar.collapsed'
+
+function readSidebarPreference() {
+  try {
+    return window.localStorage.getItem(sidebarPreferenceKey) === 'true'
+  } catch {
+    return false
+  }
+}
 const navigation = [
   ['/', 'nav.overview', LayoutDashboard, false],
   ['/empresas', 'nav.companies', Building2, false],
@@ -34,10 +46,12 @@ function Navigation({
   admin,
   onNavigate,
   managementOnly = false,
+  collapsed = false,
 }: {
   admin: boolean
   onNavigate?: () => void
   managementOnly?: boolean
+  collapsed?: boolean
 }) {
   const { t } = useTranslation()
   return (
@@ -61,12 +75,14 @@ function Navigation({
             to={path}
             end={path === '/'}
             onClick={onNavigate}
+            title={collapsed ? t(label) : undefined}
+            aria-label={collapsed ? t(label) : undefined}
             className={({ isActive }) =>
-              `flex min-h-11 items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold transition-colors ${isActive ? 'bg-white text-brand-purple shadow-[inset_3px_0_0_#ff0066]' : 'text-purple-100 hover:bg-white/10'}`
+              `flex min-h-11 items-center gap-3 rounded-lg py-3 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${collapsed ? 'justify-center px-2' : 'px-4'} ${isActive ? 'bg-white text-brand-purple shadow-[inset_3px_0_0_#ff0066]' : 'text-purple-100 hover:bg-white/10'}`
             }
           >
             <Icon size={18} aria-hidden="true" />
-            {t(label)}
+            {collapsed ? <span className="sr-only">{t(label)}</span> : t(label)}
           </NavLink>
         ))}
     </>
@@ -101,6 +117,18 @@ export function PanelShell({
 }: Props) {
   const { t } = useTranslation()
   const menuRef = useRef<HTMLDetailsElement>(null)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    readSidebarPreference,
+  )
+  const toggleSidebar = () => {
+    const nextValue = !sidebarCollapsed
+    setSidebarCollapsed(nextValue)
+    try {
+      window.localStorage.setItem(sidebarPreferenceKey, String(nextValue))
+    } catch {
+      // Keep the current session usable when storage is unavailable.
+    }
+  }
   const location = useLocation()
   const currentKey =
     location.pathname === '/perfil'
@@ -115,7 +143,9 @@ export function PanelShell({
     .map((value) => value[0])
     .join('')
   return (
-    <div className="min-h-dvh lg:grid lg:grid-cols-[232px_minmax(0,1fr)]">
+    <div
+      className={`min-h-dvh lg:grid ${sidebarCollapsed ? 'lg:grid-cols-[76px_minmax(0,1fr)]' : 'lg:grid-cols-[232px_minmax(0,1fr)]'}`}
+    >
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:p-4"
@@ -123,15 +153,47 @@ export function PanelShell({
         {t('nav.skipContent')}
       </a>
       <aside className="flex flex-col bg-brand-purple text-white lg:sticky lg:top-0 lg:h-dvh">
-        <div className="flex items-center justify-between px-5 py-5 lg:block lg:px-7 lg:pb-8 lg:pt-8">
-          <img
-            src="/brand/21-mobile.png"
-            alt="21 Mobile"
-            className="h-10 w-auto lg:h-14"
-          />
-          <p className="text-xs text-purple-200 lg:mt-3">
-            {t('nav.backoffice')}
-          </p>
+        <div
+          className={`flex items-center justify-between px-5 py-5 lg:flex-col lg:items-start lg:gap-4 lg:pb-8 lg:pt-8 ${sidebarCollapsed ? 'lg:px-3' : 'lg:px-7'}`}
+        >
+          <div className="flex items-center gap-3 lg:block">
+            <img
+              src="/brand/21-mobile.png"
+              alt="21 Mobile"
+              className={`h-10 w-auto lg:h-14 ${sidebarCollapsed ? 'lg:hidden' : ''}`}
+            />
+            {sidebarCollapsed ? (
+              <span
+                className="hidden h-14 items-center justify-center text-2xl font-semibold tracking-tighter lg:flex"
+                aria-label="21 Mobile"
+              >
+                21
+              </span>
+            ) : null}
+            <p
+              className={`text-xs text-purple-200 lg:mt-3 ${sidebarCollapsed ? 'lg:hidden' : ''}`}
+            >
+              {t('nav.backoffice')}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            className="hidden size-11 items-center justify-center rounded-lg text-purple-100 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white lg:flex"
+            aria-label={t(
+              sidebarCollapsed ? 'nav.expandSidebar' : 'nav.collapseSidebar',
+            )}
+            title={t(
+              sidebarCollapsed ? 'nav.expandSidebar' : 'nav.collapseSidebar',
+            )}
+            aria-expanded={!sidebarCollapsed}
+          >
+            {sidebarCollapsed ? (
+              <PanelLeftOpen size={20} aria-hidden="true" />
+            ) : (
+              <PanelLeftClose size={20} aria-hidden="true" />
+            )}
+          </button>
         </div>
         <details
           ref={menuRef}
@@ -176,36 +238,69 @@ export function PanelShell({
           aria-label={t('nav.menu')}
           className="hidden flex-col gap-1 px-3 lg:flex"
         >
-          <Navigation admin={admin} managementOnly={managementOnly} />
+          <Navigation
+            admin={admin}
+            managementOnly={managementOnly}
+            collapsed={sidebarCollapsed}
+          />
         </nav>
-        <div className="mt-auto hidden border-t border-white/15 p-5 lg:block">
+        <div
+          className={`mt-auto hidden border-t border-white/15 lg:block ${sidebarCollapsed ? 'p-3' : 'p-5'}`}
+        >
           <NavLink
             to="/perfil"
             aria-label={t('nav.openProfile', { name })}
+            title={
+              sidebarCollapsed ? t('nav.openProfile', { name }) : undefined
+            }
             className={({ isActive }) =>
-              `flex min-h-14 items-center gap-3 rounded-lg p-2 transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-white ${isActive ? 'bg-white/15' : ''}`
+              `flex min-h-14 items-center gap-3 rounded-lg p-2 transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-white ${sidebarCollapsed ? 'justify-center' : ''} ${isActive ? 'bg-white/15' : ''}`
             }
           >
-            <span
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15 text-xs font-semibold"
-              aria-hidden="true"
-            >
-              {initials}
-            </span>
-            <div className="min-w-0">
-              <p title={name} className="truncate text-sm font-semibold">
-                {name}
-              </p>
-              <p className="mt-1 text-xs text-purple-200">{role}</p>
-            </div>
+            {sidebarCollapsed ? (
+              <CircleUserRound size={24} aria-hidden="true" />
+            ) : (
+              <span
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15 text-xs font-semibold"
+                aria-hidden="true"
+              >
+                {initials}
+              </span>
+            )}
+            {!sidebarCollapsed ? (
+              <div className="min-w-0">
+                <p title={name} className="truncate text-sm font-semibold">
+                  {name}
+                </p>
+                <p className="mt-1 text-xs text-purple-200">{role}</p>
+              </div>
+            ) : null}
           </NavLink>
           <button
             disabled={pending}
             onClick={onLogout}
-            className="button-on-dark mt-4 w-full"
+            className={`button-on-dark mt-4 w-full ${sidebarCollapsed ? 'justify-center px-2' : ''}`}
+            aria-label={
+              sidebarCollapsed
+                ? pending
+                  ? t('nav.loggingOut')
+                  : t('nav.logout')
+                : undefined
+            }
+            title={
+              sidebarCollapsed
+                ? pending
+                  ? t('nav.loggingOut')
+                  : t('nav.logout')
+                : undefined
+            }
           >
             <LogOut size={16} aria-hidden="true" />
-            {pending ? t('nav.loggingOut') : t('nav.logout')}
+            {!sidebarCollapsed
+              ? pending
+                ? t('nav.loggingOut')
+                : t('nav.logout')
+              : null}
           </button>
         </div>
         {logoutError ? (
@@ -252,7 +347,7 @@ export function PanelShell({
         <main
           id="main-content"
           tabIndex={-1}
-          className="mx-auto max-w-[1480px] px-5 py-7 outline-none sm:p-8"
+          className={`mx-auto px-5 py-7 outline-none sm:p-8 ${sidebarCollapsed ? 'max-w-[1600px]' : 'max-w-[1480px]'}`}
         >
           {children}
           {demo ? (

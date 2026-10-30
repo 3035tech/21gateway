@@ -1,5 +1,6 @@
 import { errorMessage } from '../../lib/admin'
 import { useTranslation } from 'react-i18next'
+import { Save } from 'lucide-react'
 export function FormFooter({
   pending,
   error,
@@ -31,6 +32,7 @@ export function FormFooter({
           {t('common.cancel')}
         </button>
         <button className="button-primary" type="submit" disabled={pending}>
+          <Save size={17} aria-hidden="true" />
           {pending
             ? (pendingLabel ?? t('common.saving'))
             : (submitLabel ?? t('common.save'))}

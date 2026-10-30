@@ -747,6 +747,8 @@
     "notifications": "Notifications",
     "profile": "My profile",
     "menu": "Menu",
+    "collapseSidebar": "Collapse sidebar",
+    "expandSidebar": "Expand sidebar",
     "logout": "Sign out",
     "loggingOut": "Signing out…",
     "backoffice": "SMS backoffice",
