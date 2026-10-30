@@ -90,6 +90,12 @@
   .table-action-danger {
     @apply inline-flex min-h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-lg px-3 text-sm font-semibold text-rose-700 transition-colors hover:bg-rose-50 active:bg-rose-100 disabled:opacity-40;
   }
+  .table-icon-action {
+    @apply inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-transparent text-brand-purple transition-colors hover:border-purple-100 hover:bg-purple-50 active:bg-purple-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-purple disabled:opacity-40;
+  }
+  .table-icon-action-danger {
+    @apply inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-transparent text-rose-700 transition-colors hover:border-rose-100 hover:bg-rose-50 active:bg-rose-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-700 disabled:opacity-40;
+  }
   .data-grid td {
     @apply max-w-80;
     overflow-wrap: anywhere;

@@ -94,6 +94,8 @@ As listagens oferecem Visualizar para consultar os campos disponíveis sem entra
 
 O cabeçalho e os controles da coluna Ações são centralizados pelo componente compartilhado de tabela, incluindo listas com uma ou várias ações.
 
+Atualização de 30/10: as colunas Ações das listagens reais e da prévia usam botões de ícone de 44 px em uma linha, com dica nativa no hover, nome acessível e foco visível. Visualizar, testar credencial, editar, trocar senha, reenviar convite, tentar novamente e arquivar têm ícones distintos; arquivar mantém cor de perigo e confirmação. Ações principais de formulário, diálogo e recuperação de erro continuam com texto para preservar clareza.
+
 Os nomes das credenciais e usuários na visão da empresa abrem URLs próprias (`/credenciais/{id}` e `/usuarios/{id}`), carregadas por GET administrativo do registro real e autorizadas pelo domínio. Ao fechar o detalhe, o usuário volta para a empresa de origem. A prévia fictícia usa o mesmo fluxo com registros simulados.
 
 ## Revisão visual com dados de homologação — 29/10/2026

@@ -5,6 +5,8 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '../../components/data-table/DataTable'
 import { useListState } from '../../components/data-table/useListState'
 import { DateCell } from '../../components/admin/DateCell'
+import { TableIconButton } from '../../components/admin/TableIconAction'
+import { Eye } from 'lucide-react'
 import { StatusBadge } from '../../components/admin/StatusBadge'
 import { errorMessage } from '../../lib/admin'
 import { listSchedules, scheduleStates } from './api'
@@ -62,9 +64,11 @@ function scheduleColumns(
       header: t('common.actions'),
       enableSorting: false,
       cell: ({ row }) => (
-        <button className="table-action" onClick={() => onView(row.original)}>
-          {t('common.view')}
-        </button>
+        <TableIconButton
+          icon={Eye}
+          label={t('common.view')}
+          onClick={() => onView(row.original)}
+        />
       ),
     },
   ]

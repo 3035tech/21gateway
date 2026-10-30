@@ -11,7 +11,11 @@ import type { Company } from './api'
 import { CompanyForm } from './CompanyForm'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { ArrowUpRight } from 'lucide-react'
+import { Archive, ArrowUpRight, Eye, Pencil } from 'lucide-react'
+import {
+  TableIconButton,
+  TableIconLink,
+} from '../../components/admin/TableIconAction'
 export function CompaniesPage() {
   const { t } = useTranslation()
   const user = useUser()
@@ -57,27 +61,25 @@ export function CompaniesPage() {
     header: t('common.actions'),
     enableSorting: false,
     cell: ({ row }) => (
-      <div className="flex gap-1">
-        <Link
-          className="table-action"
+      <div className="flex w-max items-center gap-1">
+        <TableIconLink
+          icon={Eye}
+          label={t('common.view')}
           to={`/empresas/${row.original.publicRef}`}
-        >
-          {t('common.view')}
-        </Link>
+        />
         {writable ? (
           <>
-            <button
-              className="table-action"
+            <TableIconButton
+              icon={Pencil}
+              label={t('common.edit')}
               onClick={() => setEditor(row.original)}
-            >
-              {t('common.edit')}
-            </button>
-            <button
-              className="table-action-danger"
+            />
+            <TableIconButton
+              icon={Archive}
+              label={t('common.archive')}
+              danger
               onClick={() => setArchive(row.original)}
-            >
-              {t('common.archive')}
-            </button>
+            />
           </>
         ) : null}
       </div>

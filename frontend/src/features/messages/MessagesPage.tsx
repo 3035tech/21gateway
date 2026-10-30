@@ -9,6 +9,8 @@ import { useState } from 'react'
 import { RecordDetailsDialog } from '../../components/admin/RecordDetailsDialog'
 import { useQuery } from '@tanstack/react-query'
 import { errorMessage } from '../../lib/admin'
+import { TableIconButton } from '../../components/admin/TableIconAction'
+import { Eye } from 'lucide-react'
 
 const timelineItemClass =
   'relative pb-4 last:pb-0 before:absolute before:-left-[21px] before:top-1 before:z-10 before:size-2.5 before:rounded-full before:bg-brand-purple after:absolute after:-left-[17px] after:top-[9px] after:-bottom-[9px] after:w-0.5 after:bg-purple-200 last:after:hidden'
@@ -76,10 +78,7 @@ function MessageDetails({
           </li>
         ) : null}
         {trace.data.events.map((event) => (
-          <li
-            key={`${event.kind}-${event.id}`}
-            className={timelineItemClass}
-          >
+          <li key={`${event.kind}-${event.id}`} className={timelineItemClass}>
             <span className="font-semibold">
               {t(`messages.traceKind.${event.kind}`, {
                 defaultValue: event.kind,
@@ -211,12 +210,11 @@ export function MessagesPage() {
       header: t('common.actions'),
       enableSorting: false,
       cell: ({ row }) => (
-        <button
-          className="table-action"
+        <TableIconButton
+          icon={Eye}
+          label={t('common.view')}
           onClick={() => setViewing(row.original)}
-        >
-          {t('common.view')}
-        </button>
+        />
       ),
     },
   ]

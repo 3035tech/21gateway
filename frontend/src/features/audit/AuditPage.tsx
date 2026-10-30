@@ -10,6 +10,8 @@ import type { Audit, AuditListParams } from './api'
 import { useTranslation } from 'react-i18next'
 import { RecordDetailsDialog } from '../../components/admin/RecordDetailsDialog'
 import { AppSelect } from '../../components/admin/AppSelect'
+import { TableIconButton } from '../../components/admin/TableIconAction'
+import { Eye } from 'lucide-react'
 
 const actions = [
   'created',
@@ -64,9 +66,11 @@ function auditColumns(
       header: t('common.actions'),
       enableSorting: false,
       cell: ({ row }) => (
-        <button className="table-action" onClick={() => onView(row.original)}>
-          {t('common.view')}
-        </button>
+        <TableIconButton
+          icon={Eye}
+          label={t('common.view')}
+          onClick={() => onView(row.original)}
+        />
       ),
     },
   ]

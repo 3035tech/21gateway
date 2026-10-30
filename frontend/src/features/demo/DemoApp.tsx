@@ -23,7 +23,9 @@ import {
   CircleUserRound,
   Eye,
   Archive,
+  RotateCcw,
 } from 'lucide-react'
+import { TableIconButton } from '../../components/admin/TableIconAction'
 import type { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '../../components/data-table/DataTable'
 import { useListState } from '../../components/data-table/useListState'
@@ -615,46 +617,43 @@ function Listing({
     header: t('common.actions'),
     enableSorting: false,
     cell: ({ row }) => (
-      <div className="flex flex-wrap gap-1">
-        <button
-          className="table-action gap-2"
+      <div className="flex w-max items-center gap-1">
+        <TableIconButton
+          icon={Eye}
+          label={t('common.view')}
           onClick={() => setViewing(row.original)}
-        >
-          <Eye size={15} aria-hidden="true" /> {t('common.view')}
-        </button>
+        />
         {canManage && config.entity ? (
           <>
-            <button
-              className="table-action gap-2"
+            <TableIconButton
+              icon={Pencil}
+              label={t('common.edit')}
               onClick={() => {
                 setDemoProviderToken('')
                 setDemoClearProviderToken(false)
                 setFormError('')
                 setEditing(row.original)
               }}
-            >
-              <Pencil size={15} aria-hidden="true" /> {t('common.edit')}
-            </button>
-            <button
-              className="table-action-danger gap-2"
+            />
+            <TableIconButton
+              icon={Archive}
+              label={t('common.archive')}
+              danger
               onClick={() => setArchiving(row.original)}
-            >
-              <Archive size={15} aria-hidden="true" /> {t('common.archive')}
-            </button>
+            />
           </>
         ) : null}
         {canManage &&
         section === 'callbacks' &&
         row.original.status === 'failed' ? (
-          <button
-            className="table-action"
+          <TableIconButton
+            icon={RotateCcw}
+            label={t('common.retry')}
             onClick={() => {
               onSave({ ...row.original, status: 'pending' })
               feedback.success(t('demo.callbackRetried'))
             }}
-          >
-            {t('common.retry')}
-          </button>
+          />
         ) : null}
       </div>
     ),

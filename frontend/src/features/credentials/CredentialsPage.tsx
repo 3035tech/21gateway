@@ -22,8 +22,17 @@ import { CredentialForm } from './CredentialForm'
 import { CredentialTestDialog } from './CredentialTestDialog'
 import { useTranslation } from 'react-i18next'
 import { RecordDetailsDialog } from '../../components/admin/RecordDetailsDialog'
+import { TableIconButton } from '../../components/admin/TableIconAction'
 import { errorMessage } from '../../lib/admin'
-import { Check, Copy } from 'lucide-react'
+import {
+  Archive,
+  Check,
+  Copy,
+  Eye,
+  FlaskConical,
+  KeyRound,
+  Pencil,
+} from 'lucide-react'
 import { useCompanyReturnRef } from '../companies/useCompanyReturnRef'
 import { isPublicRef } from '../../lib/publicRef'
 export function CredentialsPage({
@@ -242,9 +251,10 @@ export function CredentialsPage({
     header: t('common.actions'),
     enableSorting: false,
     cell: ({ row }) => (
-      <div className="flex max-w-72 flex-wrap justify-center gap-1">
-        <button
-          className="table-action"
+      <div className="flex w-max items-center gap-1">
+        <TableIconButton
+          icon={Eye}
+          label={t('common.view')}
           onClick={() =>
             setViewing({
               credential: row.original,
@@ -256,43 +266,38 @@ export function CredentialsPage({
                   : 'active',
             })
           }
-        >
-          {t('common.view')}
-        </button>
+        />
         {writable ? (
           <>
             {canTest ? (
-              <button
-                className="table-action"
+              <TableIconButton
+                icon={FlaskConical}
+                label={t('credentials.test')}
                 onClick={() => setTestCredential(row.original)}
-              >
-                {t('credentials.test')}
-              </button>
+              />
             ) : null}
-            <button
-              className="table-action"
+            <TableIconButton
+              icon={Pencil}
+              label={t('common.edit')}
               onClick={() => setEditor(row.original)}
-            >
-              {t('common.edit')}
-            </button>
-            <button
-              className="table-action"
+            />
+            <TableIconButton
+              icon={KeyRound}
+              label={t('credentials.rotatePassword')}
               onClick={() => {
                 mutation.reset()
                 setAction({ credential: row.original, rotate: true })
               }}
-            >
-              {t('credentials.rotatePassword')}
-            </button>
-            <button
-              className="table-action-danger"
+            />
+            <TableIconButton
+              icon={Archive}
+              label={t('common.archive')}
+              danger
               onClick={() => {
                 mutation.reset()
                 setAction({ credential: row.original, rotate: false })
               }}
-            >
-              {t('common.archive')}
-            </button>
+            />
           </>
         ) : null}
       </div>

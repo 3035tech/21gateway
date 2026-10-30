@@ -21,6 +21,8 @@ import type { SystemUser } from './api'
 import { UserForm } from './UserForm'
 import { useTranslation } from 'react-i18next'
 import { RecordDetailsDialog } from '../../components/admin/RecordDetailsDialog'
+import { TableIconButton } from '../../components/admin/TableIconAction'
+import { Archive, Eye, MailPlus, Pencil } from 'lucide-react'
 import { useCompanyReturnRef } from '../companies/useCompanyReturnRef'
 import { isPublicRef } from '../../lib/publicRef'
 export function UsersPage({
@@ -130,36 +132,33 @@ export function UsersPage({
     enableSorting: false,
     cell: ({ row }) => (
       <div className="flex w-max items-center gap-1">
-        <button
-          className="table-action"
+        <TableIconButton
+          icon={Eye}
+          label={t('common.view')}
           onClick={() => setViewing(row.original)}
-        >
-          {t('common.view')}
-        </button>
+        />
         {writable ? (
           <>
-            <button
-              className="table-action"
+            <TableIconButton
+              icon={Pencil}
+              label={t('common.edit')}
               onClick={() => setEditor(row.original)}
-            >
-              {t('common.edit')}
-            </button>
-            <button
-              className="table-action"
+            />
+            <TableIconButton
+              icon={MailPlus}
+              label={t('users.resendInvitation')}
               disabled={resend.isPending}
               onClick={() => {
                 setInviteSent(false)
                 resend.mutate(row.original.id)
               }}
-            >
-              {t('users.resendInvitation')}
-            </button>
-            <button
-              className="table-action-danger"
+            />
+            <TableIconButton
+              icon={Archive}
+              label={t('common.archive')}
+              danger
               onClick={() => setArchive(row.original)}
-            >
-              {t('common.archive')}
-            </button>
+            />
           </>
         ) : null}
       </div>

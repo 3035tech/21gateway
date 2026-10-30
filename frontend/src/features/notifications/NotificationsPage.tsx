@@ -2,7 +2,11 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { Bell, Mail } from 'lucide-react'
+import { Bell, CheckCheck, Eye, Mail } from 'lucide-react'
+import {
+  TableIconButton,
+  TableIconLink,
+} from '../../components/admin/TableIconAction'
 import type { NotificationPreference } from './api'
 import {
   listNotifications,
@@ -364,23 +368,23 @@ export function NotificationsPage() {
                     </span>
                   </td>
                   <td className="whitespace-nowrap p-2">
-                    <Link
-                      className="text-brand-purple underline"
-                      to={item.path}
-                      onClick={() => {
-                        if (!item.readAt) read.mutate(item.id)
-                      }}
-                    >
-                      {t('common.view')}
-                    </Link>
-                    {!item.readAt ? (
-                      <button
-                        className="ml-3 text-brand-purple underline"
-                        onClick={() => read.mutate(item.id)}
-                      >
-                        {t('notifications.markRead')}
-                      </button>
-                    ) : null}
+                    <div className="flex w-max items-center gap-1">
+                      <TableIconLink
+                        icon={Eye}
+                        label={t('common.view')}
+                        to={item.path}
+                        onClick={() => {
+                          if (!item.readAt) read.mutate(item.id)
+                        }}
+                      />
+                      {!item.readAt ? (
+                        <TableIconButton
+                          icon={CheckCheck}
+                          label={t('notifications.markRead')}
+                          onClick={() => read.mutate(item.id)}
+                        />
+                      ) : null}
+                    </div>
                   </td>
                 </tr>
               ))}

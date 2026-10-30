@@ -10,6 +10,8 @@ import { listCallbacks, listReceivedCallbacks, retryCallback } from './api'
 import type { Callback, ReceivedCallback } from './api'
 import { useTranslation } from 'react-i18next'
 import { RecordDetailsDialog } from '../../components/admin/RecordDetailsDialog'
+import { TableIconButton } from '../../components/admin/TableIconAction'
+import { Eye, RotateCcw } from 'lucide-react'
 const callbackErrors = new Set([
   'NETWORK_ERROR',
   'HTTP_ERROR',
@@ -107,23 +109,21 @@ export function CallbacksPage() {
     header: t('common.actions'),
     enableSorting: false,
     cell: ({ row }) => (
-      <div className="flex gap-1">
-        <button
-          className="table-action"
+      <div className="flex w-max items-center gap-1">
+        <TableIconButton
+          icon={Eye}
+          label={t('common.view')}
           onClick={() => setViewing(row.original)}
-        >
-          {t('common.view')}
-        </button>
+        />
         {writable && row.original.state === 'failed' ? (
-          <button
-            className="table-action"
+          <TableIconButton
+            icon={RotateCcw}
+            label={t('common.retry')}
             onClick={() => {
               mutation.reset()
               setRetry(row.original)
             }}
-          >
-            {t('common.retry')}
-          </button>
+          />
         ) : null}
       </div>
     ),
