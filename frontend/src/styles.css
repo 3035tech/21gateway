@@ -10,6 +10,9 @@
 }
 
 @layer base {
+  html {
+    overflow-x: hidden;
+  }
   body {
     @apply m-0 bg-brand-surface text-slate-900 antialiased;
   }
