@@ -16,33 +16,33 @@ import (
 )
 
 type messageContent struct {
-	subject string
-	eyebrow string
-	title   string
-	intro   string
-	action  string
+	subject  string
+	eyebrow  string
+	title    string
+	intro    string
+	action   string
 	validity time.Duration
-	note    string
+	note     string
 }
 
 var invitationMessage = messageContent{
-	subject: "Seu convite para o 21 Mobile Gateway",
-	eyebrow: "CONVITE DE ACESSO",
-	title:   "Seu acesso começa aqui.",
-	intro:   "Seu acesso ao painel 21 Mobile foi criado. Defina uma senha para entrar com segurança.",
-	action:  "Definir minha senha",
+	subject:  "Seu convite para o 21 Mobile Gateway",
+	eyebrow:  "CONVITE DE ACESSO",
+	title:    "Seu acesso começa aqui.",
+	intro:    "Seu acesso ao painel 21 Mobile foi criado. Defina uma senha para entrar com segurança.",
+	action:   "Definir minha senha",
 	validity: security.InvitationLifetime,
-	note:    "Se você não esperava este convite, pode ignorar esta mensagem.",
+	note:     "Se você não esperava este convite, pode ignorar esta mensagem.",
 }
 
 var passwordResetMessage = messageContent{
-	subject: "Redefina sua senha no 21 Mobile Gateway",
-	eyebrow: "SEGURANÇA DA CONTA",
-	title:   "Vamos recuperar seu acesso.",
-	intro:   "Recebemos um pedido para redefinir a senha da sua conta administrativa. Use o botão abaixo para escolher uma nova senha.",
-	action:  "Redefinir senha",
+	subject:  "Redefina sua senha no 21 Mobile Gateway",
+	eyebrow:  "SEGURANÇA DA CONTA",
+	title:    "Vamos recuperar seu acesso.",
+	intro:    "Recebemos um pedido para redefinir a senha da sua conta administrativa. Use o botão abaixo para escolher uma nova senha.",
+	action:   "Redefinir senha",
 	validity: security.PasswordResetLifetime,
-	note:    "Se você não solicitou a redefinição, ignore esta mensagem. Sua senha atual continuará válida.",
+	note:     "Se você não solicitou a redefinição, ignore esta mensagem. Sua senha atual continuará válida.",
 }
 
 var emailHTML = template.Must(template.New("email").Parse(`<!doctype html>
@@ -81,12 +81,63 @@ var emailHTML = template.Must(template.New("email").Parse(`<!doctype html>
 </td></tr></table>
 </body></html>`))
 
+var alertHTML = template.Must(template.New("alert").Parse(`<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{.Subject}}</title></head>
+<body style="margin:0;padding:0;background:#f4f1f7;color:#241b2e;font-family:Arial,Helvetica,sans-serif;-webkit-text-size-adjust:100%;">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">{{.Preheader}}&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;</div>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;background:#f4f1f7;"><tr><td align="center" style="padding:28px 16px 36px;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;max-width:600px;background:#ffffff;border:1px solid #e8e2ee;border-radius:18px;overflow:hidden;">
+    <tr><td style="padding:26px 30px;background:#540064;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tr>
+        <td style="color:#ffffff;font-size:27px;font-weight:700;letter-spacing:-1.4px;line-height:1;">21<span style="font-size:18px;font-weight:400;letter-spacing:-1px;">MOBILE</span></td>
+        <td align="right" style="color:#ead4ee;font-size:11px;font-weight:700;letter-spacing:2px;">GATEWAY</td>
+      </tr></table>
+    </td></tr>
+    <tr><td style="height:6px;background:#c2185b;font-size:1px;line-height:6px;">&nbsp;</td></tr>
+    <tr><td style="padding:34px 30px 16px;">
+      <p style="display:inline-block;margin:0 0 18px;padding:7px 11px;border-radius:6px;background:#fff0f3;color:#9f1239;font-size:12px;font-weight:700;letter-spacing:1px;line-height:1.4;">ALERTA OPERACIONAL</p>
+      <h1 style="margin:0 0 16px;color:#241b2e;font-size:29px;font-weight:700;letter-spacing:-0.7px;line-height:1.2;">{{.Title}}</h1>
+      <p style="margin:0;color:#574e60;font-size:16px;line-height:1.6;">Uma ocorrência precisa da sua atenção no 21 Mobile Gateway.</p>
+    </td></tr>
+    <tr><td style="padding:12px 30px 28px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;background:#fff7f8;border-left:4px solid #c2185b;"><tr><td style="padding:20px 22px;">
+        <p style="margin:0 0 7px;color:#8e1744;font-size:12px;font-weight:700;letter-spacing:1px;">O QUE ACONTECEU</p>
+        <p style="margin:0;color:#302535;font-size:17px;font-weight:600;line-height:1.55;">{{.Description}}</p>
+      </td></tr></table>
+      <p style="margin:24px 0;color:#574e60;font-size:14px;line-height:1.6;">Abra o painel para investigar a ocorrência e decidir a ação adequada.</p>
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#720078" style="border-radius:9px;background:#720078;">
+        <a href="{{.Link}}" style="display:inline-block;padding:16px 24px;color:#ffffff;font-size:15px;font-weight:700;line-height:1.2;text-decoration:none;">Abrir painel &rarr;</a>
+      </td></tr></table>
+      <p style="margin:24px 0 5px;color:#6d6474;font-size:12px;line-height:1.5;">Se o botão não abrir, acesse:</p>
+      <p style="margin:0;word-break:break-all;color:#720078;font-size:12px;line-height:1.6;"><a href="{{.Link}}" style="color:#720078;text-decoration:underline;">{{.Link}}</a></p>
+    </td></tr>
+    <tr><td style="padding:18px 30px 22px;border-top:1px solid #eee8f1;background:#fcfafc;">
+      <p style="margin:0;color:#6d6474;font-size:12px;line-height:1.55;">Aviso enviado aos administradores porque esta categoria está ativada para e-mail no painel.</p>
+    </td></tr>
+  </table>
+  <p style="margin:20px 0 0;color:#857a8d;font-size:11px;line-height:1.5;">21 Mobile Gateway &middot; Operação de SMS</p>
+</td></tr></table>
+</body></html>`))
+
 func renderEmailHTML(link string, content messageContent) (string, error) {
 	var output bytes.Buffer
 	err := emailHTML.Execute(&output, struct {
 		Subject, Preheader, Eyebrow, Title, Intro, Action, Validity, Note, Link string
 	}{content.subject, content.intro, content.eyebrow, content.title, content.intro, content.action, validityLabel(content.validity), content.note, link})
 	return output.String(), err
+}
+
+func renderAlertMessage(from, to, link, title, description string) ([]byte, error) {
+	var html bytes.Buffer
+	subject := "[ALERTA] 21 Mobile: " + title
+	if err := alertHTML.Execute(&html, struct {
+		Subject, Preheader, Title, Description, Link string
+	}{subject, title + ". " + description, title, description, link}); err != nil {
+		return nil, err
+	}
+	plain := fmt.Sprintf("ALERTA OPERACIONAL — 21 Mobile Gateway\n\n%s\n\n%s\n\nAbra o painel para investigar e decidir a ação adequada: %s\n", title, description, link)
+	return renderMultipartMessage(from, to, subject, plain, html.String())
 }
 
 func validityLabel(duration time.Duration) string {
@@ -97,7 +148,16 @@ func validityLabel(duration time.Duration) string {
 }
 
 func renderMessage(from, to, link string, content messageContent) ([]byte, error) {
-	if strings.ContainsAny(from+to, "\r\n") {
+	html, err := renderEmailHTML(link, content)
+	if err != nil {
+		return nil, err
+	}
+	plain := fmt.Sprintf("%s\n\n%s\n\n%s: %s\n\nO link expira em %s e pode ser usado uma única vez.\n\n%s\n", content.title, content.intro, content.action, link, validityLabel(content.validity), content.note)
+	return renderMultipartMessage(from, to, content.subject, plain, html)
+}
+
+func renderMultipartMessage(from, to, subject, plain, html string) ([]byte, error) {
+	if strings.ContainsAny(from+to+subject, "\r\n") {
 		return nil, fmt.Errorf("invalid email header")
 	}
 	if _, err := mail.ParseAddress(from); err != nil {
@@ -106,11 +166,6 @@ func renderMessage(from, to, link string, content messageContent) ([]byte, error
 	if _, err := mail.ParseAddress(to); err != nil {
 		return nil, err
 	}
-	html, err := renderEmailHTML(link, content)
-	if err != nil {
-		return nil, err
-	}
-	plain := fmt.Sprintf("%s\n\n%s\n\n%s: %s\n\nO link expira em %s e pode ser usado uma única vez.\n\n%s\n", content.title, content.intro, content.action, link, validityLabel(content.validity), content.note)
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
 	for _, part := range []struct{ kind, text string }{{"text/plain", plain}, {"text/html", html}} {
@@ -133,7 +188,7 @@ func renderMessage(from, to, link string, content messageContent) ([]byte, error
 		return nil, err
 	}
 	var output bytes.Buffer
-	fmt.Fprintf(&output, "From: %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: multipart/alternative; boundary=%q\r\n\r\n", from, to, mime.QEncoding.Encode("utf-8", content.subject), writer.Boundary())
+	fmt.Fprintf(&output, "From: %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: multipart/alternative; boundary=%q\r\n\r\n", from, to, mime.QEncoding.Encode("utf-8", subject), writer.Boundary())
 	output.Write(body.Bytes())
 	return output.Bytes(), nil
 }

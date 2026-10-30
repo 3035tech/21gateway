@@ -91,3 +91,13 @@ A 21 enviou respostas em 14/10/2026; consolidação e pendências em `docs/scope
 ## Detalhes adicionais dos CRUDs indicados depois do questionário
 
 Definir campos/validações de usuários e empresas; vínculo usuário-empresa; distinção entre administrador, cliente e credencial SMS; unicidade; permissões; exclusão/bloqueio; filtros disponíveis e ordenação padrão. As respostas recebidas estão em docs/scope-answers.md; algumas definições continuam pendentes.
+
+## SMS para alertas críticos internos — proposta de 30/10/2026
+
+- Destinatários: todos os super administradores ativos com telefone verificado ou uma lista operacional separada?
+- Qual provedor/canal independente da rota Zoug de clientes fará o envio operacional?
+- Quais tipos representam ação imediata, e quais ficam apenas em sininho/e-mail?
+- Como verificar os telefones e tratar perda de acesso, plantão e atualização de números?
+- Qual intervalo máximo de repetição, escalonamento e orçamento de envios?
+
+Até essas decisões, nenhum SMS de alerta operacional deve ser ativado. Consultar docs/notifications.md.

@@ -4,8 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"mime"
-	"mime/quotedprintable"
 	"net"
 	"net/mail"
 	"net/smtp"
@@ -65,17 +63,11 @@ func (s *SMTP) SendCriticalAlert(ctx context.Context, to, title, description, pa
 	}
 	link := *s.AppURL
 	link.Path = strings.TrimRight(link.Path, "/") + path
-	var body strings.Builder
-	fmt.Fprintf(&body, "From: %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\n", s.From, to, mime.QEncoding.Encode("utf-8", "21 Mobile: "+title))
-	encoded := quotedprintable.NewWriter(&body)
-	_, err := fmt.Fprintf(encoded, "%s\n\n%s\n\nAcesse o painel: %s\n", title, description, link.String())
+	message, err := renderAlertMessage(s.From, to, link.String(), title, description)
 	if err != nil {
 		return err
 	}
-	if err := encoded.Close(); err != nil {
-		return err
-	}
-	return s.sendRaw(ctx, to, []byte(body.String()))
+	return s.sendRaw(ctx, to, message)
 }
 func (s *SMTP) send(ctx context.Context, to, token string, content messageContent) error {
 	link := *s.AppURL
