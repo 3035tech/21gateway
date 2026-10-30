@@ -143,7 +143,7 @@ export function PanelShell({
     .join('')
   return (
     <div
-      className={`min-h-dvh lg:grid ${sidebarCollapsed ? 'lg:grid-cols-[76px_minmax(0,1fr)]' : 'lg:grid-cols-[232px_minmax(0,1fr)]'}`}
+      className={`min-h-dvh overflow-x-clip lg:grid ${sidebarCollapsed ? 'lg:grid-cols-[76px_minmax(0,1fr)]' : 'lg:grid-cols-[232px_minmax(0,1fr)]'}`}
     >
       <a
         href="#main-content"

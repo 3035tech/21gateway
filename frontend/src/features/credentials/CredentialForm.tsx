@@ -354,7 +354,7 @@ export function CredentialForm({
                   document.getElementById(`credential-tab-${nextTab}`)?.focus()
                 }}
               >
-                <Icon size={16} aria-hidden="true" className="shrink-0" />
+                <Icon size={16} aria-hidden="true" className="hidden shrink-0 sm:block" />
                 <span className="truncate">{t(`credentials.tabs.${tab}`)}</span>
                 {tabErrors[tab] ? (
                   <span

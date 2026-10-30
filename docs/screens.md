@@ -101,6 +101,8 @@ Os cabeçalhos das listas usam o contexto da tela para reduzir texto repetido: A
 
 IDs internos de envio, callback e auditoria ficam centralizados no cabeçalho e nas células; o alinhamento é declarado por coluna no componente de tabela. Nomes, referências e dados descritivos continuam alinhados à esquerda.
 
+Na revisão responsiva, o contêiner do painel corta apenas o vazamento horizontal de tabelas largas; a rolagem continua disponível dentro da região da tabela. Isso evita que a página inteira deslize lateralmente em telas estreitas.
+
 O ícone de ordenação das colunas de ID fica à direita do botão, permitindo que o rótulo e os números compartilhem o mesmo eixo central. Os botões de ordenação mostram foco visível ao navegar pelo teclado.
 
 Atualização de 30/10: as colunas Ações das listagens reais e da prévia usam botões de ícone de 44 px em uma linha, com dica nativa no hover, nome acessível e foco visível. Visualizar, testar credencial, editar, trocar senha, reenviar convite, tentar novamente e arquivar têm ícones distintos; arquivar mantém cor de perigo e confirmação. Ações principais de formulário, diálogo e recuperação de erro continuam com texto para preservar clareza.
