@@ -18,8 +18,7 @@ import {
   Menu,
   ChevronRight,
   Bell,
-  PanelLeftClose,
-  PanelLeftOpen,
+  ChevronLeft,
   CircleUserRound,
 } from 'lucide-react'
 const sidebarPreferenceKey = '21mobile.sidebar.collapsed'
@@ -152,9 +151,9 @@ export function PanelShell({
       >
         {t('nav.skipContent')}
       </a>
-      <aside className="flex flex-col bg-brand-purple text-white lg:sticky lg:top-0 lg:h-dvh">
+      <aside className="relative flex flex-col bg-brand-purple text-white lg:sticky lg:top-0 lg:h-dvh">
         <div
-          className={`flex items-center justify-between px-5 py-5 lg:flex-col lg:items-start lg:gap-4 lg:pb-8 lg:pt-8 ${sidebarCollapsed ? 'lg:px-3' : 'lg:px-7'}`}
+          className={`flex items-center justify-between px-5 py-5 lg:block lg:pb-8 lg:pt-8 ${sidebarCollapsed ? 'lg:px-3' : 'lg:px-7'}`}
         >
           <div className="flex items-center gap-3 lg:block">
             <img
@@ -176,25 +175,28 @@ export function PanelShell({
               {t('nav.backoffice')}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={toggleSidebar}
-            className="hidden size-11 items-center justify-center rounded-lg text-purple-100 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white lg:flex"
-            aria-label={t(
-              sidebarCollapsed ? 'nav.expandSidebar' : 'nav.collapseSidebar',
-            )}
-            title={t(
-              sidebarCollapsed ? 'nav.expandSidebar' : 'nav.collapseSidebar',
-            )}
-            aria-expanded={!sidebarCollapsed}
-          >
-            {sidebarCollapsed ? (
-              <PanelLeftOpen size={20} aria-hidden="true" />
-            ) : (
-              <PanelLeftClose size={20} aria-hidden="true" />
-            )}
-          </button>
         </div>
+        <button
+          type="button"
+          onClick={toggleSidebar}
+          className="group absolute -right-[22px] top-8 z-30 hidden size-11 items-center justify-center rounded-full focus-visible:outline-none lg:flex"
+          aria-label={t(
+            sidebarCollapsed ? 'nav.expandSidebar' : 'nav.collapseSidebar',
+          )}
+          title={t(
+            sidebarCollapsed ? 'nav.expandSidebar' : 'nav.collapseSidebar',
+          )}
+          aria-expanded={!sidebarCollapsed}
+        >
+          <span className="flex size-8 items-center justify-center rounded-full border border-purple-200 bg-white text-brand-purple shadow-sm transition-colors group-hover:border-brand-purple group-hover:bg-purple-50 group-focus-visible:ring-2 group-focus-visible:ring-brand-magenta group-focus-visible:ring-offset-2">
+            <ChevronLeft
+              size={17}
+              strokeWidth={2.3}
+              className={sidebarCollapsed ? 'rotate-180' : ''}
+              aria-hidden="true"
+            />
+          </span>
+        </button>
         <details
           ref={menuRef}
           className="group border-t border-white/15 px-3 pb-3 lg:hidden"
