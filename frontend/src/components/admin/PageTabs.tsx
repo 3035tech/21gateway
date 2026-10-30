@@ -61,9 +61,9 @@ export function PageTabs<T extends string>({
           tabIndex={active === id ? 0 : -1}
           onClick={() => onChange(id)}
           onKeyDown={(event) => onKeyDown(event, index)}
-          className={`inline-flex min-h-12 shrink-0 items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-purple ${active === id ? 'border-brand-purple text-brand-purple' : 'border-transparent text-slate-600 hover:border-slate-300 hover:text-slate-900'}`}
+          className={`inline-flex min-h-12 shrink-0 items-center border-b-2 font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-purple ${tabs.length > 2 ? 'gap-1 px-1 py-3 text-xs sm:gap-2 sm:px-4 sm:text-sm' : 'gap-2 px-4 py-3 text-sm'} ${active === id ? 'border-brand-purple text-brand-purple' : 'border-transparent text-slate-600 hover:border-slate-300 hover:text-slate-900'}`}
         >
-          <Icon size={17} aria-hidden="true" />
+          <Icon size={17} aria-hidden="true" className={tabs.length > 2 ? 'hidden sm:block' : undefined} />
           {tabLabel}
         </button>
       ))}

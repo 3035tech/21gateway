@@ -22,16 +22,16 @@ export function FormFooter({
           {errorMessage(error)}
         </p>
       ) : null}
-      <div className="flex justify-end gap-3 border-t border-slate-100 pt-5">
+      <div className="flex justify-end gap-3 border-t border-slate-100 pt-5 max-[360px]:flex-col-reverse">
         <button
-          className="button-secondary"
+          className="button-secondary max-[360px]:w-full"
           type="button"
           disabled={pending}
           onClick={onCancel}
         >
           {t('common.cancel')}
         </button>
-        <button className="button-primary" type="submit" disabled={pending}>
+        <button className="button-primary max-[360px]:w-full" type="submit" disabled={pending}>
           <Save size={17} aria-hidden="true" />
           {pending
             ? (pendingLabel ?? t('common.saving'))

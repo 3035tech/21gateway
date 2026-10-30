@@ -103,6 +103,8 @@ IDs internos de envio, callback e auditoria ficam centralizados no cabeçalho e 
 
 Na revisão responsiva, o documento impede rolagem horizontal fora das regiões de tabela; a rolagem das colunas continua disponível dentro da própria tabela. Isso evita que a página inteira deslize lateralmente em telas estreitas.
 
+Em celulares estreitos, grupos com três abas reduzem padding e ocultam ícones decorativos para manter os nomes visíveis; os botões de formulário se empilham abaixo de 360 px quando a legenda da ação não cabe em uma linha.
+
 O ícone de ordenação das colunas de ID fica à direita do botão, permitindo que o rótulo e os números compartilhem o mesmo eixo central. Os botões de ordenação mostram foco visível ao navegar pelo teclado.
 
 Atualização de 30/10: as colunas Ações das listagens reais e da prévia usam botões de ícone de 44 px em uma linha, com dica nativa no hover, nome acessível e foco visível. Visualizar, testar credencial, editar, trocar senha, reenviar convite, tentar novamente e arquivar têm ícones distintos; arquivar mantém cor de perigo e confirmação. Ações principais de formulário, diálogo e recuperação de erro continuam com texto para preservar clareza.
