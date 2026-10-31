@@ -219,34 +219,17 @@ export function NotificationsPage() {
             <h2 className="text-lg font-bold text-slate-900">
               {t('notifications.history')}
             </h2>
-            <div className="flex flex-wrap items-center gap-3 text-sm">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={unread}
-                  onChange={(event) => {
-                    setUnread(event.target.checked)
-                    setPage(1)
-                  }}
-                />
-                {t('notifications.unreadOnly')}
-              </label>
-              <label className="flex items-center gap-2">
-                {t('common.itemsPerPage')}
-                <select
-                  value={pageSize}
-                  onChange={(event) => {
-                    setPageSize(Number(event.target.value))
-                    setPage(1)
-                  }}
-                  className="rounded-lg border border-slate-300 px-2 py-1"
-                >
-                  <option>10</option>
-                  <option>20</option>
-                  <option>50</option>
-                </select>
-              </label>
-            </div>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={unread}
+                onChange={(event) => {
+                  setUnread(event.target.checked)
+                  setPage(1)
+                }}
+              />
+              {t('notifications.unreadOnly')}
+            </label>
           </div>
           {list.isError ? (
             <p role="alert" className="mt-4 text-sm text-rose-700">
@@ -424,29 +407,46 @@ export function NotificationsPage() {
             </table>
           </div>
           {list.data ? (
-            <div className="mt-4 flex items-center justify-between gap-3 text-sm">
-              <span>
-                {t('common.resultsRange', {
-                  from: list.data.total ? (page - 1) * pageSize + 1 : 0,
-                  to: Math.min(page * pageSize, list.data.total),
-                  total: list.data.total,
-                })}
-              </span>
-              <div className="flex gap-2">
-                <button
-                  disabled={page === 1}
-                  onClick={() => setPage(page - 1)}
-                  className="rounded-lg border px-3 py-2 disabled:opacity-40"
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm">
+              <label className="flex items-center gap-2 whitespace-nowrap">
+                {t('common.itemsPerPage')}
+                <select
+                  value={pageSize}
+                  onChange={(event) => {
+                    setPageSize(Number(event.target.value))
+                    setPage(1)
+                  }}
+                  className="rounded-lg border border-slate-300 px-2 py-1"
                 >
-                  {t('common.previous')}
-                </button>
-                <button
-                  disabled={page * pageSize >= list.data.total}
-                  onClick={() => setPage(page + 1)}
-                  className="rounded-lg border px-3 py-2 disabled:opacity-40"
-                >
-                  {t('common.next')}
-                </button>
+                  <option>10</option>
+                  <option>20</option>
+                  <option>50</option>
+                </select>
+              </label>
+              <div className="flex flex-wrap items-center gap-3">
+                <span>
+                  {t('common.resultsRange', {
+                    from: list.data.total ? (page - 1) * pageSize + 1 : 0,
+                    to: Math.min(page * pageSize, list.data.total),
+                    total: list.data.total,
+                  })}
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    disabled={page === 1}
+                    onClick={() => setPage(page - 1)}
+                    className="rounded-lg border px-3 py-2 disabled:opacity-40"
+                  >
+                    {t('common.previous')}
+                  </button>
+                  <button
+                    disabled={page * pageSize >= list.data.total}
+                    onClick={() => setPage(page + 1)}
+                    className="rounded-lg border px-3 py-2 disabled:opacity-40"
+                  >
+                    {t('common.next')}
+                  </button>
+                </div>
               </div>
             </div>
           ) : null}
