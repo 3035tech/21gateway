@@ -1,6 +1,6 @@
 module github.com/21mobile/sms-gateway
 
-go 1.27.0
+go 1.27.3
 
 require (
 	github.com/alexedwards/argon2id v1.0.0

@@ -7,6 +7,7 @@ Revisão estática de entrada HTTP, consultas de maior volume, dependências, ca
 - `follow-redirects` foi atualizado no lockfile de 1.16.1 para 1.16.2. O alerta [GHSA-mrwp-f3q8-3g9p](https://github.com/advisories/GHSA-mrwp-f3q8-3g9p) afeta as versões anteriores. O aviso informa que a combinação exata com Axios 1.20.0 não reproduziu a falha; a atualização remove o alerta conhecido da árvore de produção.
 - O workflow do frontend executa `npm audit --omit=dev --audit-level=high` após `npm ci`, antes de publicar a imagem.
 - O workflow do backend executa `govulncheck` v1.9.0 após testes com PostgreSQL real, `go vet` e build, antes de publicar a imagem.
+- A primeira execução desse gate encontrou que `setup-go` interpretava `go 1.27.0` do `go.mod` literalmente e compilava o CI com uma versão da biblioteca padrão anterior às correções de segurança. O mínimo do módulo foi elevado para Go 1.27.3, igual ao Dockerfile e à verificação local; o workflow continua lendo a versão do `go.mod` como fonte única. O primeiro build foi bloqueado pelo scanner antes de publicar imagem.
 - O projeto já reutiliza `DataTable`, `PageTabs`, `FormFooter`, cliente HTTP, paginação/erros e camadas por domínio. Nenhuma extração adicional apresentou ganho claro que compensasse o risco de mudar contratos de envio, callback ou autenticação nesta revisão.
 
 ## Verificações de segurança
