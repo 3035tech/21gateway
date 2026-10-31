@@ -23,3 +23,5 @@ Para RCS for Business, o Google fornece a plataforma e a API direta para parceir
 ## Publicação
 
 Aplicar migrações 028 e 029 antes dos binários novos. A 028 já foi aplicada em HML em 31/10/2026, com duas rotas SMS/Zoug. Em HML, a 029 foi aplicada em 31/10/2026 antes dos binários: ledger=1, seis tentativas e seis eventos DLR preservados, sem MO existente. Como altera tipos e unicidade de IDs externos, avaliar janela e rollback antes de publicar; com apenas Zoug ativo, o dado existente é preservado. Validar esquema, health check, callbacks autenticados e envio controlado somente com destino autorizado. Testes locais não equivalem ao aceite real Zoug → gateway → cliente.
+
+O GitOps de HML fixava o job migrador e o worker em `sha-00d42036`, anterior às migrações 027–029. Após a falha do PreSync, o commit GitOps `0ba8fcd` apontou ambos para `sha-660d3d7`. Em 31/10/2026 o sync concluiu com job, API e worker saudáveis. `/readyz` retornou 200, e provedor desconhecido no webhook foi rejeitado com 404; não houve envio real. O formulário publicado mostrou Zenvia → SMS/RCS/WhatsApp com salvamento bloqueado.
