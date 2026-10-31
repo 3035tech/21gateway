@@ -47,3 +47,32 @@ it('collapses the desktop menu, keeps navigation accessible, and remembers the p
     'false',
   )
 })
+
+it('keeps management navigation scoped to the user role', () => {
+  const props = {
+    name: 'Manager',
+    role: 'Gestor',
+    managementOnly: true,
+    demo: true,
+    onLogout: vi.fn(),
+  }
+  const view = render(
+    <MemoryRouter>
+      <PanelShell {...props} admin={false}>Conteúdo</PanelShell>
+    </MemoryRouter>,
+  )
+
+  expect(screen.getAllByRole('link', { name: 'Empresas' }).length).toBeGreaterThan(0)
+  expect(screen.queryByRole('link', { name: 'Usuários' })).not.toBeInTheDocument()
+  expect(screen.queryByRole('link', { name: 'Envios' })).not.toBeInTheDocument()
+  expect(screen.queryByRole('link', { name: 'Callbacks' })).not.toBeInTheDocument()
+
+  view.unmount()
+  render(
+    <MemoryRouter>
+      <PanelShell {...props} admin>Conteúdo</PanelShell>
+    </MemoryRouter>,
+  )
+  expect(screen.getAllByRole('link', { name: 'Usuários' }).length).toBeGreaterThan(0)
+  expect(screen.queryByRole('link', { name: 'Envios' })).not.toBeInTheDocument()
+})

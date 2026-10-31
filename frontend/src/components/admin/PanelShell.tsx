@@ -211,6 +211,7 @@ export function PanelShell({
           <nav aria-label={t('nav.menu')} className="grid gap-1 pb-3">
             <Navigation
               admin={admin}
+              managementOnly={managementOnly}
               onNavigate={() => {
                 if (menuRef.current) menuRef.current.open = false
               }}

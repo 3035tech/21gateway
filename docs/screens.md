@@ -113,6 +113,8 @@ Na listagem de credenciais, os chips DLR/MO da coluna Notificações ao cliente 
 
 Polish adicional de 30/10: o menu lateral do painel pode ser recolhido em desktop para uma faixa de 76 px, exibindo apenas ícones de navegação, perfil e saída. O controle de expansão fica na borda superior do menu, com alvo de 44 px e seta direcional em círculo discreto. Cada ação mantém nome acessível, foco visível e dica nativa; a preferência é lembrada no navegador. O menu móvel conserva a navegação expansível anterior. A área de trabalho usa até 1600 px quando o menu está recolhido. Botões compartilhados de busca, salvar e tentar novamente combinam ícone e texto; comandos principais permanecem explícitos.
 
+O filtro de itens da visão de gestão é o mesmo no menu móvel e no menu lateral. Links administrativos continuam condicionados ao perfil; a autorização real permanece no backend.
+
 Os nomes das credenciais e usuários na visão da empresa abrem URLs próprias (`/credenciais/{id}` e `/usuarios/{id}`), carregadas por GET administrativo do registro real e autorizadas pelo domínio. Ao fechar o detalhe, o usuário volta para a empresa de origem. A prévia fictícia usa o mesmo fluxo com registros simulados.
 
 ## Revisão visual com dados de homologação — 29/10/2026
