@@ -62,6 +62,9 @@ func TestPostgresBackofficeAndOutbox(t *testing.T) {
 	if found, err := companies.CompanyByPublicRef(ctx, company.PublicRef); err != nil || found.ID != company.ID || found.SMSProvider != models.ProviderZoug {
 		t.Fatal("company public reference lookup", err)
 	}
+	if listed, err := companies.Companies(ctx, dtos.ListQuery{Page: 1, PageSize: 10, Sort: "name", Direction: dtos.SortAscending}); err != nil || listed.Total != 1 || len(listed.Items) != 1 || listed.Items[0].SMSProvider != models.ProviderZoug {
+		t.Fatal("company list lost SMS route", err)
+	}
 	_, err = users.SaveUser(ctx, admin.ID, admin.ID, dtos.UserBody{Name: admin.Name, Email: admin.Email, Role: models.RoleViewer, Active: true, CompanyIDs: []uint64{company.ID}})
 	assertCode(t, err, apperrors.CodeLastAdmin)
 	vault, err := security.NewTokenVault(base64.StdEncoding.EncodeToString([]byte(strings.Repeat("k", 32))))
