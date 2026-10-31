@@ -7,8 +7,10 @@ export function FormFooter({
   onCancel,
   submitLabel,
   pendingLabel,
+  disabled = false,
 }: {
   pending: boolean
+  disabled?: boolean
   error: unknown
   submitLabel?: string
   pendingLabel?: string
@@ -31,7 +33,7 @@ export function FormFooter({
         >
           {t('common.cancel')}
         </button>
-        <button className="button-primary max-[360px]:w-full" type="submit" disabled={pending}>
+        <button className="button-primary max-[360px]:w-full" type="submit" disabled={pending || disabled}>
           <Save size={17} aria-hidden="true" />
           {pending
             ? (pendingLabel ?? t('common.saving'))

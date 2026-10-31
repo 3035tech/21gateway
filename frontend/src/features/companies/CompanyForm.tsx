@@ -7,7 +7,16 @@ import { FormFooter, FieldError } from '../../components/admin/FormFooter'
 import { useAdminMutation } from '../../components/admin/useAdminMutation'
 import { useTranslation } from 'react-i18next'
 import { AppSelect } from '../../components/admin/AppSelect'
-import { SMS_PROVIDER_ZOUG, smsProviderOptions } from './providers'
+import { useState } from 'react'
+import {
+  CHANNEL_SMS,
+  SMS_PROVIDER_ZOUG,
+  canSaveProviderChannel,
+  channelLabels,
+  providerChannels,
+  smsProviderOptions,
+} from './providers'
+import type { ChannelCode, ProviderCode } from './providers'
 export function CompanyForm({
   company,
   onClose,
@@ -36,7 +45,12 @@ export function CompanyForm({
     control: form.control,
     name: 'clearProviderToken',
   })
-  const smsProvider = useWatch({ control: form.control, name: 'smsProvider' })
+  const [selectedProvider, setSelectedProvider] = useState<ProviderCode>(
+    (company?.smsProvider as ProviderCode) ?? SMS_PROVIDER_ZOUG,
+  )
+  const [channel, setChannel] = useState<ChannelCode>(CHANNEL_SMS)
+  const availableChannels = providerChannels[selectedProvider] ?? [CHANNEL_SMS]
+  const canSaveRoute = canSaveProviderChannel(selectedProvider, channel)
   return (
     <Dialog
       title={company ? t('companies.editTitle') : t('companies.new')}
@@ -45,7 +59,9 @@ export function CompanyForm({
     >
       <form
         className="space-y-5"
-        onSubmit={form.handleSubmit((body) => mutation.mutate(body))}
+        onSubmit={canSaveRoute
+          ? form.handleSubmit((body) => mutation.mutate(body))
+          : (event) => event.preventDefault()}
       >
         <label className="field">
           {t('common.name')}
@@ -68,14 +84,27 @@ export function CompanyForm({
             </span>
             <AppSelect
               label={t('companies.smsProvider')}
-              value={smsProvider ?? SMS_PROVIDER_ZOUG}
-              onValueChange={(value) =>
-                form.setValue('smsProvider', value as typeof SMS_PROVIDER_ZOUG)
-              }
+              value={selectedProvider}
+              onValueChange={(value) => {
+                setSelectedProvider(value as ProviderCode)
+                setChannel(CHANNEL_SMS)
+              }}
               options={smsProviderOptions}
             />
+            <span className="mb-1 mt-4 block text-sm font-semibold text-slate-800">
+              {t('companies.channel')}
+            </span>
+            <AppSelect
+              label={t('companies.channel')}
+              value={channel}
+              onValueChange={(value) => setChannel(value as ChannelCode)}
+              options={availableChannels.map((value) => ({
+                value,
+                label: channelLabels[value],
+              }))}
+            />
             <p className="mt-1 text-xs text-slate-600">
-              {t('companies.smsProviderHint')}
+              {t(canSaveRoute ? 'companies.smsProviderHint' : 'companies.channelPending')}
             </p>
           </div>
           <h3 className="font-bold text-brand-purple">
@@ -127,6 +156,7 @@ export function CompanyForm({
         ) : null}
         <FormFooter
           pending={mutation.isPending}
+          disabled={!canSaveRoute}
           error={mutation.error}
           onCancel={onClose}
           submitLabel={company ? t('common.save') : t('companies.create')}

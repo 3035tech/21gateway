@@ -2,7 +2,7 @@
 
 Em 31/10/2026, a base de roteamento por empresa/canal para provedores de SMS foi adicionada no código (migração 028). O contrato `/v1/send` continua intacto e a Zoug é o único adaptador ativo; não há envio RCS/WhatsApp nem segundo fornecedor conectado. A migração 028 foi aplicada em HML antes dos binários novos, com duas rotas SMS/Zoug verificadas. Consulte [sms-providers.md](sms-providers.md).
 
-Pontal, MKM e Zenvia foram reservados como códigos e pacotes de integração, sem adaptadores reais. O formulário mostra essas opções desabilitadas; apenas Zoug passa na validação de cadastro. A publicação do backend multiprovedor em HML aguarda corrigir o job de migração PreSync do GitOps, que ainda executa imagem anterior às migrações 027–029.
+Pontal, MKM e Zenvia foram reservados como códigos e pacotes de integração, sem adaptadores reais. O formulário permite escolher o provedor e explorar os canais planejados, mas apenas Zoug/SMS passa na validação e pode ser salvo. A publicação do backend multiprovedor em HML aguarda corrigir o job de migração PreSync do GitOps, que ainda executa imagem anterior às migrações 027–029.
 
 Em 31/10/2026, a fila operacional por registro foi implementada e publicada em HML para envios incertos, agendamentos atrasados e callbacks DLR/MO falhos. Possui escopo de empresa, responsável, notas e histórico; não reenvia SMS. O frontend e o backend do commit `2bfac6b` foram publicados; a migração 027 foi aplicada depois, pois o deploy automático do backend deixou os objetos ausentes e a listagem retornava 503. Após a migração, a tela carregou três envios incertos em HML e o detalhe abriu. Consulte [operation-cases.md](operation-cases.md). Testes PostgreSQL e CI passaram; integração real com fornecedor não foi exercitada.
 

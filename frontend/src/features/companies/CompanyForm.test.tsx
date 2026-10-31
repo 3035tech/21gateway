@@ -81,15 +81,26 @@ it('submits the provider-issued token on the company record', async () => {
   put.mockRestore()
 })
 
-it('shows planned providers without allowing their selection', async () => {
+it('shows provider channels while blocking unimplemented routes', async () => {
   const client = new QueryClient()
   render(
     <QueryClientProvider client={client}>
       <CompanyForm onClose={vi.fn()} />
     </QueryClientProvider>,
   )
-  await userEvent.setup().click(screen.getByRole('combobox', { name: 'Provedor de SMS' }))
-  for (const provider of ['Pontal', 'MKM', 'Zenvia']) {
-    expect(screen.getByRole('option', { name: provider })).toHaveAttribute('data-disabled')
-  }
+  const user = userEvent.setup()
+  await user.click(screen.getByRole('combobox', { name: 'Provedor de SMS' }))
+  await user.click(screen.getByRole('option', { name: 'Zenvia' }))
+  await user.click(screen.getByRole('combobox', { name: 'Canal' }))
+  expect(screen.getByRole('option', { name: 'SMS' })).toBeInTheDocument()
+  expect(screen.getByRole('option', { name: 'RCS' })).toBeInTheDocument()
+  expect(screen.getByRole('option', { name: 'WhatsApp' })).toBeInTheDocument()
+  await user.click(screen.getByRole('option', { name: 'RCS' }))
+  expect(screen.getByRole('button', { name: 'Criar empresa' })).toBeDisabled()
+
+  await user.click(screen.getByRole('combobox', { name: 'Provedor de SMS' }))
+  await user.click(screen.getByRole('option', { name: 'MKM' }))
+  await user.click(screen.getByRole('combobox', { name: 'Canal' }))
+  expect(screen.getByRole('option', { name: 'SMS' })).toBeInTheDocument()
+  expect(screen.queryByRole('option', { name: 'RCS' })).not.toBeInTheDocument()
 })

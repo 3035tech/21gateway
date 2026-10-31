@@ -136,4 +136,4 @@ Os títulos das preferências, do histórico e do sininho acompanham o idioma do
 
 Revisão de listagens de 31/10/2026: as tabelas administrativas usam `DataTable`, com paginação e seleção de itens por página no rodapé. O histórico de Notificações foi alinhado ao mesmo padrão: filtro “não lidas” junto ao título; itens por página, intervalo e navegação após a tabela. Os seletores paginados de empresas em formulários também mantêm navegação abaixo das opções, dentro do contexto do formulário.
 
-No formulário de empresa, Pontal, MKM e Zenvia aparecem no seletor de provedor SMS como opções desabilitadas. Somente Zoug pode ser selecionada e salva até a integração e homologação dos demais adaptadores.
+No formulário de empresa, o operador escolhe primeiro o provedor e depois vê seus canais. Zoug mostra SMS; MKM e Pontal mostram SMS planejado; Zenvia mostra SMS, RCS e WhatsApp planejados. Somente Zoug/SMS permite salvar a empresa até a integração e homologação dos demais adaptadores. Os canais da Pontal ainda precisam de confirmação.
