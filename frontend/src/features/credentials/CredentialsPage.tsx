@@ -229,7 +229,7 @@ export function CredentialsPage({
           ].map(([label, enabled]) => (
             <span
               key={String(label)}
-              className={`inline-flex rounded-md px-2 py-1 text-xs font-semibold ${enabled ? 'bg-purple-50 text-brand-purple' : 'bg-slate-100 text-slate-500'}`}
+              className={`relative inline-flex rounded-md px-2 py-1 text-xs font-semibold ${enabled ? 'bg-purple-50 text-brand-purple' : 'bg-slate-100 text-slate-500'}`}
               title={
                 enabled
                   ? t('credentials.notificationEnabled', { label })
