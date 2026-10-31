@@ -50,7 +50,11 @@ func acceptanceProvider(t *testing.T) (*AccountSMSProvider, *httpmock.MockTransp
 		t.Fatal(err)
 	}
 	t.Cleanup(client.Close)
-	return NewAccountSMSProvider(client, vault), transport, credential, providerID
+	accountProvider, err := NewAccountSMSProvider(whitelabel.NewAdapter(client, vault))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return accountProvider, transport, credential, providerID
 }
 func acceptanceSMS() dtos.LegacySMS {
 	input := validSMS()

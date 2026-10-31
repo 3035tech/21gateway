@@ -83,3 +83,5 @@ Atualização de 27/10/2026: credenciais múltiplas por empresa (username único
 # Notificações internas — 30/10/2026
 
 Novo trabalho após `v0.1.0`: aplicar migração 026 antes de publicar API/worker para sininho, histórico e preferências de e-mail do super administrador. E-mail fica desligado por padrão; confirmar SMTP e administradores ativos antes de habilitar qualquer tipo. Consulte [notifications.md](notifications.md). Não confundir com alertas independentes de disponibilidade da API.
+
+Atualização de 31/10/2026: concluir validação/publicação da abstração multiprovedor SMS e webhook. As migrações 028 e 029 estão em HML; confirmar o ledger antes de publicar binários em outro ambiente. Conferir testes PostgreSQL, jobs agendados, callbacks autenticados, e health de API/worker. Somente Zoug está registrado; segundo provedor depende de contrato e credenciais próprias. Não enviar SMS real sem destino autorizado. Consulte `docs/sms-providers.md`.

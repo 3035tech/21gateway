@@ -13,6 +13,7 @@ import (
 
 	"github.com/21mobile/sms-gateway/internal/config"
 	"github.com/21mobile/sms-gateway/internal/controllers"
+	"github.com/21mobile/sms-gateway/internal/integrations/whitelabel"
 	"github.com/21mobile/sms-gateway/internal/security"
 	"github.com/21mobile/sms-gateway/internal/services"
 )
@@ -132,7 +133,7 @@ func New(origins []string, docsEnabled bool, ping func(context.Context) error, d
 		controllers.NewCallbackController(dependencies.Callbacks, nil).RegisterIngress(api, dependencies.CallbackIngressToken)
 	}
 	if dependencies.ZougCallbackEnabled && dependencies.Callbacks != nil && dependencies.MO != nil {
-		controllers.NewZougCallbackController(dependencies.Callbacks, dependencies.MO, dependencies.ZougCallbackTokenSHA256, dependencies.ZougCallbackAllowedIPs, dependencies.ZougCallbackLogFullRequest).Register(router)
+		controllers.NewProviderCallbackController(dependencies.Callbacks, dependencies.MO, dependencies.ZougCallbackLogFullRequest, whitelabel.NewWebhookAdapter(dependencies.ZougCallbackTokenSHA256, dependencies.ZougCallbackAllowedIPs)).Register(router)
 	}
 	if dependencies.MO != nil && dependencies.MOIngressEnabled {
 		controllers.NewMOController(dependencies.MO).RegisterIngress(api, dependencies.CallbackIngressToken)

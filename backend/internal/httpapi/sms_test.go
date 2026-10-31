@@ -59,6 +59,14 @@ func TestLegacySendHTTPPipeline(t *testing.T) {
 		{"bad json", "client", "test-password-only", `{"sms":`, http.StatusUnprocessableEntity, 0},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			vault, err := security.NewTokenVault(base64.StdEncoding.EncodeToString([]byte(strings.Repeat("k", 32))))
+			if err != nil {
+				t.Fatal(err)
+			}
+			encrypted, err := vault.Encrypt("client", "test-token")
+			if err != nil {
+				t.Fatal(err)
+			}
 			transport := httpmock.NewMockTransport()
 			transport.RegisterResponder(http.MethodPost, "https://provider.example.com/api/send", func(r *http.Request) (*http.Response, error) {
 				return httpmock.NewJsonResponse(http.StatusOK, whitelabel.SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440000", Status: whitelabel.StatusSent})
@@ -69,11 +77,15 @@ func TestLegacySendHTTPPipeline(t *testing.T) {
 			}
 			defer provider.Close()
 			repo := &testAttempts{}
-			auth, err := services.NewAuthService(testCredentials{value: models.APICredential{ID: 7, Username: "client", PasswordHash: hash, Active: true}})
+			auth, err := services.NewAuthService(testCredentials{value: models.APICredential{ID: 7, Username: "client", PasswordHash: hash, Active: true, ProviderTokenEncrypted: encrypted}})
 			if err != nil {
 				t.Fatal(err)
 			}
-			router := New(nil, true, func(context.Context) error { return nil }, Dependencies{SMS: services.NewSMSService(repo, provider), Auth: auth})
+			accountProvider, err := services.NewAccountSMSProvider(whitelabel.NewAdapter(provider, vault))
+			if err != nil {
+				t.Fatal(err)
+			}
+			router := New(nil, true, func(context.Context) error { return nil }, Dependencies{SMS: services.NewSMSService(repo, accountProvider), Auth: auth})
 			request := httptest.NewRequest(http.MethodPost, "/v1/send", strings.NewReader(tc.body))
 			request.Header.Set("Content-Type", "application/json")
 			if tc.username != "" {
@@ -140,7 +152,11 @@ func TestLegacyBatchAccountTokenAndWhitelistHTTP(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	router := New(nil, false, func(context.Context) error { return nil }, Dependencies{SMS: services.NewSMSService(repo, services.NewAccountSMSProvider(client, vault)), Auth: auth})
+	accountProvider, err := services.NewAccountSMSProvider(whitelabel.NewAdapter(client, vault))
+	if err != nil {
+		t.Fatal(err)
+	}
+	router := New(nil, false, func(context.Context) error { return nil }, Dependencies{SMS: services.NewSMSService(repo, accountProvider), Auth: auth})
 	body := `{"sms":[{"messageText":"Ola!","destination":"11987654321","correlationId":"first"},{"messageText":"Ola!","destination":"","correlationId":"second"}]}`
 	call := func(peer string) *httptest.ResponseRecorder {
 		request := httptest.NewRequest("POST", "/v1/send", strings.NewReader(body))

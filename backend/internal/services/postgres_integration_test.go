@@ -8,8 +8,8 @@ import (
 	"github.com/21mobile/sms-gateway/internal/database"
 	"github.com/21mobile/sms-gateway/internal/dtos"
 	apperrors "github.com/21mobile/sms-gateway/internal/errors"
-	"github.com/21mobile/sms-gateway/internal/integrations/whitelabel"
 	"github.com/21mobile/sms-gateway/internal/models"
+	"github.com/21mobile/sms-gateway/internal/providers/webhook"
 	"github.com/21mobile/sms-gateway/internal/repositories"
 	"github.com/21mobile/sms-gateway/internal/security"
 	"github.com/google/uuid"
@@ -370,11 +370,11 @@ func TestPostgresBackofficeAndOutbox(t *testing.T) {
 		t.Fatal(err)
 	}
 	providerText := "Obrigado"
-	providerMO := whitelabel.CallbackPayload{SendType: "SMS", MessageID: providerMOID, CallbackType: whitelabel.CallbackMO, ShortMessage: &providerText, ReportDate: time.Now().UTC().Add(-48 * time.Hour).Truncate(time.Microsecond).Format(time.RFC3339Nano)}
-	if err := moService.AcceptWhiteLabelMO(ctx, providerMO); err != nil {
+	providerMO := webhook.MOMessage{ProviderMessageID: providerMOID, EventKey: "zoug:test:" + providerMOID, Message: providerText, ReceivedAt: time.Now().UTC().Add(-48 * time.Hour).Truncate(time.Microsecond)}
+	if err := moService.AcceptProviderMO(ctx, models.ProviderZoug, providerMO); err != nil {
 		t.Fatal(err)
 	}
-	if err := moService.AcceptWhiteLabelMO(ctx, providerMO); err != nil {
+	if err := moService.AcceptProviderMO(ctx, models.ProviderZoug, providerMO); err != nil {
 		t.Fatal("duplicate Zoug MO", err)
 	}
 	var providerEvents []models.MOEvent

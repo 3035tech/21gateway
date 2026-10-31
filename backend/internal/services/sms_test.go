@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	smsprovider "github.com/21mobile/sms-gateway/internal/providers/sms"
 	"strings"
 	"testing"
 
@@ -35,13 +36,13 @@ func (r *memoryAttempts) Complete(ctx context.Context, attempt models.SMSAttempt
 
 type stubProvider struct {
 	enabled  bool
-	inputs   []whitelabel.SendRequest
-	response whitelabel.SendResponse
+	inputs   []smsprovider.SendRequest
+	response smsprovider.SendResponse
 	err      error
 }
 
 func (p *stubProvider) Enabled() bool { return p.enabled }
-func (p *stubProvider) Send(ctx context.Context, input whitelabel.SendRequest) (whitelabel.SendResponse, error) {
+func (p *stubProvider) Send(ctx context.Context, input smsprovider.SendRequest) (smsprovider.SendResponse, error) {
 	p.inputs = append(p.inputs, input)
 	return p.response, p.err
 }
@@ -52,7 +53,7 @@ func validSMS() dtos.LegacySMS {
 
 func TestSendTranslatesAndPersistsAcceptance(t *testing.T) {
 	repo := &memoryAttempts{}
-	provider := &stubProvider{enabled: true, response: whitelabel.SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440000", Status: whitelabel.StatusSent}}
+	provider := &stubProvider{enabled: true, response: smsprovider.SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440000", Status: string(whitelabel.StatusSent)}}
 	result, err := NewSMSService(repo, provider).Send(context.Background(), 7, []dtos.LegacySMS{validSMS()})
 	if err != nil {
 		t.Fatal(err)
@@ -64,7 +65,7 @@ func TestSendTranslatesAndPersistsAcceptance(t *testing.T) {
 		t.Fatalf("provider called %d times", len(provider.inputs))
 	}
 	sent := provider.inputs[0]
-	if sent.Destination != "5511987654321" || sent.Message != validSMS().MessageText || sent.ReferenceID != "customer-ref" || sent.Index != "1" || sent.Encoding != whitelabel.EncodingGSM7 || sent.CallbackLevel != whitelabel.CallbackNone {
+	if sent.Destination != "5511987654321" || sent.Message != validSMS().MessageText || sent.ReferenceID != "customer-ref" || sent.Index != "1" || sent.Encoding != whitelabel.EncodingGSM7 || sent.CallbackLevel != smsprovider.CallbackNone {
 		t.Fatalf("unexpected translation: %+v", sent)
 	}
 	if len(repo.completed) != 1 || repo.completed[0].State != models.SubmissionAccepted || repo.completed[0].CredentialID != 7 || *repo.completed[0].ProviderMessageID != provider.response.MessageID {
@@ -74,18 +75,18 @@ func TestSendTranslatesAndPersistsAcceptance(t *testing.T) {
 
 func TestUnexpectedZougStatusRetainsMessageIDForCallbackReconciliation(t *testing.T) {
 	repo := &memoryAttempts{}
-	provider := &stubProvider{enabled: true, response: whitelabel.SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440000", Status: "SUCCESS"}, err: apperrors.Wrap(apperrors.CodeUnknownOutcome, nil)}
+	provider := &stubProvider{enabled: true, response: smsprovider.SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440000", Status: "SUCCESS"}, err: apperrors.Wrap(apperrors.CodeUnknownOutcome, nil)}
 	sender := NewSMSService(repo, provider)
-	sender.SetCallbackLevel(whitelabel.CallbackAll)
+	sender.SetCallbackLevel(smsprovider.CallbackAll)
 	result, err := sender.Send(context.Background(), 7, []dtos.LegacySMS{validSMS()})
-	if err != nil || len(result) != 1 || result[0].Status != dtos.LegacyStatusNOK || len(repo.completed) != 1 || repo.completed[0].State != models.SubmissionUnknown || repo.completed[0].ProviderMessageID == nil || *repo.completed[0].ProviderMessageID != provider.response.MessageID || provider.inputs[0].CallbackLevel != whitelabel.CallbackAll {
+	if err != nil || len(result) != 1 || result[0].Status != dtos.LegacyStatusNOK || len(repo.completed) != 1 || repo.completed[0].State != models.SubmissionUnknown || repo.completed[0].ProviderMessageID == nil || *repo.completed[0].ProviderMessageID != provider.response.MessageID || provider.inputs[0].CallbackLevel != smsprovider.CallbackAll {
 		t.Fatalf("unexpected outcome: result=%+v completed=%+v err=%v", result, repo.completed, err)
 	}
 }
 
 func TestImmediateSMSPersistsOnlyEncryptedHistory(t *testing.T) {
 	repo := &memoryAttempts{}
-	provider := &stubProvider{enabled: true, response: whitelabel.SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440000", Status: whitelabel.StatusSent}}
+	provider := &stubProvider{enabled: true, response: smsprovider.SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440000", Status: string(whitelabel.StatusSent)}}
 	vault, err := security.NewSMSHistoryVault(base64.StdEncoding.EncodeToString([]byte(strings.Repeat("h", 32))), "", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -165,7 +166,7 @@ func TestPersistenceBeforeSendAndAcceptanceAfterUpdateFailure(t *testing.T) {
 	})
 	t.Run("acknowledged message stays accepted", func(t *testing.T) {
 		repo := &memoryAttempts{completeErr: errors.New("database unavailable")}
-		provider := &stubProvider{enabled: true, response: whitelabel.SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440000", Status: whitelabel.StatusSent}}
+		provider := &stubProvider{enabled: true, response: smsprovider.SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440000", Status: string(whitelabel.StatusSent)}}
 		results, err := NewSMSService(repo, provider).Send(context.Background(), 7, []dtos.LegacySMS{validSMS()})
 		if err != nil || results[0].Status != dtos.LegacyStatusOK || len(provider.inputs) != 1 {
 			t.Fatalf("result=%+v err=%v", results, err)
@@ -175,7 +176,7 @@ func TestPersistenceBeforeSendAndAcceptanceAfterUpdateFailure(t *testing.T) {
 
 func TestRateLimitIsPerCredential(t *testing.T) {
 	repo := &memoryAttempts{}
-	provider := &stubProvider{enabled: true, response: whitelabel.SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440000", Status: whitelabel.StatusSent}}
+	provider := &stubProvider{enabled: true, response: smsprovider.SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440000", Status: string(whitelabel.StatusSent)}}
 	service := NewSMSService(repo, provider)
 	_, _ = service.Send(context.Background(), 7, []dtos.LegacySMS{validSMS()})
 	limited, err := service.Send(context.Background(), 7, []dtos.LegacySMS{validSMS()})

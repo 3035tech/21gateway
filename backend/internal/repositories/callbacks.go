@@ -30,7 +30,7 @@ func (r *Callbacks) Accept(ctx context.Context, event models.DeliveryEvent) erro
 			if err := tx.Where("event_key = ?", event.EventKey).First(&existing).Error; err != nil {
 				return err
 			}
-			if existing.ProviderMessageID != event.ProviderMessageID || existing.Status != event.Status || !existing.OccurredAt.Equal(event.OccurredAt) {
+			if existing.ProviderCode != event.ProviderCode || existing.ProviderMessageID != event.ProviderMessageID || existing.Status != event.Status || !existing.OccurredAt.Equal(event.OccurredAt) {
 				return apperrors.Wrap(apperrors.CodeConflict, nil)
 			}
 			return nil
@@ -40,7 +40,7 @@ func (r *Callbacks) Accept(ctx context.Context, event models.DeliveryEvent) erro
 }
 func reconcileEvent(tx *gorm.DB, event *models.DeliveryEvent) error {
 	var attempt models.SMSAttempt
-	err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("provider_message_id = ?", event.ProviderMessageID).First(&attempt).Error
+	err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("provider_code = ? AND provider_message_id = ?", event.ProviderCode, event.ProviderMessageID).First(&attempt).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil
 	}
@@ -77,7 +77,7 @@ func (r *Callbacks) Reconcile(ctx context.Context) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var events []models.DeliveryEvent
 		// Only matched events enter this batch; early callbacks cannot starve later matches.
-		err := tx.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED", Table: clause.Table{Name: "delivery_events"}}).Where("NOT processed AND EXISTS (SELECT 1 FROM sms_attempts WHERE provider_message_id = delivery_events.provider_message_id)").Order("occurred_at,id").Limit(CallbackBatchSize).Find(&events).Error
+		err := tx.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED", Table: clause.Table{Name: "delivery_events"}}).Where("NOT processed AND EXISTS (SELECT 1 FROM sms_attempts WHERE provider_code = delivery_events.provider_code AND provider_message_id = delivery_events.provider_message_id)").Order("occurred_at,id").Limit(CallbackBatchSize).Find(&events).Error
 		if err != nil {
 			return err
 		}
@@ -169,13 +169,13 @@ const receivedCallbacksTable = `(SELECT e.id::bigint AS id, e.attempt_id, a.comp
   e.provider_message_id::text AS provider_message_id, 'sms' AS kind,
   e.status, e.occurred_at, e.created_at AS received_at
  FROM delivery_events e JOIN sms_attempts a ON a.id=e.attempt_id
- WHERE e.event_key LIKE 'zoug:%'
+ WHERE split_part(e.event_key, ':', 1) = e.provider_code
  UNION ALL
  SELECT -m.id::bigint AS id, m.attempt_id, a.company_id,
   m.provider_message_id::text AS provider_message_id, 'mo' AS kind,
   'RECEIVED' AS status, m.received_at AS occurred_at, m.created_at AS received_at
  FROM mo_events m JOIN sms_attempts a ON a.id=m.attempt_id
- WHERE m.event_key LIKE 'zoug:%') AS received`
+ WHERE split_part(m.event_key, ':', 1) = m.provider_code) AS received`
 
 func (r *Callbacks) Received(ctx context.Context, q dtos.ListQuery) (dtos.Page[dtos.ReceivedCallbackView], error) {
 	result := dtos.Page[dtos.ReceivedCallbackView]{Items: []dtos.ReceivedCallbackView{}, Page: q.Page, PageSize: q.PageSize}

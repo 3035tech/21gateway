@@ -6,6 +6,7 @@ import (
 	apperrors "github.com/21mobile/sms-gateway/internal/errors"
 	"github.com/21mobile/sms-gateway/internal/integrations/whitelabel"
 	"github.com/21mobile/sms-gateway/internal/models"
+	smsprovider "github.com/21mobile/sms-gateway/internal/providers/sms"
 	"strings"
 	"testing"
 )
@@ -36,7 +37,7 @@ func TestSMSTextNormalization(t *testing.T) {
 func TestSingleSMSNormalizesBeforeProviderAndEncoding(t *testing.T) {
 	original := validSMS()
 	original.MessageText = "Olá, ação! 😊"
-	provider := &stubProvider{enabled: true, response: whitelabel.SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440000", Status: whitelabel.StatusSent}}
+	provider := &stubProvider{enabled: true, response: smsprovider.SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440000", Status: string(whitelabel.StatusSent)}}
 	repo := &memoryAttempts{}
 	result, err := NewSMSService(repo, provider).Send(context.Background(), 7, []dtos.LegacySMS{original})
 	if err != nil || result[0].Status != dtos.LegacyStatusOK || len(provider.inputs) != 1 || provider.inputs[0].Message != "Ola, acao!" || provider.inputs[0].Encoding != models.SMSEncodingGSM7 {
@@ -58,7 +59,7 @@ func TestBatchUsesSameNormalizationWithoutChangingCaller(t *testing.T) {
 	messages := []dtos.LegacySMS{validSMS(), validSMS()}
 	messages[0].MessageText = "Olá 😊"
 	messages[1].MessageText = "Ação 🇧🇷"
-	provider := &batchStub{stubProvider: stubProvider{enabled: true}, outcomes: []whitelabel.BatchResult{{MessageID: "550e8400-e29b-41d4-a716-446655440001"}, {MessageID: "550e8400-e29b-41d4-a716-446655440002"}}}
+	provider := &batchStub{stubProvider: stubProvider{enabled: true}, outcomes: []smsprovider.BatchResult{{MessageID: "550e8400-e29b-41d4-a716-446655440001"}, {MessageID: "550e8400-e29b-41d4-a716-446655440002"}}}
 	_, err := NewSMSService(&batchMemory{}, provider).Send(context.Background(), 7, messages)
 	if err != nil || len(provider.batchInput.Messages) != 2 || provider.batchInput.Messages[0].Message != "Ola" || provider.batchInput.Messages[1].Message != "Acao" || provider.batchInput.Encoding != models.SMSEncodingGSM7 {
 		t.Fatal("batch normalization mismatch", err, provider.batchInput)

@@ -5,8 +5,8 @@ import (
 	"errors"
 	"github.com/21mobile/sms-gateway/internal/dtos"
 	apperrors "github.com/21mobile/sms-gateway/internal/errors"
-	"github.com/21mobile/sms-gateway/internal/integrations/whitelabel"
 	"github.com/21mobile/sms-gateway/internal/models"
+	smsprovider "github.com/21mobile/sms-gateway/internal/providers/sms"
 	"testing"
 )
 
@@ -31,11 +31,11 @@ func (r *batchMemory) CompleteBatch(_ context.Context, attempts []models.SMSAtte
 type batchStub struct {
 	stubProvider
 	calls      int
-	batchInput whitelabel.BatchRequest
-	outcomes   []whitelabel.BatchResult
+	batchInput smsprovider.BatchRequest
+	outcomes   []smsprovider.BatchResult
 }
 
-func (p *batchStub) SendBatch(_ context.Context, input whitelabel.BatchRequest) ([]whitelabel.BatchResult, error) {
+func (p *batchStub) SendBatch(_ context.Context, input smsprovider.BatchRequest) ([]smsprovider.BatchResult, error) {
 	p.calls++
 	p.batchInput = input
 	return p.outcomes, p.err
@@ -52,7 +52,7 @@ func (l *countLimiter) Allow(_ context.Context, _ uint64, count int) (bool, erro
 }
 func TestBatchRejectsInvalidDestinationBeforeProvider(t *testing.T) {
 	repo := &batchMemory{}
-	provider := &batchStub{stubProvider: stubProvider{enabled: true}, outcomes: []whitelabel.BatchResult{{MessageID: "550e8400-e29b-41d4-a716-446655440001"}}}
+	provider := &batchStub{stubProvider: stubProvider{enabled: true}, outcomes: []smsprovider.BatchResult{{MessageID: "550e8400-e29b-41d4-a716-446655440001"}}}
 	limiter := &countLimiter{allowed: true}
 	invalid := validSMS()
 	invalid.Destination = "invalid"

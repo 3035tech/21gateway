@@ -14,6 +14,7 @@ import (
 	"github.com/21mobile/sms-gateway/internal/integrations/mail"
 	"github.com/21mobile/sms-gateway/internal/integrations/whitelabel"
 	"github.com/21mobile/sms-gateway/internal/models"
+	smsprovider "github.com/21mobile/sms-gateway/internal/providers/sms"
 	"github.com/21mobile/sms-gateway/internal/repositories"
 	"github.com/21mobile/sms-gateway/internal/security"
 	"github.com/21mobile/sms-gateway/internal/services"
@@ -87,9 +88,14 @@ func New(ctx context.Context, cfg config.Config, db *gorm.DB, provider *whitelab
 			w.Close()
 			return nil, err
 		}
-		w.scheduled = services.NewScheduledSMSWorker(repositories.NewScheduledSMS(db), services.NewAccountSMSProvider(provider, tokenVault), repositories.NewDispatchSendLimits(db), scheduledVault)
+		accountProvider, err := services.NewAccountSMSProvider(whitelabel.NewAdapter(provider, tokenVault))
+		if err != nil {
+			w.Close()
+			return nil, err
+		}
+		w.scheduled = services.NewScheduledSMSWorker(repositories.NewScheduledSMS(db), accountProvider, repositories.NewDispatchSendLimits(db), scheduledVault)
 		if cfg.ZougCallbackEnabled {
-			w.scheduled.SetCallbackLevel(whitelabel.CallbackAll)
+			w.scheduled.SetCallbackLevel(smsprovider.CallbackAll)
 		}
 		if cfg.ScheduledSQSEnabled || cfg.SMSSQSEnabled {
 			startup, cancel := context.WithTimeout(ctx, config.StartupTimeout)

@@ -1,6 +1,7 @@
 package services
 
 import (
+	smsprovider "github.com/21mobile/sms-gateway/internal/providers/sms"
 	"strconv"
 	"testing"
 	"time"
@@ -60,7 +61,7 @@ func TestPostgresSendReferencePublicationAndDuplicateDelivery(t *testing.T) {
 	if _, done, ready, err := refs.Claim(ctx, first.AttemptID); err != nil || done || ready {
 		t.Fatal("duplicate claimed", err)
 	}
-	provider := &stubProvider{enabled: true, response: whitelabel.SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440001", Status: whitelabel.StatusSent}}
+	provider := &stubProvider{enabled: true, response: smsprovider.SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440001", Status: string(whitelabel.StatusSent)}}
 	worker := NewScheduledSMSWorker(scheduled, provider, &countLimiter{allowed: true}, vault)
 	if progress, err := worker.processGroup(ctx, []models.ScheduledSMS{job}); err != nil || !progress {
 		t.Fatal("worker send", err)

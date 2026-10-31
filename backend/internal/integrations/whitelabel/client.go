@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/warthog618/sms/encoding/gsm7"
+	smsprovider "github.com/21mobile/sms-gateway/internal/providers/sms"
 
 	apperrors "github.com/21mobile/sms-gateway/internal/errors"
 	"github.com/21mobile/sms-gateway/internal/models"
@@ -91,10 +91,7 @@ func (c *Client) SetLogUnexpectedResponseBody(enabled bool) {
 }
 
 func SelectEncoding(message string) Encoding {
-	if _, err := gsm7.Encode([]byte(message)); err == nil {
-		return EncodingGSM7
-	}
-	return EncodingUCS2
+	return smsprovider.SelectEncoding(message)
 }
 
 func (c *Client) Send(ctx context.Context, input SendRequest) (SendResponse, error) {

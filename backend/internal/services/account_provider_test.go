@@ -5,12 +5,42 @@ import (
 	"encoding/base64"
 	"github.com/21mobile/sms-gateway/internal/integrations/whitelabel"
 	"github.com/21mobile/sms-gateway/internal/models"
+	smsprovider "github.com/21mobile/sms-gateway/internal/providers/sms"
 	"github.com/21mobile/sms-gateway/internal/security"
 	"github.com/jarcoal/httpmock"
 	"net/http"
 	"strings"
 	"testing"
 )
+
+type alternateSMSAdapter struct{ calls int }
+
+func (*alternateSMSAdapter) Code() models.Provider { return models.Provider("test-supplier") }
+func (a *alternateSMSAdapter) PrepareCredential(_ context.Context, _ models.APICredential) (smsprovider.Sender, error) {
+	a.calls++
+	return &stubProvider{enabled: true}, nil
+}
+func (a *alternateSMSAdapter) PrepareCompany(_ context.Context, _ models.Company) (smsprovider.Sender, error) {
+	a.calls++
+	return &stubProvider{enabled: true}, nil
+}
+
+func TestAccountProviderSelectsRegisteredAdapter(t *testing.T) {
+	vault, _ := security.NewTokenVault(base64.StdEncoding.EncodeToString([]byte(strings.Repeat("k", 32))))
+	client, _ := whitelabel.NewWithTransport("https://provider.example", "unused", httpmock.NewMockTransport())
+	alternate := &alternateSMSAdapter{}
+	registry, err := NewAccountSMSProvider(whitelabel.NewAdapter(client, vault), alternate)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := WithCredential(context.Background(), models.APICredential{CompanySMSProvider: alternate.Code()})
+	if _, err := registry.Prepare(ctx); err != nil || alternate.calls != 1 {
+		t.Fatal("route did not select alternate adapter", err)
+	}
+	if _, err := registry.Prepare(WithCredential(context.Background(), models.APICredential{CompanySMSProvider: "missing"})); err == nil {
+		t.Fatal("unknown provider reached an adapter")
+	}
+}
 
 func TestPerAccountProviderHasNoSharedTokenFallback(t *testing.T) {
 	vault, _ := security.NewTokenVault(base64.StdEncoding.EncodeToString([]byte(strings.Repeat("k", 32))))
@@ -23,7 +53,10 @@ func TestPerAccountProviderHasNoSharedTokenFallback(t *testing.T) {
 		return httpmock.NewStringResponder(200, `{"message_id":"550e8400-e29b-41d4-a716-446655440001","status":"sent"}`)(r)
 	})
 	client, _ := whitelabel.NewWithTransport("https://provider.example", "must-not-be-used", transport)
-	provider := NewAccountSMSProvider(client, vault)
+	provider, err := NewAccountSMSProvider(whitelabel.NewAdapter(client, vault))
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, username := range []string{"account-a", "account-b"} {
 		expected = username + "-token"
 		encrypted, _ := vault.Encrypt(username, expected)
@@ -32,7 +65,7 @@ func TestPerAccountProviderHasNoSharedTokenFallback(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := ready.Send(ctx, whitelabel.SendRequest{}); err != nil {
+		if _, err := ready.Send(ctx, smsprovider.SendRequest{Type: models.ChannelSMS}); err != nil {
 			t.Fatal("account send failed")
 		}
 	}
@@ -44,7 +77,7 @@ func TestPerAccountProviderHasNoSharedTokenFallback(t *testing.T) {
 		t.Fatal("unconfigured account reached supplier")
 	}
 	unknown, _ := vault.Encrypt("unknown-provider", "unrelated-token")
-	_, err := provider.Prepare(WithCredential(context.Background(), models.APICredential{Username: "unknown-provider", ProviderTokenEncrypted: unknown, CompanySMSProvider: "unregistered"}))
+	_, err = provider.Prepare(WithCredential(context.Background(), models.APICredential{Username: "unknown-provider", ProviderTokenEncrypted: unknown, CompanySMSProvider: "unregistered"}))
 	if err == nil || transport.GetTotalCallCount() != before {
 		t.Fatal("unknown provider must fail closed without calling Zoug")
 	}
@@ -62,12 +95,15 @@ func TestCompanyTokenSharedAcrossAPICredentials(t *testing.T) {
 		return httpmock.NewStringResponder(200, `{"message_id":"550e8400-e29b-41d4-a716-446655440001","status":"sent"}`)(r)
 	})
 	client, _ := whitelabel.NewWithTransport("https://provider.example", "unused", transport)
-	provider := NewAccountSMSProvider(client, vault)
-	companyProvider, err := provider.PrepareCompany(models.Company{ID: companyID, ProviderTokenEncrypted: companyToken})
+	provider, err := NewAccountSMSProvider(whitelabel.NewAdapter(client, vault))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := companyProvider.Send(context.Background(), whitelabel.SendRequest{}); err != nil {
+	companyProvider, err := provider.PrepareCompany(context.Background(), models.Company{ID: companyID, ProviderTokenEncrypted: companyToken})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := companyProvider.Send(context.Background(), smsprovider.SendRequest{Type: models.ChannelSMS}); err != nil {
 		t.Fatal("company token test failed", err)
 	}
 	for _, username := range []string{"api-one", "api-two"} {
@@ -78,7 +114,7 @@ func TestCompanyTokenSharedAcrossAPICredentials(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := ready.Send(ctx, whitelabel.SendRequest{}); err != nil {
+		if _, err := ready.Send(ctx, smsprovider.SendRequest{Type: models.ChannelSMS}); err != nil {
 			t.Fatal(err)
 		}
 		credential.CompanyProviderTokenEncrypted = ""

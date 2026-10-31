@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	smsprovider "github.com/21mobile/sms-gateway/internal/providers/sms"
 	"strings"
 	"testing"
 
@@ -34,7 +35,7 @@ func TestDiagnosticDestinationMustMatchConfiguredHash(t *testing.T) {
 
 type companyTestProvider struct{ stubProvider }
 
-func (p *companyTestProvider) PrepareCompany(company models.Company) (SMSProvider, error) {
+func (p *companyTestProvider) PrepareCompany(_ context.Context, company models.Company) (SMSProvider, error) {
 	if company.ProviderTokenEncrypted == "" {
 		return nil, apperrors.Wrap(apperrors.CodeTestNotConfigured, nil)
 	}
@@ -42,7 +43,7 @@ func (p *companyTestProvider) PrepareCompany(company models.Company) (SMSProvide
 }
 
 func TestCompanyTokenTestCallsProviderWithoutCredentialOrAttempt(t *testing.T) {
-	provider := &companyTestProvider{stubProvider: stubProvider{enabled: true, response: whitelabel.SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440000", Status: whitelabel.StatusSent}}}
+	provider := &companyTestProvider{stubProvider: stubProvider{enabled: true, response: smsprovider.SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440000", Status: string(whitelabel.StatusSent)}}}
 	attempts := &memoryAttempts{}
 	sender := NewSMSService(attempts, provider)
 	company := models.Company{ID: 12, Active: true, ProviderTokenEncrypted: "encrypted-token"}
@@ -50,7 +51,7 @@ func TestCompanyTokenTestCallsProviderWithoutCredentialOrAttempt(t *testing.T) {
 	if err != nil || providerID == "" || len(attempts.created) != 0 || len(provider.inputs) != 1 {
 		t.Fatalf("providerID=%q err=%v attempts=%d calls=%d", providerID, err, len(attempts.created), len(provider.inputs))
 	}
-	if got := provider.inputs[0]; got.Destination != "5511987654321" || got.ReferenceID != "test-ref" || got.Message != "Teste do token" || got.CallbackLevel != whitelabel.CallbackNone {
+	if got := provider.inputs[0]; got.Destination != "5511987654321" || got.ReferenceID != "test-ref" || got.Message != "Teste do token" || got.CallbackLevel != smsprovider.CallbackNone {
 		t.Fatalf("unexpected provider request: %+v", got)
 	}
 	if _, err := sender.SendCompanyTest(context.Background(), company, "11987654321", "Teste do token", "test-ref-2"); !hasCode(err, apperrors.CodeRateLimited) || len(provider.inputs) != 1 {
@@ -68,7 +69,7 @@ func TestPostgresCompanyTokenTestUsesPublicRefAndAudits(t *testing.T) {
 	if err := db.Create(&user).Error; err != nil {
 		t.Fatal(err)
 	}
-	provider := &companyTestProvider{stubProvider: stubProvider{enabled: true, response: whitelabel.SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440000", Status: whitelabel.StatusSent}}}
+	provider := &companyTestProvider{stubProvider: stubProvider{enabled: true, response: smsprovider.SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440000", Status: string(whitelabel.StatusSent)}}}
 	service := NewMessageServiceWithTestSend(repositories.NewSMSAttempts(db), nil, repositories.NewAudits(db), NewSMSService(repositories.NewSMSAttempts(db), provider), "11987654321", false).WithCompanyTests(repositories.NewCompanies(db))
 	if _, err := service.SendCompanyTest(ctx, user.ID, company.PublicRef, "11999999999", ""); !hasCode(err, apperrors.CodeTestDestinationNotAllowed) || len(provider.inputs) != 0 {
 		t.Fatalf("wrong destination reached provider: %v", err)
@@ -128,7 +129,7 @@ func TestPostgresCredentialTestSendUsesExistingLimitsAndAudit(t *testing.T) {
 	if err := db.Create(&credential).Error; err != nil {
 		t.Fatal(err)
 	}
-	provider := &stubProvider{enabled: true, response: whitelabel.SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440000", Status: whitelabel.StatusSent}}
+	provider := &stubProvider{enabled: true, response: smsprovider.SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440000", Status: string(whitelabel.StatusSent)}}
 	service := NewMessageServiceWithTestSend(repositories.NewSMSAttempts(db), repositories.NewCredentials(db), repositories.NewAudits(db), NewSMSServiceWithLimiter(repositories.NewSMSAttempts(db), provider, repositories.NewSendLimits(db)), "11987654321", false)
 	if _, err := service.SendTest(ctx, user.ID, credential.ID, "11999999999", ""); !hasCode(err, apperrors.CodeTestDestinationNotAllowed) || len(provider.inputs) != 0 {
 		t.Fatal("unauthorized destination reached provider", err)
@@ -164,7 +165,7 @@ func TestPostgresCredentialTestSendAcceptsFreeDestinationAndMessageWhenEnabled(t
 	if err := db.Create(&credential).Error; err != nil {
 		t.Fatal(err)
 	}
-	provider := &stubProvider{enabled: true, response: whitelabel.SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440000", Status: whitelabel.StatusSent}}
+	provider := &stubProvider{enabled: true, response: smsprovider.SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440000", Status: string(whitelabel.StatusSent)}}
 	service := NewMessageServiceWithTestSend(repositories.NewSMSAttempts(db), repositories.NewCredentials(db), repositories.NewAudits(db), NewSMSServiceWithLimiter(repositories.NewSMSAttempts(db), provider, repositories.NewSendLimits(db)), "", true)
 	for _, input := range []struct {
 		destination, message string

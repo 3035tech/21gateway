@@ -10,6 +10,7 @@ import (
 	apperrors "github.com/21mobile/sms-gateway/internal/errors"
 	"github.com/21mobile/sms-gateway/internal/integrations/whitelabel"
 	"github.com/21mobile/sms-gateway/internal/models"
+	smsprovider "github.com/21mobile/sms-gateway/internal/providers/sms"
 	"github.com/21mobile/sms-gateway/internal/repositories"
 	"github.com/21mobile/sms-gateway/internal/security"
 	"github.com/google/uuid"
@@ -165,7 +166,7 @@ func (s *MessageService) SendCompanyTest(ctx context.Context, actor uint64, publ
 	if err != nil {
 		return empty, dbError(err)
 	}
-	if !company.Active || company.ProviderTokenEncrypted == "" {
+	if !company.Active || (selectedSMSProvider(company.SMSProvider) == models.ProviderZoug && company.ProviderTokenEncrypted == "") {
 		return empty, apperrors.Wrap(apperrors.CodeConflict, nil)
 	}
 	if strings.TrimSpace(messageText) == "" {
@@ -181,7 +182,7 @@ func (s *MessageService) SendCompanyTest(ctx context.Context, actor uint64, publ
 		return empty, dbError(err)
 	}
 	correlationID := "test-" + uuid.NewString()
-	record := models.CompanyTestSend{CompanyID: company.ID, ActorID: actor, Destination: "55" + destination, CorrelationID: correlationID, State: models.SubmissionUnknown}
+	record := models.CompanyTestSend{CompanyID: company.ID, ActorID: actor, Destination: "55" + destination, CorrelationID: correlationID, ProviderCode: selectedSMSProvider(company.SMSProvider), State: models.SubmissionUnknown}
 	if err := s.repository.CreateCompanyTest(ctx, &record); err != nil {
 		return empty, dbError(err)
 	}
@@ -192,8 +193,7 @@ func (s *MessageService) SendCompanyTest(ctx context.Context, actor uint64, publ
 		if errors.As(err, &appError) {
 			code = appError.Code
 		}
-		if parsedID, parseErr := uuid.Parse(providerID); parseErr == nil && parsedID != uuid.Nil {
-			providerID = parsedID.String()
+		if smsprovider.ValidMessageID(providerID) {
 			record.ProviderMessageID = &providerID
 		}
 		record.FailureCode = code

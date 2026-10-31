@@ -15,6 +15,7 @@ type CompanyTestSend struct {
 	Destination       string
 	CorrelationID     string
 	ProviderMessageID *string
+	ProviderCode      Provider
 	State             SubmissionState
 	FailureCode       apperrors.Code
 	CreatedAt         time.Time

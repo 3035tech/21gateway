@@ -20,6 +20,7 @@ type MOEvent struct {
 	EventKey          string
 	CredentialID      uint64
 	ProviderMessageID string
+	ProviderCode      Provider `gorm:"default:zoug"`
 	AttemptID         *uint64
 	EncryptedMessage  string
 	Fingerprint       string

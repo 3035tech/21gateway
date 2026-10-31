@@ -11,8 +11,8 @@ import (
 
 	"github.com/21mobile/sms-gateway/internal/dtos"
 	apperrors "github.com/21mobile/sms-gateway/internal/errors"
-	"github.com/21mobile/sms-gateway/internal/integrations/whitelabel"
 	"github.com/21mobile/sms-gateway/internal/models"
+	smsprovider "github.com/21mobile/sms-gateway/internal/providers/sms"
 	"github.com/21mobile/sms-gateway/internal/security"
 )
 
@@ -29,13 +29,13 @@ type ScheduledSMSWorker struct {
 	provider      SMSProvider
 	limiter       SendLimiter
 	vault         *security.ScheduledContentVault
-	callbackLevel whitelabel.CallbackLevel
+	callbackLevel smsprovider.CallbackLevel
 }
 
 func NewScheduledSMSWorker(repo ScheduledWorkerRepository, provider SMSProvider, limiter SendLimiter, vault *security.ScheduledContentVault) *ScheduledSMSWorker {
-	return &ScheduledSMSWorker{repo: repo, provider: provider, limiter: limiter, vault: vault, callbackLevel: whitelabel.CallbackNone}
+	return &ScheduledSMSWorker{repo: repo, provider: provider, limiter: limiter, vault: vault, callbackLevel: smsprovider.CallbackNone}
 }
-func (w *ScheduledSMSWorker) SetCallbackLevel(level whitelabel.CallbackLevel) {
+func (w *ScheduledSMSWorker) SetCallbackLevel(level smsprovider.CallbackLevel) {
 	w.callbackLevel = level
 }
 func (w *ScheduledSMSWorker) Run(ctx context.Context) {
@@ -114,7 +114,7 @@ func (w *ScheduledSMSWorker) processGroup(ctx context.Context, jobs []models.Sch
 	credential.PasswordHash = ""
 	messages := make([]dtos.LegacySMS, len(jobs))
 	for i, job := range jobs {
-		if job.CredentialID != credential.ID {
+		if job.CredentialID != credential.ID || job.Attempt.ProviderCode != jobs[0].Attempt.ProviderCode {
 			return reject(apperrors.CodeConflict)
 		}
 		text, err := w.vault.Decrypt(job.CredentialID, job.EventKey, job.EncryptedMessage)
@@ -124,6 +124,7 @@ func (w *ScheduledSMSWorker) processGroup(ctx context.Context, jobs []models.Sch
 		}
 		messages[i] = dtos.LegacySMS{Destination: strings.TrimPrefix(job.Attempt.Destination, brazilCountryCode), MessageText: text, CorrelationID: job.Attempt.CorrelationID}
 	}
+	credential.CompanySMSProvider = jobs[0].Attempt.ProviderCode
 	provider := w.provider
 	if scoped, ok := provider.(interface {
 		Prepare(context.Context) (SMSProvider, error)

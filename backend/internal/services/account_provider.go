@@ -2,71 +2,76 @@ package services
 
 import (
 	"context"
-	"fmt"
+
 	apperrors "github.com/21mobile/sms-gateway/internal/errors"
-	"github.com/21mobile/sms-gateway/internal/integrations/whitelabel"
 	"github.com/21mobile/sms-gateway/internal/models"
-	"github.com/21mobile/sms-gateway/internal/security"
+	smsprovider "github.com/21mobile/sms-gateway/internal/providers/sms"
 )
 
-// Each request receives its own token view of a shared, pooled HTTP client.
-// Tokens never enter request context, response DTOs or a global mutable header.
+// AccountSMSProvider resolves the company's SMS route. Each adapter owns its
+// authentication and wire protocol; no provider credential enters the context.
 type AccountSMSProvider struct {
-	client *whitelabel.Client
-	vault  *security.TokenVault
+	adapters map[models.Provider]smsprovider.Adapter
 }
 
-func NewAccountSMSProvider(client *whitelabel.Client, vault *security.TokenVault) *AccountSMSProvider {
-	return &AccountSMSProvider{client: client, vault: vault}
+func NewAccountSMSProvider(adapters ...smsprovider.Adapter) (*AccountSMSProvider, error) {
+	registry := &AccountSMSProvider{adapters: make(map[models.Provider]smsprovider.Adapter, len(adapters))}
+	for _, adapter := range adapters {
+		if adapter == nil || adapter.Code() == "" || registry.adapters[adapter.Code()] != nil {
+			return nil, apperrors.Wrap(apperrors.CodeConfigurationInvalid, nil)
+		}
+		registry.adapters[adapter.Code()] = adapter
+	}
+	if len(registry.adapters) == 0 {
+		return nil, apperrors.Wrap(apperrors.CodeConfigurationInvalid, nil)
+	}
+	return registry, nil
 }
-func (p *AccountSMSProvider) Enabled() bool { return p.vault.Enabled() }
+
+func (p *AccountSMSProvider) Enabled() bool { return p != nil && len(p.adapters) > 0 }
+
 func selectedSMSProvider(code models.Provider) models.Provider {
 	if code == "" {
-		return models.ProviderZoug // Existing credentials without a route keep their original integration.
+		return models.ProviderZoug // Compatibility for pre-route credentials.
 	}
 	return code
 }
-func (p *AccountSMSProvider) forToken(code models.Provider, token string) (SMSProvider, error) {
-	switch selectedSMSProvider(code) {
-	case models.ProviderZoug:
-		return p.client.ForToken(token), nil
-	default:
+
+func (p *AccountSMSProvider) adapter(code models.Provider) (smsprovider.Adapter, error) {
+	if p == nil {
 		return nil, apperrors.Wrap(apperrors.CodeServiceUnavailable, nil)
 	}
-}
-func (p *AccountSMSProvider) PrepareCompany(company models.Company) (SMSProvider, error) {
-	if !p.Enabled() || company.ProviderTokenEncrypted == "" {
-		return nil, apperrors.Wrap(apperrors.CodeTestNotConfigured, nil)
+	adapter := p.adapters[selectedSMSProvider(code)]
+	if adapter == nil {
+		return nil, apperrors.Wrap(apperrors.CodeServiceUnavailable, nil)
 	}
-	token, err := p.vault.Decrypt(fmt.Sprintf("company:%d", company.ID), company.ProviderTokenEncrypted)
+	return adapter, nil
+}
+
+func (p *AccountSMSProvider) PrepareCompany(ctx context.Context, company models.Company) (SMSProvider, error) {
+	adapter, err := p.adapter(company.SMSProvider)
 	if err != nil {
 		return nil, err
 	}
-	return p.forToken(company.SMSProvider, token)
+	return adapter.PrepareCompany(ctx, company)
 }
+
 func (p *AccountSMSProvider) Prepare(ctx context.Context) (SMSProvider, error) {
 	credential, ok := CredentialFromContext(ctx)
 	if !ok {
 		return nil, apperrors.Wrap(apperrors.CodeUnauthorized, nil)
 	}
-	associatedData := credential.Username
-	encrypted := credential.ProviderTokenEncrypted
-	if credential.CompanyProviderTokenEncrypted != "" && credential.CompanyID != nil {
-		associatedData = fmt.Sprintf("company:%d", *credential.CompanyID)
-		encrypted = credential.CompanyProviderTokenEncrypted
-	} else if credential.CompanyID != nil && !credential.CompanyProviderTokenLegacyFallback {
-		encrypted = ""
-	}
-	token, err := p.vault.Decrypt(associatedData, encrypted)
+	adapter, err := p.adapter(credential.CompanySMSProvider)
 	if err != nil {
 		return nil, err
 	}
-	return p.forToken(credential.CompanySMSProvider, token)
+	return adapter.PrepareCredential(ctx, credential)
 }
-func (p *AccountSMSProvider) Send(ctx context.Context, input whitelabel.SendRequest) (whitelabel.SendResponse, error) {
+
+func (p *AccountSMSProvider) Send(ctx context.Context, input smsprovider.SendRequest) (smsprovider.SendResponse, error) {
 	provider, err := p.Prepare(ctx)
 	if err != nil {
-		return whitelabel.SendResponse{}, err
+		return smsprovider.SendResponse{}, err
 	}
 	return provider.Send(ctx, input)
 }

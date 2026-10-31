@@ -15,10 +15,11 @@ type MOs struct{ db *gorm.DB }
 
 func NewMOs(db *gorm.DB) *MOs { return &MOs{db: db} }
 
-// FindOriginal resolves the MO account through Zoug's MT message_id.
-func (r *MOs) FindOriginal(ctx context.Context, providerMessageID string) (models.SMSAttempt, error) {
+// FindOriginalForProvider resolves the MO account using the authenticated
+// provider namespace and the original outbound message ID.
+func (r *MOs) FindOriginalForProvider(ctx context.Context, provider models.Provider, providerMessageID string) (models.SMSAttempt, error) {
 	var attempt models.SMSAttempt
-	err := r.db.WithContext(ctx).Select("id,credential_id,destination,provider_message_id").Where("provider_message_id = ?", providerMessageID).First(&attempt).Error
+	err := r.db.WithContext(ctx).Select("id,credential_id,destination,provider_message_id,provider_code").Where("provider_code = ? AND provider_message_id = ?", provider, providerMessageID).First(&attempt).Error
 	return attempt, err
 }
 func (r *MOs) Accept(ctx context.Context, event models.MOEvent) error {
@@ -28,7 +29,7 @@ func (r *MOs) Accept(ctx context.Context, event models.MOEvent) error {
 			return err
 		}
 		var other int64
-		if err := tx.Model(&models.SMSAttempt{}).Where("provider_message_id = ? AND credential_id <> ?", event.ProviderMessageID, event.CredentialID).Count(&other).Error; err != nil {
+		if err := tx.Model(&models.SMSAttempt{}).Where("provider_code = ? AND provider_message_id = ? AND credential_id <> ?", event.ProviderCode, event.ProviderMessageID, event.CredentialID).Count(&other).Error; err != nil {
 			return err
 		}
 		if other != 0 {
@@ -43,7 +44,7 @@ func (r *MOs) Accept(ctx context.Context, event models.MOEvent) error {
 			if err := tx.Where("credential_id = ? AND event_key = ?", event.CredentialID, event.EventKey).First(&previous).Error; err != nil {
 				return err
 			}
-			if previous.Fingerprint != event.Fingerprint {
+			if previous.ProviderCode != event.ProviderCode || previous.Fingerprint != event.Fingerprint {
 				return apperrors.Wrap(apperrors.CodeConflict, nil)
 			}
 			return nil
@@ -53,7 +54,7 @@ func (r *MOs) Accept(ctx context.Context, event models.MOEvent) error {
 }
 func reconcileMO(tx *gorm.DB, event *models.MOEvent) error {
 	var attempt models.SMSAttempt
-	err := tx.Where("provider_message_id = ? AND credential_id = ?", event.ProviderMessageID, event.CredentialID).First(&attempt).Error
+	err := tx.Where("provider_code = ? AND provider_message_id = ? AND credential_id = ?", event.ProviderCode, event.ProviderMessageID, event.CredentialID).First(&attempt).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil
 	}
@@ -77,7 +78,7 @@ func reconcileMO(tx *gorm.DB, event *models.MOEvent) error {
 func (r *MOs) Reconcile(ctx context.Context) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var events []models.MOEvent
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED", Table: clause.Table{Name: "mo_events"}}).Where("NOT processed AND EXISTS (SELECT 1 FROM sms_attempts WHERE provider_message_id=mo_events.provider_message_id AND credential_id=mo_events.credential_id)").Order("received_at,id").Limit(CallbackBatchSize).Find(&events).Error; err != nil {
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED", Table: clause.Table{Name: "mo_events"}}).Where("NOT processed AND EXISTS (SELECT 1 FROM sms_attempts WHERE provider_code=mo_events.provider_code AND provider_message_id=mo_events.provider_message_id AND credential_id=mo_events.credential_id)").Order("received_at,id").Limit(CallbackBatchSize).Find(&events).Error; err != nil {
 			return err
 		}
 		for i := range events {

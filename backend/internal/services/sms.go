@@ -15,8 +15,8 @@ import (
 
 	"github.com/21mobile/sms-gateway/internal/dtos"
 	apperrors "github.com/21mobile/sms-gateway/internal/errors"
-	"github.com/21mobile/sms-gateway/internal/integrations/whitelabel"
 	"github.com/21mobile/sms-gateway/internal/models"
+	smsprovider "github.com/21mobile/sms-gateway/internal/providers/sms"
 	"github.com/21mobile/sms-gateway/internal/security"
 	"github.com/google/uuid"
 )
@@ -34,7 +34,7 @@ var brazilLocalNumber = regexp.MustCompile(`^[0-9]{11}$`)
 
 type SMSProvider interface {
 	Enabled() bool
-	Send(context.Context, whitelabel.SendRequest) (whitelabel.SendResponse, error)
+	Send(context.Context, smsprovider.SendRequest) (smsprovider.SendResponse, error)
 }
 type AttemptRepository interface {
 	Create(context.Context, *models.SMSAttempt) error
@@ -55,25 +55,25 @@ type SMSService struct {
 	provider      SMSProvider
 	limits        sync.Map
 	history       *security.SMSHistoryVault
-	callbackLevel whitelabel.CallbackLevel
+	callbackLevel smsprovider.CallbackLevel
 }
 
 func NewSMSService(repository AttemptRepository, provider SMSProvider) *SMSService {
-	return &SMSService{repository: repository, provider: provider, callbackLevel: whitelabel.CallbackNone}
+	return &SMSService{repository: repository, provider: provider, callbackLevel: smsprovider.CallbackNone}
 }
-func (s *SMSService) SetHistoryVault(vault *security.SMSHistoryVault) { s.history = vault }
-func (s *SMSService) SetCallbackLevel(level whitelabel.CallbackLevel) { s.callbackLevel = level }
-func (s *SMSService) Queued() bool                                    { return s.asyncQueue != nil }
+func (s *SMSService) SetHistoryVault(vault *security.SMSHistoryVault)  { s.history = vault }
+func (s *SMSService) SetCallbackLevel(level smsprovider.CallbackLevel) { s.callbackLevel = level }
+func (s *SMSService) Queued() bool                                     { return s.asyncQueue != nil }
 
-// A company token test calls Zoug directly so the response verifies the saved token.
+// Test the company's selected SMS adapter with its configured credential.
 func (s *SMSService) SendCompanyTest(ctx context.Context, company models.Company, destination, message, correlationID string) (string, error) {
 	preparer, ok := s.provider.(interface {
-		PrepareCompany(models.Company) (SMSProvider, error)
+		PrepareCompany(context.Context, models.Company) (SMSProvider, error)
 	})
 	if !ok {
 		return "", apperrors.Wrap(apperrors.CodeTestNotConfigured, nil)
 	}
-	provider, err := preparer.PrepareCompany(company)
+	provider, err := preparer.PrepareCompany(ctx, company)
 	if err != nil {
 		return "", err
 	}
@@ -84,29 +84,14 @@ func (s *SMSService) SendCompanyTest(ctx context.Context, company models.Company
 	if code != apperrors.CodeNone {
 		return "", apperrors.Wrap(code, nil)
 	}
-	response, err := provider.Send(ctx, whitelabel.SendRequest{Type: whitelabel.MessageTypeSMS, Message: normalized, Encoding: whitelabel.SelectEncoding(normalized), Destination: brazilCountryCode + destination, ReferenceID: correlationID, Index: strconv.FormatUint(company.ID, 10), CallbackLevel: whitelabel.CallbackNone})
+	response, err := provider.Send(ctx, smsprovider.SendRequest{Type: models.ChannelSMS, Message: normalized, Encoding: smsprovider.SelectEncoding(normalized), Destination: brazilCountryCode + destination, ReferenceID: correlationID, Index: strconv.FormatUint(company.ID, 10), CallbackLevel: smsprovider.CallbackNone})
+	if err == nil && !smsprovider.ValidMessageID(response.MessageID) {
+		err = apperrors.Wrap(apperrors.CodeUnknownOutcome, nil)
+	}
 	if err != nil {
 		return response.MessageID, err
 	}
 	return response.MessageID, nil
-}
-
-func (s *SMSService) DiagnoseCompany(ctx context.Context, company models.Company, runID string, actorID uint64, destination string) ([]whitelabel.DiagnosticResult, error) {
-	preparer, ok := s.provider.(interface {
-		PrepareCompany(models.Company) (SMSProvider, error)
-	})
-	if !ok {
-		return nil, apperrors.Wrap(apperrors.CodeTestNotConfigured, nil)
-	}
-	provider, err := preparer.PrepareCompany(company)
-	if err != nil {
-		return nil, err
-	}
-	client, ok := provider.(*whitelabel.Client)
-	if !ok {
-		return nil, apperrors.Wrap(apperrors.CodeTestNotConfigured, nil)
-	}
-	return client.Diagnose(ctx, runID, company.ID, actorID, destination), nil
 }
 
 func (s *SMSService) allowCompanyTest(companyID uint64) bool {
@@ -136,7 +121,7 @@ func (s *SMSService) encryptAttempt(attempt *models.SMSAttempt, message string) 
 }
 
 func (s *SMSService) Send(ctx context.Context, credentialID uint64, messages []dtos.LegacySMS) ([]dtos.LegacySendResult, error) {
-	if len(messages) < 1 || len(messages) > whitelabel.MaximumBatchMessages {
+	if len(messages) < 1 || len(messages) > smsprovider.MaximumBatchMessages {
 		return []dtos.LegacySendResult{failure(dtos.LegacySMS{}, apperrors.CodeInvalidRequest)}, nil
 	}
 	if s.asyncQueue != nil {
@@ -192,7 +177,7 @@ func (s *SMSService) Send(ctx context.Context, credentialID uint64, messages []d
 	if !allowed {
 		return []dtos.LegacySendResult{failure(input, apperrors.CodeRateLimited)}, nil
 	}
-	encoding := whitelabel.SelectEncoding(input.MessageText)
+	encoding := smsprovider.SelectEncoding(input.MessageText)
 	attempt := models.SMSAttempt{CredentialID: credentialID, Destination: brazilCountryCode + input.Destination, CorrelationID: input.CorrelationID, Encoding: encoding, State: models.SubmissionPending}
 	if credential, ok := CredentialFromContext(ctx); ok && credential.ID == credentialID {
 		attempt.CompanyID = credential.CompanyID
@@ -205,7 +190,10 @@ func (s *SMSService) Send(ctx context.Context, credentialID uint64, messages []d
 		return nil, apperrors.Wrap(apperrors.CodeServiceUnavailable, err)
 	}
 	id := strconv.FormatUint(attempt.ID, 10)
-	sent, err := provider.Send(ctx, whitelabel.SendRequest{Type: whitelabel.MessageTypeSMS, Message: input.MessageText, Encoding: encoding, Destination: attempt.Destination, ReferenceID: input.CorrelationID, Index: id, CallbackLevel: s.callbackLevel})
+	sent, err := provider.Send(ctx, smsprovider.SendRequest{Type: models.ChannelSMS, Message: input.MessageText, Encoding: encoding, Destination: attempt.Destination, ReferenceID: input.CorrelationID, Index: id, CallbackLevel: s.callbackLevel})
+	if err == nil && !smsprovider.ValidMessageID(sent.MessageID) {
+		err = apperrors.Wrap(apperrors.CodeUnknownOutcome, nil)
+	}
 	if err != nil {
 		code := apperrors.CodeUnknownOutcome
 		var typed *apperrors.Error
@@ -215,8 +203,8 @@ func (s *SMSService) Send(ctx context.Context, credentialID uint64, messages []d
 		attempt.State = models.SubmissionRejected
 		if code == apperrors.CodeUnknownOutcome {
 			attempt.State = models.SubmissionUnknown
-			if parsed, parseErr := uuid.Parse(sent.MessageID); parseErr == nil && parsed != uuid.Nil {
-				providerID := parsed.String()
+			if smsprovider.ValidMessageID(sent.MessageID) {
+				providerID := sent.MessageID
 				attempt.ProviderMessageID = &providerID
 			}
 		}

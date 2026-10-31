@@ -17,6 +17,7 @@ import (
 	"github.com/21mobile/sms-gateway/internal/httpapi"
 	"github.com/21mobile/sms-gateway/internal/integrations/mail"
 	"github.com/21mobile/sms-gateway/internal/integrations/whitelabel"
+	smsprovider "github.com/21mobile/sms-gateway/internal/providers/sms"
 	"github.com/21mobile/sms-gateway/internal/repositories"
 	"github.com/21mobile/sms-gateway/internal/security"
 	"github.com/21mobile/sms-gateway/internal/services"
@@ -91,9 +92,13 @@ func run() error {
 	if !historyVault.Enabled() {
 		return apperrors.Wrap(apperrors.CodeConfigurationInvalid, nil)
 	}
-	sender := services.NewSMSServiceWithLimiter(repositories.NewSMSAttempts(db), services.NewAccountSMSProvider(provider, vault), repositories.NewSendLimits(db))
+	accountProvider, err := services.NewAccountSMSProvider(whitelabel.NewAdapter(provider, vault))
+	if err != nil {
+		return err
+	}
+	sender := services.NewSMSServiceWithLimiter(repositories.NewSMSAttempts(db), accountProvider, repositories.NewSendLimits(db))
 	if cfg.ZougCallbackEnabled {
-		sender.SetCallbackLevel(whitelabel.CallbackAll)
+		sender.SetCallbackLevel(smsprovider.CallbackAll)
 	}
 	sender.SetHistoryVault(historyVault)
 	if cfg.SchedulerEnabled {

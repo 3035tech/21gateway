@@ -51,6 +51,7 @@ const (
 type DeliveryEvent struct {
 	ID                uint64
 	EventKey          string
+	ProviderCode      Provider `gorm:"default:zoug"`
 	ProviderMessageID string
 	Status            DeliveryStatus
 	OccurredAt        time.Time

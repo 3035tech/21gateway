@@ -103,6 +103,10 @@ func (r *ScheduledSMS) Claim(ctx context.Context) ([]models.ScheduledSMS, error)
 		if err != nil {
 			return err
 		}
+		var firstAttempt models.SMSAttempt
+		if err := tx.Select("provider_code").First(&firstAttempt, first.AttemptID).Error; err != nil {
+			return err
+		}
 		var locked bool
 		if err := tx.Raw("SELECT pg_try_advisory_xact_lock(?,?)", scheduleClaimLockNamespace, int32(first.CredentialID)).Scan(&locked).Error; err != nil {
 			return err
@@ -117,7 +121,7 @@ func (r *ScheduledSMS) Claim(ctx context.Context) ([]models.ScheduledSMS, error)
 		if busy != 0 {
 			return nil
 		}
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"}).Where("credential_id=? AND dispatch_batch_id IS NULL AND send_reference=FALSE", first.CredentialID).Where(eligible).Order("due_at,id").Limit(models.ScheduledBatchSize).Find(&jobs).Error; err != nil {
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"}).Where("credential_id=? AND dispatch_batch_id IS NULL AND send_reference=FALSE", first.CredentialID).Where("EXISTS (SELECT 1 FROM sms_attempts a WHERE a.id=scheduled_sms.attempt_id AND a.provider_code=?)", firstAttempt.ProviderCode).Where(eligible).Order("due_at,id").Limit(models.ScheduledBatchSize).Find(&jobs).Error; err != nil {
 			return err
 		}
 		if len(jobs) == 0 {

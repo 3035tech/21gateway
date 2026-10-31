@@ -253,3 +253,5 @@ Ingresso externo Zoug opt-in em `POST /webhooks/zoug/{token}`: hash SHA-256 do s
 # Notificações internas — 30/10/2026
 
 Implementado após a tag `v0.1.0`: sininho e tela restritos a administradores, ocorrências persistidas por tipo, leitura individual, filtro/paginação/ordenação e preferência global de e-mail por tipo. A migração 026 é obrigatória antes dos binários novos. Todos os tipos continuam no sininho; e-mail começa desligado e usa o SMTP já configurado. Consulte [notifications.md](notifications.md). Esta mudança não altera a tag `v0.1.0` nem prova envio real de e-mail.
+
+Atualização de 31/10/2026: abstração de envio/autenticação SMS e ingresso de webhook por provedor implementada localmente, com adaptador Zoug e migração 029 de IDs externos e reconciliação por namespace. Novo provedor ainda não configurado. A migração 029 foi aplicada em HML (ledger=1; seis tentativas e seis DLR preservados); a publicação dos binários ainda requer validação. Consulte `docs/sms-providers.md`.

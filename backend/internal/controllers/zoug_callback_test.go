@@ -5,22 +5,30 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"net/netip"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/21mobile/sms-gateway/internal/dtos"
 	"github.com/21mobile/sms-gateway/internal/integrations/whitelabel"
+	"github.com/21mobile/sms-gateway/internal/models"
+	"github.com/21mobile/sms-gateway/internal/providers/webhook"
 	"github.com/21mobile/sms-gateway/internal/security"
 )
 
 type zougDeliveryStub struct {
-	calls int
-	err   error
+	calls     int
+	err       error
+	provider  models.Provider
+	messageID string
 }
 
 func TestZougWebhookDiagnosticLogOmitsURLTokenAndSecretHeaders(t *testing.T) {
@@ -33,7 +41,7 @@ func TestZougWebhookDiagnosticLogOmitsURLTokenAndSecretHeaders(t *testing.T) {
 	t.Cleanup(func() { slog.SetDefault(previous) })
 	router := chi.NewRouter()
 	router.Use(security.ClientIPResolver{}.Middleware)
-	NewZougCallbackController(&zougDeliveryStub{}, &zougMOStub{}, hex.EncodeToString(digest[:]), []string{"18.232.239.74"}, true).Register(router)
+	NewProviderCallbackController(&zougDeliveryStub{}, &zougMOStub{}, true, whitelabel.NewWebhookAdapter(hex.EncodeToString(digest[:]), []string{"18.232.239.74"})).Register(router)
 	request := httptest.NewRequest(http.MethodPost, "/webhooks/zoug/"+token, strings.NewReader(body))
 	request.RemoteAddr = "18.232.239.74:1234"
 	request.Header.Set("Content-Type", "application/json")
@@ -45,9 +53,77 @@ func TestZougWebhookDiagnosticLogOmitsURLTokenAndSecretHeaders(t *testing.T) {
 	}
 }
 
-func (s *zougDeliveryStub) AcceptWhiteLabelDelivery(_ context.Context, _ []byte) error {
+func (s *zougDeliveryStub) AcceptProviderDelivery(_ context.Context, provider models.Provider, input dtos.DeliveryInput) error {
 	s.calls++
+	s.provider = provider
+	s.messageID = input.Body.ProviderMessageID
 	return s.err
+}
+
+type alternateWebhookAdapter struct{}
+
+func (alternateWebhookAdapter) Code() models.Provider { return models.Provider("test-supplier") }
+func (alternateWebhookAdapter) AuthenticateToken(token string) bool {
+	return token == "" || token == "alternate-secret"
+}
+func (alternateWebhookAdapter) AllowPeer(peer netip.Addr) bool { return peer.IsValid() }
+func (alternateWebhookAdapter) AuthenticateBody(r *http.Request, _ []byte) bool {
+	return r.Header.Get("X-Test-Signature") == "valid"
+}
+func (alternateWebhookAdapter) Decode(raw []byte) (webhook.Event, error) {
+	var payload struct {
+		ExternalID string `json:"external_id"`
+	}
+	if err := json.Unmarshal(raw, &payload); err != nil || payload.ExternalID == "" {
+		return webhook.Event{}, errors.New("invalid")
+	}
+	var input dtos.DeliveryInput
+	input.Body.ProviderMessageID = payload.ExternalID
+	input.Body.EventKey = "test-supplier:event-1"
+	input.Body.Status = models.DeliveryDelivered
+	input.Body.OccurredAt = time.Now().UTC()
+	return webhook.Event{Delivery: &input}, nil
+}
+
+func TestWebhookSelectsAuthenticatedAdapterBeforeDecoding(t *testing.T) {
+	delivery := &zougDeliveryStub{}
+	router := chi.NewRouter()
+	router.Use(security.ClientIPResolver{}.Middleware)
+	NewProviderCallbackController(delivery, &zougMOStub{}, false, whitelabel.NewWebhookAdapter(strings.Repeat("a", 64), []string{"192.0.2.1"}), alternateWebhookAdapter{}).Register(router)
+	request := httptest.NewRequest(http.MethodPost, "/webhooks/test-supplier/alternate-secret", strings.NewReader(`{"external_id":"opaque-42"}`))
+	request.RemoteAddr = "192.0.2.1:1234"
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-Test-Signature", "valid")
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	if response.Code != http.StatusNoContent || delivery.provider != models.Provider("test-supplier") || delivery.messageID != "opaque-42" {
+		t.Fatalf("status=%d provider=%s id=%s", response.Code, delivery.provider, delivery.messageID)
+	}
+	request = httptest.NewRequest(http.MethodPost, "/webhooks/test-supplier/alternate-secret", strings.NewReader(`{"external_id":"opaque-43"}`))
+	request.RemoteAddr = "192.0.2.1:1234"
+	request.Header.Set("Content-Type", "application/json")
+	response = httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	if response.Code != http.StatusNotFound || delivery.calls != 1 {
+		t.Fatal("unsigned body reached provider decoder")
+	}
+	request = httptest.NewRequest(http.MethodPost, "/webhooks/test-supplier", strings.NewReader(`{"external_id":"opaque-44"}`))
+	request.RemoteAddr = "192.0.2.1:1234"
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-Test-Signature", "valid")
+	response = httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	if response.Code != http.StatusNoContent || delivery.messageID != "opaque-44" {
+		t.Fatal("header-only webhook authentication failed")
+	}
+	request = httptest.NewRequest(http.MethodPost, "/webhooks/zoug/alternate-secret", strings.NewReader(`{"external_id":"opaque-42"}`))
+	request.RemoteAddr = "192.0.2.1:1234"
+	request.Header.Set("Content-Type", "application/json")
+	response = httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	if response.Code != http.StatusNotFound || delivery.calls != 2 {
+		t.Fatal("webhook selected adapter from JSON or crossed provider route")
+	}
 }
 
 type zougMOStub struct {
@@ -55,7 +131,7 @@ type zougMOStub struct {
 	err   error
 }
 
-func (s *zougMOStub) AcceptWhiteLabelMO(_ context.Context, _ whitelabel.CallbackPayload) error {
+func (s *zougMOStub) AcceptProviderMO(_ context.Context, _ models.Provider, _ webhook.MOMessage) error {
 	s.calls++
 	return s.err
 }
@@ -83,7 +159,7 @@ func TestZougWebhookAuthenticationAndPersistence(t *testing.T) {
 			m := &zougMOStub{}
 			router := chi.NewRouter()
 			router.Use(security.ClientIPResolver{}.Middleware)
-			NewZougCallbackController(d, m, hex.EncodeToString(digest[:]), []string{"18.232.239.74"}).Register(router)
+			NewProviderCallbackController(d, m, false, whitelabel.NewWebhookAdapter(hex.EncodeToString(digest[:]), []string{"18.232.239.74"})).Register(router)
 			request := httptest.NewRequest(http.MethodPost, "/webhooks/zoug/"+tc.token, strings.NewReader(tc.body))
 			request.RemoteAddr = tc.peer
 			request.Header.Set("Content-Type", "application/json")

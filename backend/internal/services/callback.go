@@ -4,8 +4,8 @@ import (
 	"context"
 	"github.com/21mobile/sms-gateway/internal/dtos"
 	apperrors "github.com/21mobile/sms-gateway/internal/errors"
-	"github.com/21mobile/sms-gateway/internal/integrations/whitelabel"
 	"github.com/21mobile/sms-gateway/internal/models"
+	smsprovider "github.com/21mobile/sms-gateway/internal/providers/sms"
 	"github.com/21mobile/sms-gateway/internal/repositories"
 	"github.com/google/uuid"
 	"strings"
@@ -18,21 +18,19 @@ func NewCallbackService(repo *repositories.Callbacks) *CallbackService {
 	return &CallbackService{repository: repo}
 }
 
-// AcceptWhiteLabelDelivery is the inactive adapter entry point. The external
-// route must not be exposed until webhook authentication is confirmed.
-func (s *CallbackService) AcceptWhiteLabelDelivery(ctx context.Context, payload []byte) error {
-	input, err := whitelabel.NormalizeDeliveryCallback(payload)
-	if err != nil {
-		return apperrors.Wrap(apperrors.CodeInvalidRequest, err)
-	}
-	return s.Accept(ctx, input)
-}
 func (s *CallbackService) Accept(ctx context.Context, input dtos.DeliveryInput) error {
 	id, err := uuid.Parse(input.Body.ProviderMessageID)
-	if err != nil || id == uuid.Nil || strings.TrimSpace(input.Body.EventKey) == "" || !input.Body.Status.Valid() || input.Body.OccurredAt.IsZero() || input.Body.OccurredAt.After(time.Now().Add(5*time.Minute)) {
+	if err != nil || id == uuid.Nil {
 		return apperrors.Wrap(apperrors.CodeInvalidRequest, nil)
 	}
-	event := models.DeliveryEvent{EventKey: input.Body.EventKey, ProviderMessageID: id.String(), Status: input.Body.Status, OccurredAt: input.Body.OccurredAt.UTC().Truncate(time.Microsecond)}
+	input.Body.ProviderMessageID = id.String()
+	return s.AcceptProviderDelivery(ctx, models.ProviderZoug, input)
+}
+func (s *CallbackService) AcceptProviderDelivery(ctx context.Context, provider models.Provider, input dtos.DeliveryInput) error {
+	if provider == "" || !smsprovider.ValidMessageID(input.Body.ProviderMessageID) || strings.TrimSpace(input.Body.EventKey) == "" || !input.Body.Status.Valid() || input.Body.OccurredAt.IsZero() || input.Body.OccurredAt.After(time.Now().Add(5*time.Minute)) {
+		return apperrors.Wrap(apperrors.CodeInvalidRequest, nil)
+	}
+	event := models.DeliveryEvent{EventKey: input.Body.EventKey, ProviderCode: provider, ProviderMessageID: input.Body.ProviderMessageID, Status: input.Body.Status, OccurredAt: input.Body.OccurredAt.UTC().Truncate(time.Microsecond)}
 	return dbError(s.repository.Accept(ctx, event))
 }
 func (s *CallbackService) Callbacks(ctx context.Context, q dtos.CallbackListInput) (dtos.Page[dtos.CallbackView], error) {

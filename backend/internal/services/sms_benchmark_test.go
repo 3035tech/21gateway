@@ -6,6 +6,7 @@ import (
 	"github.com/21mobile/sms-gateway/internal/dtos"
 	apperrors "github.com/21mobile/sms-gateway/internal/errors"
 	"github.com/21mobile/sms-gateway/internal/integrations/whitelabel"
+	smsprovider "github.com/21mobile/sms-gateway/internal/providers/sms"
 	"strings"
 	"testing"
 )
@@ -21,7 +22,7 @@ func BenchmarkSMSNormalization(b *testing.B) {
 }
 func BenchmarkSMSBatch200(b *testing.B) {
 	messages := make([]dtos.LegacySMS, whitelabel.MaximumBatchMessages)
-	outcomes := make([]whitelabel.BatchResult, len(messages))
+	outcomes := make([]smsprovider.BatchResult, len(messages))
 	for i := range messages {
 		messages[i] = validSMS()
 		messages[i].MessageText = "Olá, ação! 😊"

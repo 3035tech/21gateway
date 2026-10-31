@@ -5,15 +5,15 @@ import (
 	"errors"
 	"github.com/21mobile/sms-gateway/internal/dtos"
 	apperrors "github.com/21mobile/sms-gateway/internal/errors"
-	"github.com/21mobile/sms-gateway/internal/integrations/whitelabel"
 	"github.com/21mobile/sms-gateway/internal/models"
+	smsprovider "github.com/21mobile/sms-gateway/internal/providers/sms"
 	"log/slog"
 	"strconv"
 	"unicode/utf8"
 )
 
 type BatchProvider interface {
-	SendBatch(context.Context, whitelabel.BatchRequest) ([]whitelabel.BatchResult, error)
+	SendBatch(context.Context, smsprovider.BatchRequest) ([]smsprovider.BatchResult, error)
 }
 type BatchAttemptRepository interface {
 	CreateBatch(context.Context, []*models.SMSAttempt) error
@@ -77,7 +77,7 @@ func (s *SMSService) sendBatch(ctx context.Context, credentialID uint64, message
 		input.MessageText = normalized
 		messages[i] = input
 		destination := brazilCountryCode + input.Destination
-		if whitelabel.SelectEncoding(input.MessageText) == models.SMSEncodingUCS2 {
+		if smsprovider.SelectEncoding(input.MessageText) == models.SMSEncodingUCS2 {
 			encoding = models.SMSEncodingUCS2
 		}
 		attempt := &models.SMSAttempt{CredentialID: credentialID, Destination: destination, CorrelationID: input.CorrelationID, State: models.SubmissionPending}
@@ -100,10 +100,10 @@ func (s *SMSService) sendBatch(ctx context.Context, credentialID uint64, message
 	if err := repository.CreateBatch(ctx, attempts); err != nil {
 		return nil, apperrors.Wrap(apperrors.CodeServiceUnavailable, err)
 	}
-	request := whitelabel.BatchRequest{Type: whitelabel.MessageTypeSMS, Encoding: encoding, Messages: make([]whitelabel.BatchMessage, len(attempts))}
+	request := smsprovider.BatchRequest{Type: models.ChannelSMS, Encoding: encoding, Messages: make([]smsprovider.BatchMessage, len(attempts))}
 	for i, attempt := range attempts {
 		input := messages[positions[i]]
-		request.Messages[i] = whitelabel.BatchMessage{Message: input.MessageText, Destination: attempt.Destination, ReferenceID: input.CorrelationID, Index: strconv.FormatUint(attempt.ID, 10)}
+		request.Messages[i] = smsprovider.BatchMessage{Message: input.MessageText, Destination: attempt.Destination, ReferenceID: input.CorrelationID, Index: strconv.FormatUint(attempt.ID, 10)}
 	}
 	outcomes, err := batch.SendBatch(ctx, request)
 	if err == nil && len(outcomes) != len(attempts) {
@@ -122,7 +122,7 @@ func (s *SMSService) sendBatch(ctx context.Context, credentialID uint64, message
 			}
 		} else {
 			code = outcomes[i].ErrorCode
-			if code == apperrors.CodeNone && outcomes[i].MessageID == "" {
+			if code == apperrors.CodeNone && !smsprovider.ValidMessageID(outcomes[i].MessageID) {
 				code = apperrors.CodeUnknownOutcome
 			}
 		}

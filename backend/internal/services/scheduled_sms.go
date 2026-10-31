@@ -8,8 +8,8 @@ import (
 
 	"github.com/21mobile/sms-gateway/internal/dtos"
 	apperrors "github.com/21mobile/sms-gateway/internal/errors"
-	"github.com/21mobile/sms-gateway/internal/integrations/whitelabel"
 	"github.com/21mobile/sms-gateway/internal/models"
+	smsprovider "github.com/21mobile/sms-gateway/internal/providers/sms"
 	"github.com/21mobile/sms-gateway/internal/security"
 	"github.com/google/uuid"
 )
@@ -94,7 +94,7 @@ func (s *ScheduledSMSService) enqueue(ctx context.Context, credentialID uint64, 
 			due = time.Unix(*input.ScheduledDate, 0).UTC()
 			scheduledAt = &due
 		}
-		attempt := models.SMSAttempt{CredentialID: credentialID, Destination: brazilCountryCode + input.Destination, CorrelationID: input.CorrelationID, Encoding: whitelabel.SelectEncoding(normalized), State: models.SubmissionPending, ScheduledAt: scheduledAt}
+		attempt := models.SMSAttempt{CredentialID: credentialID, Destination: brazilCountryCode + input.Destination, CorrelationID: input.CorrelationID, Encoding: smsprovider.SelectEncoding(normalized), State: models.SubmissionPending, ScheduledAt: scheduledAt}
 		if credential, ok := CredentialFromContext(ctx); ok && credential.ID == credentialID {
 			attempt.CompanyID = credential.CompanyID
 			attempt.ProviderCode = selectedSMSProvider(credential.CompanySMSProvider)

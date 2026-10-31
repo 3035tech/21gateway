@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	smsprovider "github.com/21mobile/sms-gateway/internal/providers/sms"
 	"log/slog"
 	"strconv"
 	"strings"
@@ -119,7 +120,7 @@ func TestScheduledMixedRequestPreservesOrderAndQueueFailureDoesNotSend(t *testin
 			if failQueue {
 				repo.err = errors.New("private SQL")
 			}
-			provider := &stubProvider{enabled: true, response: whitelabel.SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440001", Status: whitelabel.StatusSent}}
+			provider := &stubProvider{enabled: true, response: smsprovider.SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440001", Status: string(whitelabel.StatusSent)}}
 			limiter := &countLimiter{allowed: true}
 			service := NewSMSServiceWithLimiter(&memoryAttempts{}, provider, limiter)
 			service.SetScheduler(NewScheduledSMSService(repo, scheduledVault(t)))
@@ -206,7 +207,7 @@ func TestScheduledWorkerBatchReusesIDsAndDoesNotRetryUnknown(t *testing.T) {
 			queue := &scheduleMemory{}
 			vault := scheduledVault(t)
 			inputs := make([]dtos.LegacySMS, 200)
-			outcomes := make([]whitelabel.BatchResult, 200)
+			outcomes := make([]smsprovider.BatchResult, 200)
 			for i := range inputs {
 				inputs[i] = futureSMS()
 				outcomes[i].MessageID = fmt.Sprintf("550e8400-e29b-41d4-a716-%012d", i+1)
@@ -296,7 +297,7 @@ func TestScheduledDispatchUsesAvailableCapacityWithoutWaitingForWholeBatch(t *te
 		t.Fatal(err)
 	}
 	repo := &scheduledWorkerMemory{credential: models.APICredential{ID: 7, Active: true}}
-	provider := &stubProvider{enabled: true, response: whitelabel.SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440099", Status: whitelabel.StatusSent}}
+	provider := &stubProvider{enabled: true, response: smsprovider.SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440099", Status: string(whitelabel.StatusSent)}}
 	budget := &partialScheduleBudget{granted: 1}
 	progress, err := NewScheduledSMSWorker(repo, provider, budget, vault).processGroup(context.Background(), queue.jobs)
 	if err != nil || !progress || len(provider.inputs) != 1 || len(repo.completed) != 1 || repo.completed[0].ID != queue.jobs[0].AttemptID || repo.released != 1 || budget.reserves != 1 || budget.checks != 0 {
