@@ -80,3 +80,16 @@ it('submits the provider-issued token on the company record', async () => {
   )
   put.mockRestore()
 })
+
+it('shows planned providers without allowing their selection', async () => {
+  const client = new QueryClient()
+  render(
+    <QueryClientProvider client={client}>
+      <CompanyForm onClose={vi.fn()} />
+    </QueryClientProvider>,
+  )
+  await userEvent.setup().click(screen.getByRole('combobox', { name: 'Provedor de SMS' }))
+  for (const provider of ['Pontal', 'MKM', 'Zenvia']) {
+    expect(screen.getByRole('option', { name: provider })).toHaveAttribute('data-disabled')
+  }
+})

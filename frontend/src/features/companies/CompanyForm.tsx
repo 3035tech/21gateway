@@ -7,7 +7,7 @@ import { FormFooter, FieldError } from '../../components/admin/FormFooter'
 import { useAdminMutation } from '../../components/admin/useAdminMutation'
 import { useTranslation } from 'react-i18next'
 import { AppSelect } from '../../components/admin/AppSelect'
-import { SMS_PROVIDER_ZOUG } from './providers'
+import { SMS_PROVIDER_ZOUG, smsProviderOptions } from './providers'
 export function CompanyForm({
   company,
   onClose,
@@ -72,7 +72,7 @@ export function CompanyForm({
               onValueChange={(value) =>
                 form.setValue('smsProvider', value as typeof SMS_PROVIDER_ZOUG)
               }
-              options={[{ value: SMS_PROVIDER_ZOUG, label: 'Zoug' }]}
+              options={smsProviderOptions}
             />
             <p className="mt-1 text-xs text-slate-600">
               {t('companies.smsProviderHint')}

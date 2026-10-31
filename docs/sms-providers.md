@@ -1,6 +1,6 @@
 # Provedores de SMS e canais
 
-Decisão de 31/10/2026: `POST /v1/send` continua SMS com o contrato legado. A empresa tem uma rota por canal; um mesmo provedor poderá oferecer SMS, RCS e WhatsApp, mas cada canal terá contrato próprio. Somente SMS/Zoug está selecionável no painel até homologação de outro provedor.
+Decisão de 31/10/2026: `POST /v1/send` continua SMS com o contrato legado. A empresa tem uma rota por canal; um mesmo provedor poderá oferecer SMS, RCS e WhatsApp, mas cada canal terá contrato próprio. Somente SMS/Zoug está selecionável no painel até homologação de outro provedor. Pontal, MKM e Zenvia constam do catálogo como planejados e aparecem desabilitados no cadastro; não têm adaptador, credencial, envio ou webhook ativo.
 
 ## Implementação
 
@@ -11,6 +11,8 @@ A migração 028 criou `company_provider_routes(company_id, channel, provider_co
 `internal/providers/webhook` define o contrato de autenticação e tradução de callbacks. As rotas `/webhooks/{provider}` e `/webhooks/{provider}/{token}` selecionam o adaptador pelo caminho. O adaptador autentica token/IP antes da leitura; após o limite do corpo, também pode validar assinatura de cabeçalho/corpo antes de interpretar o JSON. O controller encaminha um evento normalizado a DLR ou MO. Não se identifica o provedor pelo conteúdo do JSON. O adaptador Zoug preserva o caminho `/webhooks/zoug/{token}`, o hash SHA-256 do token, a whitelist, o limite do corpo e a tradução atual. A rota só é registrada com `ZOUG_CALLBACK_ENABLED`. Payload bruto não é persistido.
 
 ## Próximo adaptador
+
+Os pacotes `internal/integrations/pontal`, `mkm` e `zenvia` reservam o local de cada implementação. Os contratos compartilhados já são `providers/sms.Adapter` e `providers/webhook.Adapter`; não há interfaces duplicadas por marca. Códigos de provedor estão centralizados em `models/provider.go`. `AvailableForSMS` permanece restrito à Zoug, assim como a validação do formulário e o registro de adaptadores em runtime. Uma rota não pode ser gravada para os três provedores planejados.
 
 Um novo provedor precisa de contrato real de envio (unitário e lote, se disponível), autenticação de saída, política de ID/resultado incerto, DLR/MO, autenticação de ingresso e limites. Implementar seu `sms.Adapter` e `webhook.Adapter`, registrar ambos na composição e disponibilizar sua rota na validação/cadastro de empresa após homologação. As credenciais de saída precisam de armazenamento cifrado próprio; **não** reutilizar o campo de token Zoug. Não há segundo provedor configurado e nenhum SMS real foi enviado nos testes desta mudança.
 
