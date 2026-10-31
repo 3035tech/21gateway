@@ -18,6 +18,8 @@ Um novo provedor precisa de contrato real de envio (unitário e lote, se dispon�
 
 O fallback automático entre provedores continua proibido para resultado incerto: pode duplicar mensagens. Preço, prioridade, capacidades e troca de provedor são decisões posteriores. RCS e WhatsApp exigem contratos, payloads e operação próprios; a tabela de rotas já distingue canais, sem ativá-los.
 
+Para RCS for Business, o Google fornece a plataforma e a API direta para parceiros registrados. Se a 21 contratar o canal via Zenvia, o futuro adaptador Zenvia/RCS deverá seguir o contrato da Zenvia, com ela como intermediária; um adaptador direto Google seria outro provedor e exigiria parceria e credenciais próprias. Não presumir que as credenciais ou callbacks de SMS/Zenvia sirvam para RCS. Referências: [registro de parceiro](https://developers.google.com/business-communications/rcs-business-messaging/guides/get-started/register-partner) e [API RCS for Business](https://developers.google.com/business-communications/rcs-business-messaging/reference/rest).
+
 ## Publicação
 
 Aplicar migrações 028 e 029 antes dos binários novos. A 028 já foi aplicada em HML em 31/10/2026, com duas rotas SMS/Zoug. Em HML, a 029 foi aplicada em 31/10/2026 antes dos binários: ledger=1, seis tentativas e seis eventos DLR preservados, sem MO existente. Como altera tipos e unicidade de IDs externos, avaliar janela e rollback antes de publicar; com apenas Zoug ativo, o dado existente é preservado. Validar esquema, health check, callbacks autenticados e envio controlado somente com destino autorizado. Testes locais não equivalem ao aceite real Zoug → gateway → cliente.

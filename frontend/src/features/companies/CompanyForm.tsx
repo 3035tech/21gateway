@@ -107,18 +107,22 @@ export function CompanyForm({
               {t(canSaveRoute ? 'companies.smsProviderHint' : 'companies.channelPending')}
             </p>
           </div>
-          <h3 className="font-bold text-brand-purple">
-            {t('companies.providerAccess')}
-          </h3>
-          <p className="mt-1 text-sm leading-5 text-slate-600">
-            {company?.providerTokenConfigured
-              ? t('companies.providerConfigured')
-              : company?.legacyProviderTokenFallback
-                ? t('companies.providerLegacy')
-                : t('companies.providerMissing')}
-          </p>
+          {selectedProvider === SMS_PROVIDER_ZOUG ? (
+            <>
+              <h3 className="font-bold text-brand-purple">
+                {t('companies.providerAccess')}
+              </h3>
+              <p className="mt-1 text-sm leading-5 text-slate-600">
+                {company?.providerTokenConfigured
+                  ? t('companies.providerConfigured')
+                  : company?.legacyProviderTokenFallback
+                    ? t('companies.providerLegacy')
+                    : t('companies.providerMissing')}
+              </p>
+            </>
+          ) : null}
         </div>
-        {!clearProviderToken ? (
+        {selectedProvider === SMS_PROVIDER_ZOUG && !clearProviderToken ? (
           <label className="field">
             {company?.providerTokenConfigured
               ? t('companies.providerReplace')
@@ -141,7 +145,7 @@ export function CompanyForm({
             />
           </label>
         ) : null}
-        {company?.providerTokenConfigured ? (
+        {selectedProvider === SMS_PROVIDER_ZOUG && company?.providerTokenConfigured ? (
           <label className="flex min-h-11 items-center gap-2 text-sm text-rose-800">
             <input
               type="checkbox"
