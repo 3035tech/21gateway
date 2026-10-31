@@ -142,7 +142,7 @@ func (r *Callbacks) Callbacks(ctx context.Context, q dtos.CallbackListInput) (dt
 	db := r.db.WithContext(ctx).Table("callback_jobs").Joins("JOIN sms_attempts ON sms_attempts.id=callback_jobs.attempt_id")
 	db = scopedCompanies(db, ctx, "sms_attempts.company_id")
 	if q.Search != "" {
-		db = db.Where("callback_jobs.url ILIKE ?", searchTerm(q.Search))
+		db = db.Where("callback_jobs.url ILIKE ? OR callback_jobs.id::text = ?", searchTerm(q.Search), q.Search)
 	}
 	if q.CompanyID != 0 {
 		db = db.Where("sms_attempts.company_id=?", q.CompanyID)

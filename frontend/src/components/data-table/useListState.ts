@@ -6,13 +6,16 @@ import type {
 } from '@tanstack/react-table'
 import { DEFAULT_PAGE_SIZE } from './constants'
 
-export function useListState(initialSorting: SortingState = []) {
+export function useListState(
+  initialSorting: SortingState = [],
+  initialSearch = '',
+) {
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: DEFAULT_PAGE_SIZE,
   })
   const [sorting, setSorting] = useState<SortingState>(initialSorting)
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(initialSearch)
   const onSortingChange: OnChangeFn<SortingState> = (updater) => {
     setSorting(updater)
     setPagination((current) => ({ ...current, pageIndex: 0 }))

@@ -63,7 +63,7 @@ func (r *SMSAttempts) Messages(ctx context.Context, q dtos.ListQuery) (dtos.Page
 	db := r.db.WithContext(ctx).Table("sms_attempts")
 	db = scopedCompanies(db, ctx, "sms_attempts.company_id")
 	if q.Search != "" {
-		db = db.Where("sms_attempts.correlation_id ILIKE ? OR sms_attempts.destination ILIKE ?", searchTerm(q.Search), searchTerm(q.Search))
+		db = db.Where("sms_attempts.correlation_id ILIKE ? OR sms_attempts.destination ILIKE ? OR sms_attempts.id::text = ?", searchTerm(q.Search), searchTerm(q.Search), q.Search)
 	}
 	if q.CompanyID != 0 {
 		db = db.Where("sms_attempts.company_id = ?", q.CompanyID)

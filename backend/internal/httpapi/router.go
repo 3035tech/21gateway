@@ -23,6 +23,7 @@ type Dependencies struct {
 	SQSProbe                      func(context.Context) error
 	Operations                    *services.OperationsService
 	Notifications                 *services.NotificationService
+	OperationCases                *services.OperationCaseService
 	OperationsEnabled             bool
 	OperationsToken               string
 	HealthDependenciesTokenSHA256 string
@@ -122,6 +123,9 @@ func New(origins []string, docsEnabled bool, ping func(context.Context) error, d
 		}
 		if dependencies.Notifications != nil {
 			controllers.NewNotificationController(dependencies.Notifications, guard).Register(api)
+		}
+		if dependencies.OperationCases != nil {
+			controllers.NewOperationCaseController(dependencies.OperationCases, guard).Register(api)
 		}
 	}
 	if dependencies.Callbacks != nil && dependencies.CallbackIngressEnabled {

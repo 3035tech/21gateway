@@ -40,7 +40,7 @@ func (r *ScheduledSMS) List(ctx context.Context, q dtos.ScheduledListQuery, from
 		db = db.Where("s.state=?", q.State)
 	}
 	if q.Search != "" {
-		db = db.Where("a.correlation_id ILIKE ? OR a.destination ILIKE ?", searchTerm(q.Search), searchTerm(q.Search))
+		db = db.Where("a.correlation_id ILIKE ? OR a.destination ILIKE ? OR a.id::text = ?", searchTerm(q.Search), searchTerm(q.Search), q.Search)
 	}
 	if from != nil {
 		db = db.Where("s.due_at>=?", *from)

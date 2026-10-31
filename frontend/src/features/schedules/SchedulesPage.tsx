@@ -14,6 +14,7 @@ import type { Schedule, ScheduleListParams } from './api'
 import { useTranslation } from 'react-i18next'
 import { RecordDetailsDialog } from '../../components/admin/RecordDetailsDialog'
 import { AppSelect } from '../../components/admin/AppSelect'
+import { useLocation } from 'react-router-dom'
 
 function scheduleColumns(
   t: (key: string) => string,
@@ -95,10 +96,14 @@ function utc(value: string) {
 
 export function SchedulesPage() {
   const { t } = useTranslation()
+  const location = useLocation()
   const selectedCompanyId = useCompanyView()
   const [viewing, setViewing] = useState<Schedule | null>(null)
   const columns = scheduleColumns(t, setViewing)
-  const table = useListState([{ id: 'scheduledAt', desc: true }])
+  const table = useListState(
+    [{ id: 'scheduledAt', desc: true }],
+    new URLSearchParams(location.search).get('search') ?? '',
+  )
   const [companyId, setCompanyId] = useState('')
   const [credentialId, setCredentialId] = useState('')
   const [state, setState] = useState('')

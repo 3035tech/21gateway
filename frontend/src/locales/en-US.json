@@ -778,8 +778,39 @@
     "active": "Open",
     "markRead": "Mark as read"
   },
+  "workQueue": {
+    "title": "Operations queue",
+    "description": "Record-level issues by company. Claim a case to document its handling.",
+    "type": "Type",
+    "statusLabel": "Follow-up",
+    "owner": "Owner",
+    "note": "Handling note",
+    "lastNote": "Latest note",
+    "noteHint": "Describe the action without phone numbers, message text, or credentials.",
+    "history": "Handling history",
+    "claim": "Claim case",
+    "release": "Return to queue",
+    "addNote": "Record update",
+    "complete": "Complete follow-up",
+    "inspectSource": "Open source record",
+    "sourceCleared": "The original condition is no longer active. Check the source record before completing.",
+    "noResend": "Uncertain outcome: investigate before any new send. This screen does not resend SMS.",
+    "caseTitle": "Case #{{id}}",
+    "kind": {
+      "unknown_send": "Uncertain send",
+      "overdue_schedule": "Overdue schedule",
+      "dlr_callback": "Failed DLR callback",
+      "mo_callback": "Failed MO callback"
+    },
+    "status": {
+      "open": "Open",
+      "in_progress": "In progress",
+      "completed": "Completed"
+    }
+  },
   "nav": {
     "overview": "Overview",
+    "workQueue": "Operations queue",
     "companies": "Companies",
     "users": "Users",
     "credentials": "API credentials",

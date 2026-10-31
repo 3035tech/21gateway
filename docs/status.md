@@ -1,5 +1,7 @@
 # Estado da implementação
 
+Em 31/10/2026, a fila operacional por registro foi implementada no código para envios incertos, agendamentos atrasados e callbacks DLR/MO falhos. Possui escopo de empresa, responsável, notas e histórico; não reenvia SMS. A migração 027 deve preceder os binários novos. Consulte [operation-cases.md](operation-cases.md). O teste PostgreSQL isolado passou; HML e integração real não foram publicados nem verificados nesta etapa.
+
 ## Diagnóstico temporário Zoug — 29/10/2026
 
 Na ficha da empresa, o administrador pode executar 16 casos fixos para a Zoug usando o token cifrado da empresa. Um número de teste autorizado por hash em `ZOUG_DIAGNOSTIC_DESTINATION_SHA256` acrescenta dois casos com destino válido e campos obrigatórios inválidos; há risco de até duas mensagens se o fornecedor ignorar os erros. O primeiro HTTP 2xx interrompe a bateria. A ação retorna status HTTP, headers, corpo e duração e registra cada par requisição/resposta em JSON/stdout com Run ID, empresa e ator, sem token ou número. Há limite de uma execução por minuto por empresa em cada processo. Respostas não são persistidas. O adaptador de envio reconhece `SUCCESS` com UUID válido como aceite, além de `sent`, conforme tráfego observado. O diagnóstico cobre autenticação e validação; saldo, limites, falhas de infraestrutura e entrega exigem testes próprios ou confirmação da Zoug.

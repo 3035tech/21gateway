@@ -10,6 +10,7 @@ import { errorMessage } from '../../lib/admin'
 import { useTranslation } from 'react-i18next'
 import { AppSelect } from './AppSelect'
 import { useCompanyView } from '../../features/companies/CompanyViewContext'
+import { useLocation } from 'react-router-dom'
 type Props<T extends { id: number }> = {
   title: string
   description: string
@@ -44,8 +45,12 @@ export function Listing<T extends { id: number }>({
 }: Props<T>) {
   const { t } = useTranslation()
   const selectedCompanyId = useCompanyView()
+  const location = useLocation()
   fixedCompanyId ??= selectedCompanyId
-  const state = useListState()
+  const state = useListState(
+    [],
+    new URLSearchParams(location.search).get('search') ?? '',
+  )
   const [filter, setFilter] = useState('')
   const [company, setCompany] = useState('')
   const sort = state.sorting[0]

@@ -54,6 +54,11 @@ const Notifications = lazy(() =>
     default: m.NotificationsPage,
   })),
 )
+const OperationCases = lazy(() =>
+  import('../features/operation-cases/OperationCasesPage').then((m) => ({
+    default: m.OperationCasesPage,
+  })),
+)
 const Profile = lazy(() =>
   import('../features/users/ProfilePage').then((m) => ({
     default: m.ProfilePage,
@@ -116,6 +121,7 @@ export default function AdminApp() {
                   <Route path="/agendamentos" element={<Schedules />} />
                   <Route path="/perfil" element={<Profile />} />
                   <Route path="/callbacks" element={<Callbacks />} />
+                  <Route path="/pendencias" element={<OperationCases />} />
                   <Route
                     path="/notificacoes"
                     element={

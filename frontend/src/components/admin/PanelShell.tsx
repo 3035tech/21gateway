@@ -20,6 +20,7 @@ import {
   Bell,
   ChevronLeft,
   CircleUserRound,
+  ClipboardList,
 } from 'lucide-react'
 const sidebarPreferenceKey = '21mobile.sidebar.collapsed'
 
@@ -37,6 +38,13 @@ const navigation = [
     icon: LayoutDashboard,
     adminOnly: false,
     management: true,
+  },
+  {
+    path: '/pendencias',
+    label: 'nav.workQueue',
+    icon: ClipboardList,
+    adminOnly: false,
+    management: false,
   },
   {
     path: '/empresas',

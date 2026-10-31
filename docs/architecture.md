@@ -1,5 +1,7 @@
 # Arquitetura
 
+A fila operacional pertence ao domínio `operation_case`, com controller, service, DTO, model e repository próprios. A view da migração 027 reúne apenas referências e estados dos domínios de envios, agendamentos e callbacks; não executa reenvio nem muda a propriedade desses fluxos. O escopo de empresa, a sessão e a autorização são infraestrutura transversal. Frontend em `features/operation-cases`; não há exceção à separação por domínio. Contratos e rollback em [operation-cases.md](operation-cases.md).
+
 O diagnóstico temporário Zoug fica no domínio de mensagens: controller/service coordenam autorização, auditoria e empresa; o adaptador white label contém os dez casos HTTP fixos. O DTO administrativo não depende do adaptador. Sem tabela nova; logs JSON são a evidência transitória. Não há exceção à separação por domínio.
 
 O novo modo de envio assíncrono por ID está descrito em [sms-send-queue.md](sms-send-queue.md). A API admite todos os SMS no PostgreSQL; `/worker` publica apenas `id_sms` na SQS v2 e processa o envio. O modo permanece desligado até provisionamento e corte controlado.

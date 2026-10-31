@@ -778,8 +778,39 @@
     "active": "Em aberto",
     "markRead": "Marcar como lida"
   },
+  "workQueue": {
+    "title": "Fila operacional",
+    "description": "Pendências por registro e empresa. Assuma um caso para registrar o tratamento.",
+    "type": "Tipo",
+    "statusLabel": "Acompanhamento",
+    "owner": "Responsável",
+    "note": "Nota de tratamento",
+    "lastNote": "Última nota",
+    "noteHint": "Descreva a ação sem telefone, mensagem ou credenciais.",
+    "history": "Histórico do tratamento",
+    "claim": "Assumir caso",
+    "release": "Devolver à fila",
+    "addNote": "Registrar atualização",
+    "complete": "Concluir tratamento",
+    "inspectSource": "Abrir registro de origem",
+    "sourceCleared": "A condição original não aparece mais na fila ativa. Confira o registro antes de concluir.",
+    "noResend": "Resultado incerto: investigue antes de qualquer novo envio. Esta tela não reenvia SMS.",
+    "caseTitle": "Ocorrência #{{id}}",
+    "kind": {
+      "unknown_send": "Envio incerto",
+      "overdue_schedule": "Agendamento atrasado",
+      "dlr_callback": "Callback DLR falho",
+      "mo_callback": "Callback MO falho"
+    },
+    "status": {
+      "open": "Aberto",
+      "in_progress": "Em análise",
+      "completed": "Concluído"
+    }
+  },
   "nav": {
     "overview": "Visão geral",
+    "workQueue": "Fila operacional",
     "companies": "Empresas",
     "users": "Usuários",
     "credentials": "Credenciais da API",

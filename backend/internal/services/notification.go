@@ -94,7 +94,7 @@ func olderThanNotification(value *time.Time, now time.Time, age time.Duration) b
 
 func notificationEvents(snapshot dtos.OperationsSnapshot) []models.NotificationEvent {
 	const callbackAge = 15 * time.Minute
-	const scheduleAge = 5 * time.Minute
+	const scheduleAge = models.OperationScheduleGrace
 	var result []models.NotificationEvent
 	add := func(code models.NotificationType, count int64, detail string) {
 		for _, definition := range notificationDefinitions {
