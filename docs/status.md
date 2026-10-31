@@ -1,6 +1,6 @@
 # Estado da implementação
 
-Em 31/10/2026, a fila operacional por registro foi implementada no código para envios incertos, agendamentos atrasados e callbacks DLR/MO falhos. Possui escopo de empresa, responsável, notas e histórico; não reenvia SMS. A migração 027 deve preceder os binários novos. Consulte [operation-cases.md](operation-cases.md). O teste PostgreSQL isolado passou; HML e integração real não foram publicados nem verificados nesta etapa.
+Em 31/10/2026, a fila operacional por registro foi implementada e publicada em HML para envios incertos, agendamentos atrasados e callbacks DLR/MO falhos. Possui escopo de empresa, responsável, notas e histórico; não reenvia SMS. O frontend e o backend do commit `2bfac6b` foram publicados; a migração 027 foi aplicada depois, pois o deploy automático do backend deixou os objetos ausentes e a listagem retornava 503. Após a migração, a tela carregou três envios incertos em HML e o detalhe abriu. Consulte [operation-cases.md](operation-cases.md). Testes PostgreSQL e CI passaram; integração real com fornecedor não foi exercitada.
 
 ## Diagnóstico temporário Zoug — 29/10/2026
 
