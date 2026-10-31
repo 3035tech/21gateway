@@ -220,7 +220,7 @@
     "archiveTitle": "Archive company",
     "archiveDescription": "Archiving {{name}} will block its API access. History will be retained.",
     "providerAccess": "Company Zoug credential",
-    "smsProvider": "SMS provider",
+    "smsProvider": "Provider",
     "smsProviderHint": "Only Zoug + SMS is connected and available to save today.",
     "channel": "Channel",
     "channelPending": "This provider and channel combination is planned. Sending and callbacks are not integrated yet, so this route cannot be saved.",

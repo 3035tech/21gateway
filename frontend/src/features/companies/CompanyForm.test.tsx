@@ -89,7 +89,7 @@ it('shows provider channels while blocking unimplemented routes', async () => {
     </QueryClientProvider>,
   )
   const user = userEvent.setup()
-  await user.click(screen.getByRole('combobox', { name: 'Provedor de SMS' }))
+  await user.click(screen.getByRole('combobox', { name: 'Provedor' }))
   await user.click(screen.getByRole('option', { name: 'Zenvia' }))
   expect(screen.queryByLabelText(/^Token fornecido pela Zoug/)).not.toBeInTheDocument()
   await user.click(screen.getByRole('combobox', { name: 'Canal' }))
@@ -99,7 +99,7 @@ it('shows provider channels while blocking unimplemented routes', async () => {
   await user.click(screen.getByRole('option', { name: 'RCS' }))
   expect(screen.getByRole('button', { name: 'Criar empresa' })).toBeDisabled()
 
-  await user.click(screen.getByRole('combobox', { name: 'Provedor de SMS' }))
+  await user.click(screen.getByRole('combobox', { name: 'Provedor' }))
   await user.click(screen.getByRole('option', { name: 'MKM' }))
   await user.click(screen.getByRole('combobox', { name: 'Canal' }))
   expect(screen.getByRole('option', { name: 'SMS' })).toBeInTheDocument()

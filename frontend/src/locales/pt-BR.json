@@ -220,7 +220,7 @@
     "archiveTitle": "Arquivar empresa",
     "archiveDescription": "Arquivar {{name}} bloqueará seus acessos de API. O histórico será mantido.",
     "providerAccess": "Credencial Zoug da empresa",
-    "smsProvider": "Provedor de SMS",
+    "smsProvider": "Provedor",
     "smsProviderHint": "Apenas Zoug + SMS está conectada e disponível para salvar no momento.",
     "channel": "Canal",
     "channelPending": "Essa combinação de provedor e canal está planejada. O envio e os callbacks ainda não estão integrados; não é possível salvar essa rota.",
