@@ -31,15 +31,69 @@ function readSidebarPreference() {
   }
 }
 const navigation = [
-  ['/', 'nav.overview', LayoutDashboard, false],
-  ['/empresas', 'nav.companies', Building2, false],
-  ['/usuarios', 'nav.users', Users, true],
-  ['/credenciais', 'nav.credentials', KeyRound, false],
-  ['/envios', 'nav.messages', MessageSquare, false],
-  ['/agendamentos', 'nav.schedules', CalendarClock, false],
-  ['/callbacks', 'nav.callbacks', Webhook, false],
-  ['/auditoria', 'nav.audit', History, true],
-  ['/notificacoes', 'nav.notifications', Bell, true],
+  {
+    path: '/',
+    label: 'nav.overview',
+    icon: LayoutDashboard,
+    adminOnly: false,
+    management: true,
+  },
+  {
+    path: '/empresas',
+    label: 'nav.companies',
+    icon: Building2,
+    adminOnly: false,
+    management: true,
+  },
+  {
+    path: '/usuarios',
+    label: 'nav.users',
+    icon: Users,
+    adminOnly: true,
+    management: true,
+  },
+  {
+    path: '/credenciais',
+    label: 'nav.credentials',
+    icon: KeyRound,
+    adminOnly: false,
+    management: true,
+  },
+  {
+    path: '/envios',
+    label: 'nav.messages',
+    icon: MessageSquare,
+    adminOnly: false,
+    management: false,
+  },
+  {
+    path: '/agendamentos',
+    label: 'nav.schedules',
+    icon: CalendarClock,
+    adminOnly: false,
+    management: true,
+  },
+  {
+    path: '/callbacks',
+    label: 'nav.callbacks',
+    icon: Webhook,
+    adminOnly: false,
+    management: false,
+  },
+  {
+    path: '/auditoria',
+    label: 'nav.audit',
+    icon: History,
+    adminOnly: true,
+    management: false,
+  },
+  {
+    path: '/notificacoes',
+    label: 'nav.notifications',
+    icon: Bell,
+    adminOnly: true,
+    management: false,
+  },
 ] as const
 function Navigation({
   admin,
@@ -57,18 +111,10 @@ function Navigation({
     <>
       {navigation
         .filter(
-          ([path, , , restricted]) =>
-            (!restricted || admin) &&
-            (!managementOnly ||
-              [
-                '/',
-                '/empresas',
-                '/usuarios',
-                '/credenciais',
-                '/agendamentos',
-              ].includes(path)),
+          ({ adminOnly, management }) =>
+            (!adminOnly || admin) && (!managementOnly || management),
         )
-        .map(([path, label, Icon]) => (
+        .map(({ path, label, icon: Icon }) => (
           <NavLink
             key={path}
             to={path}
@@ -132,7 +178,7 @@ export function PanelShell({
   const currentKey =
     location.pathname === '/perfil'
       ? 'nav.profile'
-      : (navigation.find(([path]) => path === location.pathname)?.[1] ??
+      : (navigation.find(({ path }) => path === location.pathname)?.label ??
         'nav.adminPanel')
   const current = t(currentKey)
   const initials = name
