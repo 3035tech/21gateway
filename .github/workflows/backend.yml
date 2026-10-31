@@ -45,6 +45,9 @@ jobs:
           go test -race ./...
           go vet ./...
           go build ./cmd/api ./cmd/worker ./cmd/admin ./cmd/maintenance
+      - name: Check Go vulnerabilities
+        working-directory: backend
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
       - uses: docker/setup-buildx-action@v4
       - name: Prepare image tags
         id: image

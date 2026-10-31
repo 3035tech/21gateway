@@ -102,6 +102,7 @@ Os cabeçalhos das listas usam o contexto da tela para reduzir texto repetido: A
 IDs internos de envio, callback e auditoria ficam centralizados no cabeçalho e nas células; o alinhamento é declarado por coluna no componente de tabela. Nomes, referências e dados descritivos continuam alinhados à esquerda.
 
 Na revisão responsiva, o documento impede rolagem horizontal fora das regiões de tabela; a rolagem das colunas continua disponível dentro da própria tabela. Isso evita que a página inteira deslize lateralmente em telas estreitas.
+Os textos acessíveis dos marcadores DLR/MO em Credenciais ficam posicionados dentro do próprio marcador; se escaparem da tabela, navegadores móveis podem reduzir a escala da página inteira apesar do bloqueio de rolagem do documento.
 
 Em celulares estreitos, grupos com três abas reduzem padding e ocultam ícones decorativos para manter os nomes visíveis; os botões de formulário se empilham abaixo de 360 px quando a legenda da ação não cabe em uma linha.
 
