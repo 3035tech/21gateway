@@ -20,6 +20,20 @@ func NewAccountSMSProvider(client *whitelabel.Client, vault *security.TokenVault
 	return &AccountSMSProvider{client: client, vault: vault}
 }
 func (p *AccountSMSProvider) Enabled() bool { return p.vault.Enabled() }
+func selectedSMSProvider(code models.Provider) models.Provider {
+	if code == "" {
+		return models.ProviderZoug // Existing credentials without a route keep their original integration.
+	}
+	return code
+}
+func (p *AccountSMSProvider) forToken(code models.Provider, token string) (SMSProvider, error) {
+	switch selectedSMSProvider(code) {
+	case models.ProviderZoug:
+		return p.client.ForToken(token), nil
+	default:
+		return nil, apperrors.Wrap(apperrors.CodeServiceUnavailable, nil)
+	}
+}
 func (p *AccountSMSProvider) PrepareCompany(company models.Company) (SMSProvider, error) {
 	if !p.Enabled() || company.ProviderTokenEncrypted == "" {
 		return nil, apperrors.Wrap(apperrors.CodeTestNotConfigured, nil)
@@ -28,7 +42,7 @@ func (p *AccountSMSProvider) PrepareCompany(company models.Company) (SMSProvider
 	if err != nil {
 		return nil, err
 	}
-	return p.client.ForToken(token), nil
+	return p.forToken(company.SMSProvider, token)
 }
 func (p *AccountSMSProvider) Prepare(ctx context.Context) (SMSProvider, error) {
 	credential, ok := CredentialFromContext(ctx)
@@ -47,7 +61,7 @@ func (p *AccountSMSProvider) Prepare(ctx context.Context) (SMSProvider, error) {
 	if err != nil {
 		return nil, err
 	}
-	return p.client.ForToken(token), nil
+	return p.forToken(credential.CompanySMSProvider, token)
 }
 func (p *AccountSMSProvider) Send(ctx context.Context, input whitelabel.SendRequest) (whitelabel.SendResponse, error) {
 	provider, err := p.Prepare(ctx)

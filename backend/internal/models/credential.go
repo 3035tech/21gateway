@@ -8,8 +8,9 @@ import (
 
 type APICredential struct {
 	ProviderTokenEncrypted             string
-	CompanyProviderTokenEncrypted      string `gorm:"->;-:migration"`
-	CompanyProviderTokenLegacyFallback bool   `gorm:"->;-:migration"`
+	CompanyProviderTokenEncrypted      string   `gorm:"->;-:migration"`
+	CompanyProviderTokenLegacyFallback bool     `gorm:"->;-:migration"`
+	CompanySMSProvider                 Provider `gorm:"->;-:migration"`
 	WhitelistEnabled                   bool
 	AllowedIPs                         []string `gorm:"serializer:json;type:jsonb"`
 	MOCallbackURL                      string

@@ -220,6 +220,8 @@
     "archiveTitle": "Arquivar empresa",
     "archiveDescription": "Arquivar {{name}} bloqueará seus acessos de API. O histórico será mantido.",
     "providerAccess": "Credencial Zoug da empresa",
+    "smsProvider": "Provedor de SMS",
+    "smsProviderHint": "Apenas a Zoug está conectada no momento. Novos provedores aparecerão após integração e homologação.",
     "providerConfigured": "Token Zoug configurado. Ele é compartilhado por todas as credenciais da API desta empresa.",
     "providerSaved": "Token salvo",
     "providerNotSaved": "Token não cadastrado",

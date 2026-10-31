@@ -11,6 +11,7 @@ type Company struct {
 	Reference                   string
 	ProviderTokenEncrypted      string
 	ProviderTokenLegacyFallback bool
+	SMSProvider                 Provider `gorm:"->;-:migration"`
 	Active                      bool
 	ArchivedAt                  *time.Time
 	CreatedAt                   time.Time

@@ -140,7 +140,7 @@ func (r *ScheduledSMS) Claim(ctx context.Context) ([]models.ScheduledSMS, error)
 }
 func (r *ScheduledSMS) Credential(ctx context.Context, id uint64) (models.APICredential, error) {
 	var value models.APICredential
-	err := r.db.WithContext(ctx).Model(&models.APICredential{}).Select("api_credentials.*, companies.active AS company_active, companies.provider_token_encrypted AS company_provider_token_encrypted, companies.provider_token_legacy_fallback AS company_provider_token_legacy_fallback").Joins("LEFT JOIN companies ON companies.id=api_credentials.company_id").Where("api_credentials.id=? AND api_credentials.archived_at IS NULL AND (companies.id IS NULL OR companies.archived_at IS NULL)", id).First(&value).Error
+	err := r.db.WithContext(ctx).Model(&models.APICredential{}).Select("api_credentials.*, companies.active AS company_active, companies.provider_token_encrypted AS company_provider_token_encrypted, companies.provider_token_legacy_fallback AS company_provider_token_legacy_fallback, sms_route.provider_code AS company_sms_provider").Joins("LEFT JOIN companies ON companies.id=api_credentials.company_id").Joins("LEFT JOIN company_provider_routes AS sms_route ON sms_route.company_id=companies.id AND sms_route.channel=?", models.ChannelSMS).Where("api_credentials.id=? AND api_credentials.archived_at IS NULL AND (companies.id IS NULL OR companies.archived_at IS NULL)", id).First(&value).Error
 	return value, err
 }
 func (r *ScheduledSMS) Begin(ctx context.Context, jobs []models.ScheduledSMS) error {

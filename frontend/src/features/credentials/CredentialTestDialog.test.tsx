@@ -44,6 +44,7 @@ const company: Company = {
   createdAt: '2026-10-27T12:00:00Z',
   providerTokenConfigured: true,
   legacyProviderTokenFallback: false,
+  smsProvider: 'zoug',
 }
 
 it('tests the saved company token without an API credential', async () => {

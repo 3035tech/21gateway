@@ -97,6 +97,7 @@ func (s *ScheduledSMSService) enqueue(ctx context.Context, credentialID uint64, 
 		attempt := models.SMSAttempt{CredentialID: credentialID, Destination: brazilCountryCode + input.Destination, CorrelationID: input.CorrelationID, Encoding: whitelabel.SelectEncoding(normalized), State: models.SubmissionPending, ScheduledAt: scheduledAt}
 		if credential, ok := CredentialFromContext(ctx); ok && credential.ID == credentialID {
 			attempt.CompanyID = credential.CompanyID
+			attempt.ProviderCode = selectedSMSProvider(credential.CompanySMSProvider)
 		}
 		if s.history != nil {
 			reference := uuid.NewString()

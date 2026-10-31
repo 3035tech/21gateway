@@ -49,10 +49,17 @@ func TestPostgresBackofficeAndOutbox(t *testing.T) {
 	if company.LegacyProviderTokenFallback {
 		t.Fatal("new company inherited legacy provider fallback")
 	}
+	if company.SMSProvider != models.ProviderZoug {
+		t.Fatal("new company did not select the existing SMS provider")
+	}
+	var route struct{ ProviderCode models.Provider }
+	if err := isolated.Raw("SELECT provider_code FROM company_provider_routes WHERE company_id=? AND channel=?", company.ID, models.ChannelSMS).Scan(&route).Error; err != nil || route.ProviderCode != models.ProviderZoug {
+		t.Fatal("company SMS route missing", err)
+	}
 	if _, err := uuid.Parse(company.PublicRef); err != nil {
 		t.Fatal("company public reference missing", err)
 	}
-	if found, err := companies.CompanyByPublicRef(ctx, company.PublicRef); err != nil || found.ID != company.ID {
+	if found, err := companies.CompanyByPublicRef(ctx, company.PublicRef); err != nil || found.ID != company.ID || found.SMSProvider != models.ProviderZoug {
 		t.Fatal("company public reference lookup", err)
 	}
 	_, err = users.SaveUser(ctx, admin.ID, admin.ID, dtos.UserBody{Name: admin.Name, Email: admin.Email, Role: models.RoleViewer, Active: true, CompanyIDs: []uint64{company.ID}})
@@ -68,6 +75,9 @@ func TestPostgresBackofficeAndOutbox(t *testing.T) {
 	}
 	if secret.Password == "" {
 		t.Fatal("one-time password missing")
+	}
+	if selected, err := repositories.NewCredentials(isolated).FindByUsername(ctx, secret.Credential.Username); err != nil || selected.CompanySMSProvider != models.ProviderZoug {
+		t.Fatal("authenticated credential lost SMS route", err)
 	}
 	if _, err := uuid.Parse(secret.Credential.PublicRef); err != nil {
 		t.Fatal("credential public reference missing", err)

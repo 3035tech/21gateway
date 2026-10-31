@@ -2,9 +2,11 @@ import { z } from 'zod'
 import { api } from '../../lib/api'
 import { list } from '../../lib/admin'
 import type { ListParams } from '../../lib/admin'
+import { availableSMSProviders, SMS_PROVIDER_ZOUG } from './providers'
 export const companySchema = z.object({
   providerTokenConfigured: z.boolean(),
   legacyProviderTokenFallback: z.boolean(),
+  smsProvider: z.string().min(1).default(SMS_PROVIDER_ZOUG),
   id: z.number(),
   publicRef: z.uuid(),
   name: z.string(),
@@ -14,6 +16,7 @@ export const companySchema = z.object({
 })
 export type Company = z.infer<typeof companySchema>
 export const companyFormSchema = z.object({
+  smsProvider: z.enum(availableSMSProviders).optional(),
   providerToken: z
     .string()
     .max(4096)
@@ -40,15 +43,27 @@ export async function getCompanyByPublicRef(
   return companySchema.parse(response.data)
 }
 const companyHealthSchema = z.object({
-  activeCredentials: z.number(), dlrConfigured: z.number(), moConfigured: z.number(),
-  expiringSoon: z.number(), unknownSends: z.number(), pendingCallbacks: z.number(),
-  failedCallbacks: z.number(), lastSendAt: z.string().nullable(),
-  lastProviderAt: z.string().nullable(), lastClientDlrAt: z.string().nullable(),
+  activeCredentials: z.number(),
+  dlrConfigured: z.number(),
+  moConfigured: z.number(),
+  expiringSoon: z.number(),
+  unknownSends: z.number(),
+  pendingCallbacks: z.number(),
+  failedCallbacks: z.number(),
+  lastSendAt: z.string().nullable(),
+  lastProviderAt: z.string().nullable(),
+  lastClientDlrAt: z.string().nullable(),
   lastClientMoAt: z.string().nullable(),
 })
 export type CompanyHealth = z.infer<typeof companyHealthSchema>
-export async function getCompanyHealth(publicRef: string, signal?: AbortSignal) {
-  const response = await api.get(`/admin/companies/by-ref/${publicRef}/health`, { signal })
+export async function getCompanyHealth(
+  publicRef: string,
+  signal?: AbortSignal,
+) {
+  const response = await api.get(
+    `/admin/companies/by-ref/${publicRef}/health`,
+    { signal },
+  )
   return companyHealthSchema.parse(response.data)
 }
 export async function saveCompany(id: number | undefined, body: CompanyBody) {
@@ -56,6 +71,7 @@ export async function saveCompany(id: number | undefined, body: CompanyBody) {
     name: body.name,
     reference: body.reference,
     active: body.active,
+    smsProvider: body.smsProvider ?? SMS_PROVIDER_ZOUG,
     ...(body.providerToken ? { providerToken: body.providerToken } : {}),
     ...(body.clearProviderToken ? { clearProviderToken: true } : {}),
   }

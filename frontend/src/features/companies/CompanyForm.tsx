@@ -6,6 +6,8 @@ import { Dialog } from '../../components/admin/Dialog'
 import { FormFooter, FieldError } from '../../components/admin/FormFooter'
 import { useAdminMutation } from '../../components/admin/useAdminMutation'
 import { useTranslation } from 'react-i18next'
+import { AppSelect } from '../../components/admin/AppSelect'
+import { SMS_PROVIDER_ZOUG } from './providers'
 export function CompanyForm({
   company,
   onClose,
@@ -22,6 +24,7 @@ export function CompanyForm({
       name: company?.name ?? '',
       reference: company?.reference ?? '',
       active: company?.active ?? true,
+      smsProvider: SMS_PROVIDER_ZOUG,
     },
   })
   const mutation = useAdminMutation<CompanyBody>(
@@ -33,6 +36,7 @@ export function CompanyForm({
     control: form.control,
     name: 'clearProviderToken',
   })
+  const smsProvider = useWatch({ control: form.control, name: 'smsProvider' })
   return (
     <Dialog
       title={company ? t('companies.editTitle') : t('companies.new')}
@@ -58,6 +62,22 @@ export function CompanyForm({
           {t('companies.active')}
         </label>
         <div className="rounded-xl border border-purple-100 bg-purple-50 p-4">
+          <div className="mb-4">
+            <span className="mb-1 block text-sm font-semibold text-slate-800">
+              {t('companies.smsProvider')}
+            </span>
+            <AppSelect
+              label={t('companies.smsProvider')}
+              value={smsProvider ?? SMS_PROVIDER_ZOUG}
+              onValueChange={(value) =>
+                form.setValue('smsProvider', value as typeof SMS_PROVIDER_ZOUG)
+              }
+              options={[{ value: SMS_PROVIDER_ZOUG, label: 'Zoug' }]}
+            />
+            <p className="mt-1 text-xs text-slate-600">
+              {t('companies.smsProviderHint')}
+            </p>
+          </div>
           <h3 className="font-bold text-brand-purple">
             {t('companies.providerAccess')}
           </h3>

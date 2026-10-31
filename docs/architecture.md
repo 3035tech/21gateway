@@ -1,5 +1,7 @@
 # Arquitetura
 
+A rota de provedor por empresa e canal usa `company_provider_routes` (migração 028). O mesmo código de provedor pode constar em canais distintos, mas somente SMS/Zoug está ativo. O domínio de empresas valida e grava a escolha; o serviço SMS resolve a conta e marca a tentativa. O envio permanece no domínio SMS e os contratos futuros de RCS/WhatsApp terão domínios próprios. A interface SMS ainda depende de tipos `whitelabel` até existir um segundo contrato concreto; limites da etapa em [sms-providers.md](sms-providers.md). Nenhuma exceção à separação por domínio.
+
 A fila operacional pertence ao domínio `operation_case`, com controller, service, DTO, model e repository próprios. A view da migração 027 reúne apenas referências e estados dos domínios de envios, agendamentos e callbacks; não executa reenvio nem muda a propriedade desses fluxos. O escopo de empresa, a sessão e a autorização são infraestrutura transversal. Frontend em `features/operation-cases`; não há exceção à separação por domínio. Contratos e rollback em [operation-cases.md](operation-cases.md).
 
 O diagnóstico temporário Zoug fica no domínio de mensagens: controller/service coordenam autorização, auditoria e empresa; o adaptador white label contém os dez casos HTTP fixos. O DTO administrativo não depende do adaptador. Sem tabela nova; logs JSON são a evidência transitória. Não há exceção à separação por domínio.

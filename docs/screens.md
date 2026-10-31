@@ -1,5 +1,7 @@
 # Telas
 
+Na edição da empresa, o bloco de integração exibe a rota de SMS por provedor. Somente Zoug aparece até existir outro adaptador homologado; canais futuros não são exibidos como se estivessem disponíveis. A configuração pertence à empresa, enquanto credenciais Basic Auth continuam separadas.
+
 > Escopo respondido em 14/10/2026: consulte docs/scope-answers.md. Este documento descreve o código existente; token por cliente, whitelist, MO e compatibilidade V1 completa ainda exigem ajustes. Painel solicitado pela 21 é focado em credenciais/configurações com perfil administrativo único. Não confundir recursos extras implementados com requisitos confirmados.
 ## Painel real
 

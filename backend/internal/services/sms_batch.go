@@ -83,6 +83,7 @@ func (s *SMSService) sendBatch(ctx context.Context, credentialID uint64, message
 		attempt := &models.SMSAttempt{CredentialID: credentialID, Destination: destination, CorrelationID: input.CorrelationID, State: models.SubmissionPending}
 		if credential, ok := CredentialFromContext(ctx); ok && credential.ID == credentialID {
 			attempt.CompanyID = credential.CompanyID
+			attempt.ProviderCode = selectedSMSProvider(credential.CompanySMSProvider)
 		}
 		if err := s.encryptAttempt(attempt, input.MessageText); err != nil {
 			return nil, err

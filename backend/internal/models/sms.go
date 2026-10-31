@@ -28,6 +28,7 @@ type SMSAttempt struct {
 	CompanyID         *uint64
 	ID                uint64 `gorm:"primaryKey"`
 	CredentialID      uint64
+	ProviderCode      Provider `gorm:"default:zoug"`
 	Destination       string
 	CorrelationID     string
 	Encoding          SMSEncoding

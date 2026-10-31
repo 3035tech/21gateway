@@ -43,6 +43,11 @@ func TestPerAccountProviderHasNoSharedTokenFallback(t *testing.T) {
 	if transport.GetTotalCallCount() != before {
 		t.Fatal("unconfigured account reached supplier")
 	}
+	unknown, _ := vault.Encrypt("unknown-provider", "unrelated-token")
+	_, err := provider.Prepare(WithCredential(context.Background(), models.APICredential{Username: "unknown-provider", ProviderTokenEncrypted: unknown, CompanySMSProvider: "unregistered"}))
+	if err == nil || transport.GetTotalCallCount() != before {
+		t.Fatal("unknown provider must fail closed without calling Zoug")
+	}
 }
 
 func TestCompanyTokenSharedAcrossAPICredentials(t *testing.T) {

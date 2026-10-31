@@ -12,22 +12,31 @@ import (
 type Companies struct{ *store }
 
 func NewCompanies(db *gorm.DB) *Companies { return &Companies{store: &store{db: db}} }
+func (r *Companies) withSMSRoute(ctx context.Context) *gorm.DB {
+	return scopedCompanies(r.db.WithContext(ctx).Model(&models.Company{}).
+		Select("companies.*, sms_route.provider_code AS sms_provider").
+		Joins("LEFT JOIN company_provider_routes AS sms_route ON sms_route.company_id=companies.id AND sms_route.channel=?", models.ChannelSMS), ctx, "companies.id")
+}
+func (r *Companies) SetSMSProvider(ctx context.Context, companyID uint64, provider models.Provider) error {
+	return r.db.WithContext(ctx).Exec(`INSERT INTO company_provider_routes(company_id,channel,provider_code) VALUES(?,?,?)
+		ON CONFLICT(company_id,channel) DO UPDATE SET provider_code=EXCLUDED.provider_code`, companyID, models.ChannelSMS, provider).Error
+}
 func (r *Companies) Transaction(ctx context.Context, mutate func(*Companies) error) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error { return mutate(NewCompanies(tx)) })
 }
 func (r *Companies) Company(ctx context.Context, id uint64) (models.Company, error) {
 	var company models.Company
-	err := scopedCompanies(r.db.WithContext(ctx), ctx, "id").Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ? AND archived_at IS NULL", id).First(&company).Error
+	err := r.withSMSRoute(ctx).Clauses(clause.Locking{Strength: "UPDATE", Table: clause.Table{Name: "companies"}}).Where("companies.id = ? AND companies.archived_at IS NULL", id).First(&company).Error
 	return company, err
 }
 func (r *Companies) CompanyView(ctx context.Context, id uint64) (models.Company, error) {
 	var company models.Company
-	err := scopedCompanies(r.db.WithContext(ctx), ctx, "id").Where("id = ? AND archived_at IS NULL", id).First(&company).Error
+	err := r.withSMSRoute(ctx).Where("companies.id = ? AND companies.archived_at IS NULL", id).First(&company).Error
 	return company, err
 }
 func (r *Companies) CompanyViewByPublicRef(ctx context.Context, publicRef string) (models.Company, error) {
 	var company models.Company
-	err := scopedCompanies(r.db.WithContext(ctx), ctx, "id").Where("public_ref = ? AND archived_at IS NULL", publicRef).First(&company).Error
+	err := r.withSMSRoute(ctx).Where("companies.public_ref = ? AND companies.archived_at IS NULL", publicRef).First(&company).Error
 	return company, err
 }
 func (r *Companies) Health(ctx context.Context, companyID uint64) (dtos.CompanyHealth, error) {
@@ -93,13 +102,12 @@ func (r *Companies) Health(ctx context.Context, companyID uint64) (dtos.CompanyH
 }
 func (r *Companies) Companies(ctx context.Context, q dtos.ListQuery) (dtos.Page[models.Company], error) {
 	result := dtos.Page[models.Company]{Items: []models.Company{}, Page: q.Page, PageSize: q.PageSize}
-	db := r.db.WithContext(ctx).Model(&models.Company{}).Where("archived_at IS NULL")
-	db = scopedCompanies(db, ctx, "id")
+	db := r.withSMSRoute(ctx).Where("companies.archived_at IS NULL")
 	if q.CompanyID != 0 {
-		db = db.Where("id = ?", q.CompanyID)
+		db = db.Where("companies.id = ?", q.CompanyID)
 	}
 	if q.Search != "" {
-		db = db.Where("name ILIKE ? OR reference ILIKE ?", searchTerm(q.Search), searchTerm(q.Search))
+		db = db.Where("companies.name ILIKE ? OR companies.reference ILIKE ?", searchTerm(q.Search), searchTerm(q.Search))
 	}
 	if q.Active.Set {
 		db = db.Where("active = ?", q.Active.Value)

@@ -220,6 +220,8 @@
     "archiveTitle": "Archive company",
     "archiveDescription": "Archiving {{name}} will block its API access. History will be retained.",
     "providerAccess": "Company Zoug credential",
+    "smsProvider": "SMS provider",
+    "smsProviderHint": "Only Zoug is connected today. New providers will appear after integration and testing.",
     "providerConfigured": "Zoug token configured. It is shared by every API credential for this company.",
     "providerSaved": "Token saved",
     "providerNotSaved": "No token saved",

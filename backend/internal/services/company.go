@@ -54,6 +54,9 @@ func (s *CompanyService) SaveCompany(ctx context.Context, actor, id uint64, body
 	if body.ProviderToken != nil && body.ClearProviderToken {
 		return dtos.CompanyView{}, apperrors.Wrap(apperrors.CodeInvalidRequest, nil)
 	}
+	if body.SMSProvider != "" && !body.SMSProvider.AvailableForSMS() {
+		return dtos.CompanyView{}, apperrors.Wrap(apperrors.CodeInvalidRequest, nil)
+	}
 	err := s.repository.Transaction(ctx, func(repo *repositories.Companies) error {
 		action := auditCreated
 		if id != 0 {
@@ -63,6 +66,13 @@ func (s *CompanyService) SaveCompany(ctx context.Context, actor, id uint64, body
 				return err
 			}
 			action = auditUpdated
+		}
+		provider := result.SMSProvider
+		if provider == "" {
+			provider = models.ProviderZoug
+		}
+		if body.SMSProvider != "" {
+			provider = body.SMSProvider
 		}
 		result.Name = strings.TrimSpace(body.Name)
 		result.Reference = strings.TrimSpace(body.Reference)
@@ -76,6 +86,10 @@ func (s *CompanyService) SaveCompany(ctx context.Context, actor, id uint64, body
 		if err != nil {
 			return err
 		}
+		if err = repo.SetSMSProvider(ctx, result.ID, provider); err != nil {
+			return err
+		}
+		result.SMSProvider = provider
 		if body.ProviderToken != nil {
 			if s.vault == nil {
 				return apperrors.Wrap(apperrors.CodeServiceUnavailable, nil)

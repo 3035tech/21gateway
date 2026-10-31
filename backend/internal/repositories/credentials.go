@@ -14,7 +14,7 @@ type Credentials struct{ *store }
 func NewCredentials(db *gorm.DB) *Credentials { return &Credentials{store: &store{db: db}} }
 func (r *Credentials) FindByUsername(ctx context.Context, username string) (models.APICredential, error) {
 	var result models.APICredential
-	err := r.db.WithContext(ctx).Model(&models.APICredential{}).Select("api_credentials.*, companies.active AS company_active, companies.provider_token_encrypted AS company_provider_token_encrypted, companies.provider_token_legacy_fallback AS company_provider_token_legacy_fallback").Joins("LEFT JOIN companies ON companies.id = api_credentials.company_id").Where("api_credentials.username = ? AND api_credentials.archived_at IS NULL", username).First(&result).Error
+	err := r.db.WithContext(ctx).Model(&models.APICredential{}).Select("api_credentials.*, companies.active AS company_active, companies.provider_token_encrypted AS company_provider_token_encrypted, companies.provider_token_legacy_fallback AS company_provider_token_legacy_fallback, sms_route.provider_code AS company_sms_provider").Joins("LEFT JOIN companies ON companies.id = api_credentials.company_id").Joins("LEFT JOIN company_provider_routes AS sms_route ON sms_route.company_id=companies.id AND sms_route.channel=?", models.ChannelSMS).Where("api_credentials.username = ? AND api_credentials.archived_at IS NULL", username).First(&result).Error
 	return result, err
 }
 func (r *Credentials) Create(ctx context.Context, credential *models.APICredential) error {
@@ -56,7 +56,7 @@ func (r *Credentials) CredentialViewByPublicRef(ctx context.Context, publicRef s
 	return credential, err
 }
 func (r *Credentials) credentialQuery(ctx context.Context) *gorm.DB {
-	return scopedCompanies(r.db.WithContext(ctx).Model(&models.APICredential{}).Select("api_credentials.*, companies.name AS company_name, companies.active AS company_active, companies.provider_token_encrypted AS company_provider_token_encrypted, companies.provider_token_legacy_fallback AS company_provider_token_legacy_fallback").Joins("LEFT JOIN companies ON companies.id = api_credentials.company_id").Where("api_credentials.archived_at IS NULL"), ctx, "api_credentials.company_id")
+	return scopedCompanies(r.db.WithContext(ctx).Model(&models.APICredential{}).Select("api_credentials.*, companies.name AS company_name, companies.active AS company_active, companies.provider_token_encrypted AS company_provider_token_encrypted, companies.provider_token_legacy_fallback AS company_provider_token_legacy_fallback, sms_route.provider_code AS company_sms_provider").Joins("LEFT JOIN companies ON companies.id = api_credentials.company_id").Joins("LEFT JOIN company_provider_routes AS sms_route ON sms_route.company_id=companies.id AND sms_route.channel=?", models.ChannelSMS).Where("api_credentials.archived_at IS NULL"), ctx, "api_credentials.company_id")
 }
 func (r *Credentials) Credentials(ctx context.Context, q dtos.ListQuery) (dtos.Page[models.APICredential], error) {
 	result := dtos.Page[models.APICredential]{Items: []models.APICredential{}, Page: q.Page, PageSize: q.PageSize}

@@ -38,6 +38,7 @@ it('validates company name and persists the submitted body', async () => {
     name: 'Empresa teste',
     reference: 'CLI-001',
     active: true,
+    smsProvider: 'zoug',
   })
   post.mockRestore()
 })
@@ -59,6 +60,7 @@ it('submits the provider-issued token on the company record', async () => {
           createdAt: '2026-10-27T10:00:00Z',
           providerTokenConfigured: false,
           legacyProviderTokenFallback: false,
+          smsProvider: 'zoug',
         }}
         onClose={vi.fn()}
       />
