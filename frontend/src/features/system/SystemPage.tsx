@@ -2,10 +2,12 @@ import { useQuery } from '@tanstack/react-query'
 import { CircleAlert, CircleCheck, RefreshCw, Radio, Users } from 'lucide-react'
 import { getReadiness } from '../../lib/api'
 import { useTranslation } from 'react-i18next'
+import { APP_TIME_ZONE } from '../../lib/timezone'
 
 export function SystemPage() {
   const { t, i18n } = useTranslation()
   const timeFormatter = new Intl.DateTimeFormat(i18n.language, {
+    timeZone: APP_TIME_ZONE,
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',

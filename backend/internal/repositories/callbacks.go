@@ -153,7 +153,7 @@ func (r *Callbacks) Callbacks(ctx context.Context, q dtos.CallbackListInput) (dt
 	if err := db.Count(&result.Total).Error; err != nil {
 		return result, err
 	}
-	column := map[string]string{"id": "callback_jobs.id", "attemptId": "callback_jobs.attempt_id", "companyName": "companies.name", "url": "callback_jobs.url", "status": "callback_jobs.status", "state": "callback_jobs.state", "attempts": "callback_jobs.attempts", "lastError": "callback_jobs.last_error", "createdAt": "callback_jobs.created_at"}[q.Sort]
+	column := map[string]string{"id": "callback_jobs.id", "attemptId": "callback_jobs.attempt_id", "companyName": "companies.name", "providerCode": "sms_attempts.provider_code", "url": "callback_jobs.url", "status": "callback_jobs.status", "state": "callback_jobs.state", "attempts": "callback_jobs.attempts", "lastError": "callback_jobs.last_error", "createdAt": "callback_jobs.created_at"}[q.Sort]
 	if q.Sort == "" {
 		column = "callback_jobs.created_at"
 	}
@@ -161,18 +161,18 @@ func (r *Callbacks) Callbacks(ctx context.Context, q dtos.CallbackListInput) (dt
 		return result, apperrors.Wrap(apperrors.CodeInvalidRequest, nil)
 	}
 	direction := string(q.Direction)
-	err := db.Joins("LEFT JOIN companies ON companies.id=sms_attempts.company_id").Select("callback_jobs.*, sms_attempts.company_id, COALESCE(companies.name,'') AS company_name").Order(column + " " + direction).Order("callback_jobs.id " + direction).Offset((q.Page - 1) * q.PageSize).Limit(q.PageSize).Scan(&result.Items).Error
+	err := db.Joins("LEFT JOIN companies ON companies.id=sms_attempts.company_id").Select("callback_jobs.*, sms_attempts.company_id, sms_attempts.provider_code, COALESCE(companies.name,'') AS company_name").Order(column + " " + direction).Order("callback_jobs.id " + direction).Offset((q.Page - 1) * q.PageSize).Limit(q.PageSize).Scan(&result.Items).Error
 	return result, err
 }
 
 const receivedCallbacksTable = `(SELECT e.id::bigint AS id, e.attempt_id, a.company_id,
-  e.provider_message_id::text AS provider_message_id, 'sms' AS kind,
+  e.provider_code, e.provider_message_id::text AS provider_message_id, 'sms' AS kind,
   e.status, e.occurred_at, e.created_at AS received_at
  FROM delivery_events e JOIN sms_attempts a ON a.id=e.attempt_id
  WHERE split_part(e.event_key, ':', 1) = e.provider_code
  UNION ALL
  SELECT -m.id::bigint AS id, m.attempt_id, a.company_id,
-  m.provider_message_id::text AS provider_message_id, 'mo' AS kind,
+  m.provider_code, m.provider_message_id::text AS provider_message_id, 'mo' AS kind,
   'RECEIVED' AS status, m.received_at AS occurred_at, m.created_at AS received_at
  FROM mo_events m JOIN sms_attempts a ON a.id=m.attempt_id
  WHERE split_part(m.event_key, ':', 1) = m.provider_code) AS received`
@@ -195,7 +195,7 @@ func (r *Callbacks) Received(ctx context.Context, q dtos.ListQuery) (dtos.Page[d
 	}
 	column := map[string]string{
 		"id": "received.id", "attemptId": "received.attempt_id", "companyName": "companies.name",
-		"providerMessageId": "received.provider_message_id", "kind": "received.kind",
+		"providerCode": "received.provider_code", "providerMessageId": "received.provider_message_id", "kind": "received.kind",
 		"status": "received.status", "occurredAt": "received.occurred_at", "receivedAt": "received.received_at",
 	}[q.Sort]
 	if q.Sort == "" {

@@ -1,5 +1,7 @@
 # Telas
 
+O painel exibe datas e horas em `America/Sao_Paulo` em qualquer navegador. Validade de credencial e filtros de agendamentos interpretam o horário digitado nesse fuso; o texto de ajuda o informa e horários inexistentes ou ambíguos são recusados. Instantes enviados à API continuam em UTC.
+
 Na edição da empresa, o bloco de integração exibe a rota de SMS por provedor. Somente Zoug aparece até existir outro adaptador homologado; canais futuros não são exibidos como se estivessem disponíveis. A configuração pertence à empresa, enquanto credenciais Basic Auth continuam separadas.
 
 > Escopo respondido em 14/10/2026: consulte docs/scope-answers.md. Este documento descreve o código existente; token por cliente, whitelist, MO e compatibilidade V1 completa ainda exigem ajustes. Painel solicitado pela 21 é focado em credenciais/configurações com perfil administrativo único. Não confundir recursos extras implementados com requisitos confirmados.
@@ -22,6 +24,8 @@ Cadastro de credenciais: permite várias credenciais por empresa, username gerad
 O seletor de idioma exibe as bandeiras do Brasil e dos Estados Unidos ao lado do nome de cada opção; o nome acessível permanece no controle.
 
 Na listagem de envios, a primeira coluna usa apenas “ID” para reservar espaço horizontal aos demais campos; o detalhe continua identificando explicitamente “ID do envio”.
+
+Nas telas operacionais, o provedor é exibido a partir da rota SMS da empresa ou do `provider_code` gravado em cada envio, teste e evento recebido. Envios, histórico e callbacks podem misturar provedores sem rotular todos como Zoug. A tabela de credenciais mostra a rota SMS da empresa e só apresenta o estado do token quando essa rota é Zoug. Token e diagnóstico Zoug continuam nomeados explicitamente porque são recursos específicos desse adaptador.
 
 O detalhe de Envios inclui histórico cronológico sob demanda: registro, início do processamento quando conhecido, resultado atual da submissão, eventos DLR/MO e estado das notificações ao cliente. A hora exata da resposta Zoug anterior à mudança não está disponível. A ficha da empresa mostra indicadores de integração e últimos horários; administradores veem avisos operacionais na Visão geral, atualizados a cada minuto. Esses avisos não enviam e-mail automaticamente.
 
@@ -136,4 +140,6 @@ Os títulos das preferências, do histórico e do sininho acompanham o idioma do
 
 Revisão de listagens de 31/10/2026: as tabelas administrativas usam `DataTable`, com paginação e seleção de itens por página no rodapé. O histórico de Notificações foi alinhado ao mesmo padrão: filtro “não lidas” junto ao título; itens por página, intervalo e navegação após a tabela. Os seletores paginados de empresas em formulários também mantêm navegação abaixo das opções, dentro do contexto do formulário.
 
-No formulário de empresa, o operador escolhe primeiro o provedor e depois vê seus canais. Zoug mostra SMS; MKM e Pontal mostram SMS planejado; Zenvia mostra SMS, RCS e WhatsApp planejados. Somente Zoug/SMS permite salvar a empresa até a integração e homologação dos demais adaptadores. Os canais da Pontal ainda precisam de confirmação.
+No formulário de empresa, o operador vê as rotas por canal e seu status. Zoug/SMS aparece como integrada; Google/RCS, Zenvia/RCS e Zenvia/WhatsApp podem ser adicionadas ou trocadas como rotas em preparação, sem envio. A seleção de nova rota fica em uma seção recolhível para reduzir a altura do formulário; dentro dela, o operador escolhe primeiro o provedor e depois o canal. A troca de provedor seleciona o primeiro canal disponível. MKM, Pontal e Zenvia/SMS aparecem no catálogo como indisponíveis para configuração e não substituem o SMS ativo. A seleção só é persistida após clicar em adicionar/trocar rota e salvar a empresa; alterações de nome ou token não reenviam as rotas. Os cartões de rota quebram linha no mobile e o controle de remoção tem área de toque ampliada. SMS via SMPP foi informado para Pontal; outros canais ainda precisam de confirmação.
+
+No seletor, o provedor aparece como Google e o canal como RCS, sem repetir o canal no nome. A seleção explica a ausência de conta parceira e o requisito de aprovação do agente para enviar a clientes; a rota já planejada usa uma nota curta. A 21 informou que ainda não possui a parceria. O aviso não muda o status operacional: a rota continua sem envio ou callback.

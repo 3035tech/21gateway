@@ -4,6 +4,7 @@ import { list } from '../../lib/admin'
 import type { ListParams } from '../../lib/admin'
 export const callbackSchema = z.object({
   id: z.number(),
+  providerCode: z.string().optional(),
   attemptId: z.number(),
   credentialId: z.number(),
   companyId: z.number().nullable(),
@@ -19,6 +20,7 @@ export const callbackSchema = z.object({
 export type Callback = z.infer<typeof callbackSchema>
 export const receivedCallbackSchema = z.object({
   id: z.number(),
+  providerCode: z.string().optional(),
   attemptId: z.number(),
   companyId: z.number().nullable(),
   companyName: z.string(),

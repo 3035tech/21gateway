@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/21mobile/sms-gateway/internal/dtos"
 	apperrors "github.com/21mobile/sms-gateway/internal/errors"
 	"github.com/21mobile/sms-gateway/internal/models"
 	"github.com/21mobile/sms-gateway/internal/repositories"
@@ -46,16 +47,28 @@ func TestPostgresMessageTraceAndCompanyHealth(t *testing.T) {
 	if err := db.Create(&moJob).Error; err != nil {
 		t.Fatal(err)
 	}
+	pontalID := "pontal-health-id"
+	pontalAttempt := models.SMSAttempt{CompanyID: &company.ID, CredentialID: credential.ID, ProviderCode: models.ProviderPontal, ProviderMessageID: &pontalID, Destination: "5511999999999", Encoding: models.SMSEncodingGSM7, State: models.SubmissionAccepted}
+	if err := db.Create(&pontalAttempt).Error; err != nil {
+		t.Fatal(err)
+	}
+	pontalEvent := models.DeliveryEvent{EventKey: "pontal:health", ProviderCode: models.ProviderPontal, ProviderMessageID: pontalID, Status: models.DeliveryUnknown, OccurredAt: time.Now().UTC(), AttemptID: &pontalAttempt.ID, Processed: true}
+	if err := db.Create(&pontalEvent).Error; err != nil {
+		t.Fatal(err)
+	}
 	messageService := NewMessageService(repositories.NewSMSAttempts(db))
 	trace, err := messageService.Trace(ctx, attempt.ID)
-	if err != nil || trace.SubmissionState != models.SubmissionUnknown || len(trace.Events) != 4 || trace.ProviderMessageID == nil || *trace.ProviderMessageID != providerID {
+	if err != nil || trace.SubmissionState != models.SubmissionUnknown || trace.ProviderCode != models.ProviderZoug || len(trace.Events) != 4 || trace.ProviderMessageID == nil || *trace.ProviderMessageID != providerID {
 		t.Fatalf("trace=%+v err=%v", trace, err)
 	}
 	kinds := map[string]bool{}
 	for _, stage := range trace.Events {
-		kinds[stage.Kind] = true
+		kinds[string(stage.Kind)] = true
+		if (stage.Kind == dtos.MessageTraceDelivery || stage.Kind == dtos.MessageTraceMO) && stage.ProviderCode != models.ProviderZoug {
+			t.Fatalf("provider missing from supplier event: %+v", stage)
+		}
 	}
-	if !kinds["zoug_delivery"] || !kinds["client_dlr"] || !kinds["mo"] || !kinds["client_mo"] {
+	if !kinds["delivery"] || !kinds["client_dlr"] || !kinds["mo"] || !kinds["client_mo"] {
 		t.Fatalf("missing stages: %+v", trace.Events)
 	}
 	encoded, err := json.Marshal(trace)
@@ -66,7 +79,7 @@ func TestPostgresMessageTraceAndCompanyHealth(t *testing.T) {
 		t.Fatal("another company can read message trace")
 	}
 	health, err := NewCompanyService(repositories.NewCompanies(db)).Health(ctx, company.PublicRef)
-	if err != nil || health.ActiveCredentials != 1 || health.DLRConfigured != 1 || health.UnknownSends != 1 || health.FailedCallbacks != 1 || health.LastProviderAt == nil || health.LastClientMOAt == nil {
+	if err != nil || health.ActiveCredentials != 1 || health.DLRConfigured != 1 || health.UnknownSends != 1 || health.FailedCallbacks != 1 || health.LastProviderAt == nil || !health.LastProviderAt.Equal(pontalEvent.CreatedAt.Truncate(time.Microsecond)) || health.LastClientMOAt == nil {
 		t.Fatalf("health=%+v err=%v", health, err)
 	}
 	if _, err := NewCompanyService(repositories.NewCompanies(db)).Health(security.WithCompanyScope(ctx, []uint64{other.ID}), company.PublicRef); err == nil {

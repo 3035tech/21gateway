@@ -1,20 +1,25 @@
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { companyFormSchema, saveCompany } from './api'
-import type { Company, CompanyBody } from './api'
+import type { Company, CompanyBody, PlannedRoute } from './api'
 import { Dialog } from '../../components/admin/Dialog'
 import { FormFooter, FieldError } from '../../components/admin/FormFooter'
 import { useAdminMutation } from '../../components/admin/useAdminMutation'
 import { useTranslation } from 'react-i18next'
 import { AppSelect } from '../../components/admin/AppSelect'
 import { useState } from 'react'
+import { ChevronDown, Info, Plus, X } from 'lucide-react'
 import {
   CHANNEL_SMS,
+  PROVIDER_GOOGLE,
   SMS_PROVIDER_ZOUG,
+  providerLabel,
+  canPlanProviderChannel,
   canSaveProviderChannel,
   channelLabels,
   providerChannels,
-  smsProviderOptions,
+  providerOptions,
+  ROUTE_PLANNED,
 } from './providers'
 import type { ChannelCode, ProviderCode } from './providers'
 export function CompanyForm({
@@ -25,6 +30,9 @@ export function CompanyForm({
   onClose: () => void
 }) {
   const { t } = useTranslation()
+  const activeSMSProvider =
+    (company?.smsProvider as ProviderCode) ?? SMS_PROVIDER_ZOUG
+  const activeSMSLabel = providerLabel(activeSMSProvider)
   const form = useForm<CompanyBody>({
     resolver: zodResolver(companyFormSchema),
     defaultValues: {
@@ -45,12 +53,41 @@ export function CompanyForm({
     control: form.control,
     name: 'clearProviderToken',
   })
-  const [selectedProvider, setSelectedProvider] = useState<ProviderCode>(
-    (company?.smsProvider as ProviderCode) ?? SMS_PROVIDER_ZOUG,
+  const [selectedProvider, setSelectedProvider] =
+    useState<ProviderCode>(activeSMSProvider)
+  const [channel, setChannel] = useState<ChannelCode>(
+    providerChannels[activeSMSProvider]?.[0] ?? CHANNEL_SMS,
   )
-  const [channel, setChannel] = useState<ChannelCode>(CHANNEL_SMS)
+  const [plannedRoutes, setPlannedRoutes] = useState<PlannedRoute[]>(() =>
+    (company?.providerRoutes ?? [])
+      .filter(
+        (route) =>
+          route.status === ROUTE_PLANNED &&
+          canPlanProviderChannel(route.provider as ProviderCode, route.channel),
+      )
+      .map((route) => ({
+        channel: route.channel as PlannedRoute['channel'],
+        provider: route.provider as PlannedRoute['provider'],
+      })),
+  )
+  const [plannedRoutesChanged, setPlannedRoutesChanged] = useState(false)
   const availableChannels = providerChannels[selectedProvider] ?? [CHANNEL_SMS]
-  const canSaveRoute = canSaveProviderChannel(selectedProvider, channel)
+  const isActiveSelection = canSaveProviderChannel(selectedProvider, channel)
+  const canPlanSelection = canPlanProviderChannel(selectedProvider, channel)
+  const plannedForChannel = plannedRoutes.find(
+    (route) => route.channel === channel,
+  )
+  const addPlannedRoute = () => {
+    if (!canPlanSelection) return
+    setPlannedRoutesChanged(true)
+    setPlannedRoutes((current) => [
+      ...current.filter((route) => route.channel !== channel),
+      {
+        channel: channel as PlannedRoute['channel'],
+        provider: selectedProvider as PlannedRoute['provider'],
+      },
+    ])
+  }
   return (
     <Dialog
       title={company ? t('companies.editTitle') : t('companies.new')}
@@ -59,9 +96,12 @@ export function CompanyForm({
     >
       <form
         className="space-y-5"
-        onSubmit={canSaveRoute
-          ? form.handleSubmit((body) => mutation.mutate(body))
-          : (event) => event.preventDefault()}
+        onSubmit={form.handleSubmit((body) =>
+          mutation.mutate({
+            ...body,
+            ...(plannedRoutesChanged ? { plannedRoutes } : {}),
+          }),
+        )}
       >
         <label className="field">
           {t('common.name')}
@@ -77,8 +117,79 @@ export function CompanyForm({
           <input type="checkbox" {...form.register('active')} />
           {t('companies.active')}
         </label>
-        <div className="rounded-xl border border-purple-100 bg-purple-50 p-4">
-          <div className="mb-4">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <h3 className="text-sm font-bold text-slate-900">
+            {t('companies.routesTitle')}
+          </h3>
+          <p className="mt-1 text-xs text-slate-600">
+            {t('companies.routesHint')}
+          </p>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-emerald-100 bg-white px-3 py-2 text-sm">
+            <span className="min-w-0 font-semibold text-slate-800">
+              SMS · {activeSMSLabel}
+            </span>
+            <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-800">
+              {t('companies.routeActive')}
+            </span>
+          </div>
+          {plannedRoutes.map((route) => (
+            <div
+              key={route.channel}
+              className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-100 bg-white px-3 py-2 text-sm"
+            >
+              <div className="min-w-0">
+                <span className="break-words font-semibold text-slate-800">
+                  {channelLabels[route.channel]} ·{' '}
+                  {
+                    providerOptions.find(
+                      (option) => option.value === route.provider,
+                    )?.label
+                  }
+                </span>
+                {route.provider === PROVIDER_GOOGLE ? (
+                  <p className="mt-1 text-xs leading-5 text-slate-600">
+                    {t('companies.googleRCSRouteHint')}
+                  </p>
+                ) : null}
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <span className="rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800">
+                  {t('companies.routePlanned')}
+                </span>
+                <button
+                  type="button"
+                  className="flex size-11 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-purple"
+                  aria-label={t('companies.removePlannedRoute', {
+                    channel: channelLabels[route.channel],
+                  })}
+                  onClick={() => {
+                    setPlannedRoutesChanged(true)
+                    setPlannedRoutes((current) =>
+                      current.filter((item) => item.channel !== route.channel),
+                    )
+                  }}
+                >
+                  <X size={16} aria-hidden="true" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <details className="group rounded-xl border border-purple-100 bg-purple-50 p-4">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-purple [&::-webkit-details-marker]:hidden">
+            <span className="text-sm font-bold text-slate-900">
+              {t('companies.addRouteTitle')}
+            </span>
+            <ChevronDown
+              size={18}
+              aria-hidden="true"
+              className="shrink-0 text-brand-purple transition-transform group-open:rotate-180"
+            />
+          </summary>
+          <div className="mt-3 border-t border-purple-100 pt-4">
+            <p className="mb-4 text-xs text-slate-600">
+              {t('companies.addRouteHint')}
+            </p>
             <span className="mb-1 block text-sm font-semibold text-slate-800">
               {t('companies.smsProvider')}
             </span>
@@ -86,10 +197,11 @@ export function CompanyForm({
               label={t('companies.smsProvider')}
               value={selectedProvider}
               onValueChange={(value) => {
-                setSelectedProvider(value as ProviderCode)
-                setChannel(CHANNEL_SMS)
+                const provider = value as ProviderCode
+                setSelectedProvider(provider)
+                setChannel(providerChannels[provider][0])
               }}
-              options={smsProviderOptions}
+              options={providerOptions}
             />
             <span className="mb-1 mt-4 block text-sm font-semibold text-slate-800">
               {t('companies.channel')}
@@ -103,26 +215,66 @@ export function CompanyForm({
                 label: channelLabels[value],
               }))}
             />
-            <p className="mt-1 text-xs text-slate-600">
-              {t(canSaveRoute ? 'companies.smsProviderHint' : 'companies.channelPending')}
+            <p className="mt-2 text-xs font-semibold text-slate-700">
+              {t(
+                isActiveSelection
+                  ? 'companies.selectionActive'
+                  : canPlanSelection
+                    ? 'companies.selectionPlanned'
+                    : 'companies.selectionUnavailable',
+              )}
             </p>
-          </div>
-          {selectedProvider === SMS_PROVIDER_ZOUG ? (
-            <>
-              <h3 className="font-bold text-brand-purple">
-                {t('companies.providerAccess')}
-              </h3>
-              <p className="mt-1 text-sm leading-5 text-slate-600">
-                {company?.providerTokenConfigured
-                  ? t('companies.providerConfigured')
-                  : company?.legacyProviderTokenFallback
-                    ? t('companies.providerLegacy')
-                    : t('companies.providerMissing')}
+            {selectedProvider === PROVIDER_GOOGLE ? (
+              <p className="mt-2 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
+                <Info
+                  size={16}
+                  className="mt-0.5 shrink-0"
+                  aria-hidden="true"
+                />
+                {t('companies.googleRCSPrerequisite')}
               </p>
-            </>
-          ) : null}
+            ) : (
+              <p className="mt-1 text-xs text-slate-600">
+                {t(
+                  isActiveSelection
+                    ? 'companies.smsProviderHint'
+                    : canPlanSelection
+                      ? 'companies.planRouteHint'
+                      : 'companies.routeUnavailable',
+                  { provider: activeSMSLabel },
+                )}
+              </p>
+            )}
+            {canPlanSelection ? (
+              <button
+                type="button"
+                className="button-secondary mt-3 inline-flex w-full items-center justify-center gap-2 sm:w-auto"
+                onClick={addPlannedRoute}
+                disabled={plannedForChannel?.provider === selectedProvider}
+              >
+                <Plus size={16} aria-hidden="true" />
+                {t(
+                  plannedForChannel
+                    ? 'companies.replacePlannedRoute'
+                    : 'companies.addPlannedRoute',
+                )}
+              </button>
+            ) : null}
+          </div>
+        </details>
+        <div className="space-y-3">
+          <h3 className="font-bold text-brand-purple">
+            {t('companies.providerAccess')}
+          </h3>
+          <p className="text-sm leading-5 text-slate-600">
+            {company?.providerTokenConfigured
+              ? t('companies.providerConfigured')
+              : company?.legacyProviderTokenFallback
+                ? t('companies.providerLegacy')
+                : t('companies.providerMissing')}
+          </p>
         </div>
-        {selectedProvider === SMS_PROVIDER_ZOUG && !clearProviderToken ? (
+        {!clearProviderToken ? (
           <label className="field">
             {company?.providerTokenConfigured
               ? t('companies.providerReplace')
@@ -145,7 +297,7 @@ export function CompanyForm({
             />
           </label>
         ) : null}
-        {selectedProvider === SMS_PROVIDER_ZOUG && company?.providerTokenConfigured ? (
+        {company?.providerTokenConfigured ? (
           <label className="flex min-h-11 items-center gap-2 text-sm text-rose-800">
             <input
               type="checkbox"
@@ -160,7 +312,6 @@ export function CompanyForm({
         ) : null}
         <FormFooter
           pending={mutation.isPending}
-          disabled={!canSaveRoute}
           error={mutation.error}
           onCancel={onClose}
           submitLabel={company ? t('common.save') : t('companies.create')}

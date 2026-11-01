@@ -30,6 +30,7 @@ import {
 } from './api'
 import { UsersPage } from '../users/UsersPage'
 import { isPublicRef } from '../../lib/publicRef'
+import { providerLabel } from './providers'
 import { PageTabs, PageTabPanel } from '../../components/admin/PageTabs'
 
 function CompanyTestHistory({ publicRef }: { publicRef: string }) {
@@ -77,7 +78,12 @@ function CompanyTestHistory({ publicRef }: { publicRef: string }) {
                 </p>
                 {send.providerMessageId ? (
                   <p className="break-all text-xs text-slate-500">
-                    Zoug: {send.providerMessageId}
+                    {t('companyDetail.providerMessageId', {
+                      provider:
+                        providerLabel(send.providerCode) ||
+                        t('companies.smsProvider').toLowerCase(),
+                    })}
+                    : {send.providerMessageId}
                   </p>
                 ) : null}
                 {send.failureCode ? (

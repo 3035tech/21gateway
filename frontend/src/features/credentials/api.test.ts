@@ -195,7 +195,7 @@ it('sends generated username, manual password and optional expiration explicitly
     username: '',
     generateUsername: true,
     manualPassword: 'long-manual-password',
-    expiresAt: new Date(expiresAtText).toISOString(),
+    expiresAt: '2099-01-02T13:30:00.000Z',
     clearExpiry: false,
   })
   post.mockRestore()

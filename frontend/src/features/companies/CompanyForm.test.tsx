@@ -61,6 +61,9 @@ it('submits the provider-issued token on the company record', async () => {
           providerTokenConfigured: false,
           legacyProviderTokenFallback: false,
           smsProvider: 'zoug',
+          providerRoutes: [
+            { channel: 'sms', provider: 'zoug', status: 'active' },
+          ],
         }}
         onClose={vi.fn()}
       />
@@ -73,15 +76,18 @@ it('submits the provider-issued token on the company record', async () => {
   )
   await user.click(screen.getByRole('button', { name: 'Salvar alterações' }))
   await vi.waitFor(() =>
-    expect(put).toHaveBeenCalledWith(
-      '/admin/companies/4',
-      expect.objectContaining({ providerToken: 'provider-test-token' }),
-    ),
+    expect(put).toHaveBeenCalledWith('/admin/companies/4', {
+      name: 'Empresa teste',
+      reference: 'CLI-004',
+      active: true,
+      providerToken: 'provider-test-token',
+    }),
   )
   put.mockRestore()
 })
 
-it('shows provider channels while blocking unimplemented routes', async () => {
+it('adds a planned RCS route without replacing the active SMS route', async () => {
+  const post = vi.spyOn(api, 'post').mockResolvedValue({ data: {} })
   const client = new QueryClient()
   render(
     <QueryClientProvider client={client}>
@@ -89,19 +95,110 @@ it('shows provider channels while blocking unimplemented routes', async () => {
     </QueryClientProvider>,
   )
   const user = userEvent.setup()
+  await user.type(screen.getByRole('textbox', { name: /^Nome/ }), 'Empresa RCS')
+  expect(screen.getByText('SMS · Zoug')).toBeInTheDocument()
+  expect(screen.getByText('Integrada')).toBeInTheDocument()
+  await user.click(screen.getByText('Adicionar rota por canal'))
   await user.click(screen.getByRole('combobox', { name: 'Provedor' }))
   await user.click(screen.getByRole('option', { name: 'Zenvia' }))
-  expect(screen.queryByLabelText(/^Token fornecido pela Zoug/)).not.toBeInTheDocument()
+  expect(
+    screen.getByLabelText(/^Token fornecido pela Zoug/),
+  ).toBeInTheDocument()
   await user.click(screen.getByRole('combobox', { name: 'Canal' }))
   expect(screen.getByRole('option', { name: 'SMS' })).toBeInTheDocument()
   expect(screen.getByRole('option', { name: 'RCS' })).toBeInTheDocument()
   expect(screen.getByRole('option', { name: 'WhatsApp' })).toBeInTheDocument()
   await user.click(screen.getByRole('option', { name: 'RCS' }))
-  expect(screen.getByRole('button', { name: 'Criar empresa' })).toBeDisabled()
+  expect(
+    screen.getByRole('button', { name: 'Adicionar rota em preparação' }),
+  ).toBeEnabled()
 
   await user.click(screen.getByRole('combobox', { name: 'Provedor' }))
-  await user.click(screen.getByRole('option', { name: 'MKM' }))
+  await user.click(screen.getByRole('option', { name: 'Google' }))
+  expect(
+    screen.getByText(/A 21 ainda não tem conta parceira do Google/),
+  ).toBeInTheDocument()
   await user.click(screen.getByRole('combobox', { name: 'Canal' }))
-  expect(screen.getByRole('option', { name: 'SMS' })).toBeInTheDocument()
-  expect(screen.queryByRole('option', { name: 'RCS' })).not.toBeInTheDocument()
+  expect(screen.getByRole('option', { name: 'RCS' })).toBeInTheDocument()
+  expect(screen.queryByRole('option', { name: 'SMS' })).not.toBeInTheDocument()
+  await user.click(screen.getByRole('option', { name: 'RCS' }))
+  await user.click(
+    screen.getByRole('button', { name: 'Adicionar rota em preparação' }),
+  )
+  expect(screen.getByText('RCS · Google')).toBeInTheDocument()
+  expect(
+    screen.getByText('Parceria Google pendente; envio indisponível.'),
+  ).toBeInTheDocument()
+  expect(screen.getByText('SMS · Zoug')).toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: 'Criar empresa' }))
+  await vi.waitFor(() =>
+    expect(post).toHaveBeenCalledWith(
+      '/admin/companies',
+      expect.objectContaining({
+        smsProvider: 'zoug',
+        plannedRoutes: [{ channel: 'rcs', provider: 'google' }],
+      }),
+    ),
+  )
+  post.mockRestore()
+})
+
+it('preserves planned routes on unrelated edits and removes them only on request', async () => {
+  const put = vi.spyOn(api, 'put').mockResolvedValue({ data: {} })
+  const company = {
+    id: 8,
+    publicRef: '11111111-1111-4111-8111-111111111111',
+    name: 'Empresa teste',
+    reference: 'CLI-008',
+    active: true,
+    createdAt: '2026-10-27T10:00:00Z',
+    providerTokenConfigured: false,
+    legacyProviderTokenFallback: false,
+    smsProvider: 'zoug',
+    providerRoutes: [
+      { channel: 'sms' as const, provider: 'zoug', status: 'active' as const },
+      {
+        channel: 'rcs' as const,
+        provider: 'google',
+        status: 'planned' as const,
+      },
+    ],
+  }
+  const user = userEvent.setup()
+  const first = render(
+    <QueryClientProvider client={new QueryClient()}>
+      <CompanyForm company={company} onClose={vi.fn()} />
+    </QueryClientProvider>,
+  )
+  expect(screen.getByText('RCS · Google')).toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: 'Salvar alterações' }))
+  await vi.waitFor(() =>
+    expect(put).toHaveBeenCalledWith('/admin/companies/8', {
+      name: 'Empresa teste',
+      reference: 'CLI-008',
+      active: true,
+    }),
+  )
+  first.unmount()
+  put.mockClear()
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <CompanyForm company={company} onClose={vi.fn()} />
+    </QueryClientProvider>,
+  )
+  await user.click(
+    screen.getByRole('button', {
+      name: 'Remover rota RCS em preparação',
+    }),
+  )
+  await user.click(screen.getByRole('button', { name: 'Salvar alterações' }))
+  await vi.waitFor(() =>
+    expect(put).toHaveBeenCalledWith('/admin/companies/8', {
+      name: 'Empresa teste',
+      reference: 'CLI-008',
+      active: true,
+      plannedRoutes: [],
+    }),
+  )
+  put.mockRestore()
 })

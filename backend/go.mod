@@ -19,7 +19,10 @@ require (
 	github.com/go-gormigrate/gormigrate/v2 v2.1.7
 	github.com/google/uuid v1.6.0
 	github.com/jarcoal/httpmock v1.4.2
+	github.com/linxGnu/gosmpp v0.3.1
+	github.com/pquerna/otp v1.5.0
 	github.com/warthog618/sms v0.3.0
+	golang.org/x/oauth2 v0.32.0
 	golang.org/x/text v0.43.0
 	golang.org/x/time v0.16.0
 	gorm.io/driver/postgres v1.6.3
@@ -27,6 +30,7 @@ require (
 )
 
 require (
+	cloud.google.com/go/compute/metadata v0.3.0 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.20.9 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.20.3 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.5.6 // indirect
@@ -48,7 +52,6 @@ require (
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
-	github.com/pquerna/otp v1.5.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	golang.org/x/crypto v0.58.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect

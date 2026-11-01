@@ -42,7 +42,7 @@ func (r *SMSAttempts) CompleteCompanyTest(ctx context.Context, send models.Compa
 func (r *SMSAttempts) CompanyTests(ctx context.Context, companyID uint64) ([]dtos.CompanyTestHistoryItem, error) {
 	items := []dtos.CompanyTestHistoryItem{}
 	err := scopedCompanies(r.db.WithContext(ctx).Model(&models.CompanyTestSend{}), ctx, "company_id").
-		Where("company_id = ?", companyID).Select("destination, correlation_id, provider_message_id, state, failure_code, created_at").
+		Where("company_id = ?", companyID).Select("destination, correlation_id, provider_code, provider_message_id, state, failure_code, created_at").
 		Order("created_at DESC, id DESC").Limit(20).Scan(&items).Error
 	return items, err
 }
@@ -77,7 +77,7 @@ func (r *SMSAttempts) Messages(ctx context.Context, q dtos.ListQuery) (dtos.Page
 	if err := validatePage(q); err != nil {
 		return result, err
 	}
-	column := map[string]string{"id": "sms_attempts.id", "companyName": "companies.name", "createdAt": "sms_attempts.created_at", "state": "sms_attempts.state", "destination": "sms_attempts.destination", "correlationId": "sms_attempts.correlation_id", "deliveryStatus": "sms_attempts.delivery_status", "failureCode": "sms_attempts.failure_code"}[q.Sort]
+	column := map[string]string{"id": "sms_attempts.id", "companyName": "companies.name", "providerCode": "sms_attempts.provider_code", "createdAt": "sms_attempts.created_at", "state": "sms_attempts.state", "destination": "sms_attempts.destination", "correlationId": "sms_attempts.correlation_id", "deliveryStatus": "sms_attempts.delivery_status", "failureCode": "sms_attempts.failure_code"}[q.Sort]
 	if q.Sort == "" {
 		column = "sms_attempts.created_at"
 	}
@@ -85,7 +85,7 @@ func (r *SMSAttempts) Messages(ctx context.Context, q dtos.ListQuery) (dtos.Page
 		return result, apperrors.Wrap(apperrors.CodeInvalidRequest, nil)
 	}
 	direction := string(q.Direction)
-	err := db.Joins("LEFT JOIN companies ON companies.id=sms_attempts.company_id").Select("sms_attempts.id,sms_attempts.credential_id,sms_attempts.company_id,COALESCE(companies.name,'') AS company_name,sms_attempts.destination,sms_attempts.correlation_id,sms_attempts.state,sms_attempts.failure_code,sms_attempts.delivery_status,sms_attempts.created_at").Order(column + " " + direction).Order("sms_attempts.id " + direction).Offset((q.Page - 1) * q.PageSize).Limit(q.PageSize).Scan(&result.Items).Error
+	err := db.Joins("LEFT JOIN companies ON companies.id=sms_attempts.company_id").Select("sms_attempts.id,sms_attempts.credential_id,sms_attempts.company_id,COALESCE(companies.name,'') AS company_name,sms_attempts.provider_code,sms_attempts.destination,sms_attempts.correlation_id,sms_attempts.state,sms_attempts.failure_code,sms_attempts.delivery_status,sms_attempts.created_at").Order(column + " " + direction).Order("sms_attempts.id " + direction).Offset((q.Page - 1) * q.PageSize).Limit(q.PageSize).Scan(&result.Items).Error
 	return result, err
 }
 func (r *SMSAttempts) MessageContent(ctx context.Context, id uint64) (models.SMSAttempt, error) {
@@ -99,38 +99,34 @@ const messageTraceLimit = 100
 func (r *SMSAttempts) MessageTrace(ctx context.Context, id uint64) (dtos.MessageTrace, error) {
 	var attempt models.SMSAttempt
 	err := scopedCompanies(r.db.WithContext(ctx).Model(&models.SMSAttempt{}), ctx, "company_id").
-		Select("id,state,failure_code,delivery_status,provider_message_id,created_at,dispatched_at").
+		Select("id,state,failure_code,delivery_status,provider_code,provider_message_id,created_at,dispatched_at").
 		Where("id = ?", id).First(&attempt).Error
 	if err != nil {
 		return dtos.MessageTrace{}, err
 	}
 	trace := dtos.MessageTrace{
-		ID: attempt.ID, SubmissionState: attempt.State, FailureCode: string(attempt.FailureCode),
+		ID: attempt.ID, ProviderCode: attempt.ProviderCode, SubmissionState: attempt.State, FailureCode: string(attempt.FailureCode),
 		DeliveryStatus: attempt.DeliveryStatus, ProviderMessageID: attempt.ProviderMessageID,
 		CreatedAt: attempt.CreatedAt, DispatchedAt: attempt.DispatchedAt,
 		Events: []dtos.MessageTraceEvent{},
 	}
 	var deliveries []models.DeliveryEvent
 	if err := r.db.WithContext(ctx).Model(&models.DeliveryEvent{}).
-		Select("id,event_key,status,occurred_at,created_at").Where("attempt_id = ?", id).
+		Select("id,provider_code,status,occurred_at,created_at").Where("attempt_id = ?", id).
 		Order("occurred_at,id").Limit(messageTraceLimit + 1).Find(&deliveries).Error; err != nil {
 		return dtos.MessageTrace{}, err
 	}
 	for _, event := range deliveries {
-		kind := "delivery"
-		if len(event.EventKey) >= 5 && event.EventKey[:5] == "zoug:" {
-			kind = "zoug_delivery"
-		}
-		trace.Events = append(trace.Events, dtos.MessageTraceEvent{Kind: kind, ID: event.ID, Status: string(event.Status), OccurredAt: event.OccurredAt, RecordedAt: event.CreatedAt})
+		trace.Events = append(trace.Events, dtos.MessageTraceEvent{Kind: dtos.MessageTraceDelivery, ProviderCode: event.ProviderCode, ID: event.ID, Status: string(event.Status), OccurredAt: event.OccurredAt, RecordedAt: event.CreatedAt})
 	}
 	var mos []models.MOEvent
 	if err := r.db.WithContext(ctx).Model(&models.MOEvent{}).
-		Select("id,received_at,created_at").Where("attempt_id = ?", id).
+		Select("id,provider_code,received_at,created_at").Where("attempt_id = ?", id).
 		Order("received_at,id").Limit(messageTraceLimit + 1).Find(&mos).Error; err != nil {
 		return dtos.MessageTrace{}, err
 	}
 	for _, event := range mos {
-		trace.Events = append(trace.Events, dtos.MessageTraceEvent{Kind: "mo", ID: event.ID, Status: "received", OccurredAt: event.ReceivedAt, RecordedAt: event.CreatedAt})
+		trace.Events = append(trace.Events, dtos.MessageTraceEvent{Kind: dtos.MessageTraceMO, ProviderCode: event.ProviderCode, ID: event.ID, Status: "received", OccurredAt: event.ReceivedAt, RecordedAt: event.CreatedAt})
 	}
 	var dlrJobs []models.CallbackJob
 	if err := r.db.WithContext(ctx).Model(&models.CallbackJob{}).
@@ -139,7 +135,7 @@ func (r *SMSAttempts) MessageTrace(ctx context.Context, id uint64) (dtos.Message
 		return dtos.MessageTrace{}, err
 	}
 	for _, job := range dlrJobs {
-		trace.Events = append(trace.Events, dtos.MessageTraceEvent{Kind: "client_dlr", ID: job.ID, Status: string(job.State), OccurredAt: job.UpdatedAt, RecordedAt: job.CreatedAt, Attempts: job.Attempts, FailureCode: job.LastError})
+		trace.Events = append(trace.Events, dtos.MessageTraceEvent{Kind: dtos.MessageTraceClientDLR, ID: job.ID, Status: string(job.State), OccurredAt: job.UpdatedAt, RecordedAt: job.CreatedAt, Attempts: job.Attempts, FailureCode: job.LastError})
 	}
 	var moJobs []models.MOCallbackJob
 	if err := r.db.WithContext(ctx).Model(&models.MOCallbackJob{}).
@@ -148,7 +144,7 @@ func (r *SMSAttempts) MessageTrace(ctx context.Context, id uint64) (dtos.Message
 		return dtos.MessageTrace{}, err
 	}
 	for _, job := range moJobs {
-		trace.Events = append(trace.Events, dtos.MessageTraceEvent{Kind: "client_mo", ID: job.ID, Status: string(job.State), OccurredAt: job.UpdatedAt, RecordedAt: job.CreatedAt, Attempts: job.Attempts, FailureCode: job.LastError})
+		trace.Events = append(trace.Events, dtos.MessageTraceEvent{Kind: dtos.MessageTraceClientMO, ID: job.ID, Status: string(job.State), OccurredAt: job.UpdatedAt, RecordedAt: job.CreatedAt, Attempts: job.Attempts, FailureCode: job.LastError})
 	}
 	sort.SliceStable(trace.Events, func(i, j int) bool { return trace.Events[i].OccurredAt.Before(trace.Events[j].OccurredAt) })
 	if len(trace.Events) > messageTraceLimit {

@@ -35,6 +35,7 @@ import {
 } from 'lucide-react'
 import { useCompanyReturnRef } from '../companies/useCompanyReturnRef'
 import { isPublicRef } from '../../lib/publicRef'
+import { providerLabel, SMS_PROVIDER_ZOUG } from '../companies/providers'
 export function CredentialsPage({
   companyId,
   companyRef,
@@ -171,13 +172,22 @@ export function CredentialsPage({
       ? []
       : [{ accessorKey: 'companyName', header: t('common.company') }]),
     {
-      accessorKey: 'providerTokenConfigured',
-      header: 'Zoug',
+      accessorKey: 'companySmsProvider',
+      header: t('credentials.tableSmsProvider'),
       meta: { compact: true },
-      cell: ({ row }) =>
-        row.original.providerTokenConfigured
-          ? t('credentials.tokenConfigured')
-          : t('credentials.noToken'),
+      cell: ({ row }) => (
+        <span>
+          {providerLabel(row.original.companySmsProvider) ||
+            t('common.providerUnknown')}
+          {row.original.companySmsProvider === SMS_PROVIDER_ZOUG ? (
+            <span className="block text-xs text-slate-500">
+              {row.original.providerTokenConfigured
+                ? t('credentials.tokenConfigured')
+                : t('credentials.noToken')}
+            </span>
+          ) : null}
+        </span>
+      ),
     },
     {
       accessorKey: 'whitelistEnabled',

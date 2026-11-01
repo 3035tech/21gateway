@@ -2,7 +2,9 @@ import { z } from 'zod'
 import { api } from '../../lib/api'
 import { list } from '../../lib/admin'
 import type { ListParams } from '../../lib/admin'
+import { fromAppDateTimeInput } from '../../lib/timezone'
 export const credentialSchema = z.object({
+  companySmsProvider: z.string().optional(),
   callbackAuth: z
     .object({
       mode: z.enum(['none', 'header', 'basic']),
@@ -121,8 +123,7 @@ export const credentialFormSchema = z
       .refine(
         (value) =>
           !value ||
-          (!Number.isNaN(new Date(value).getTime()) &&
-            new Date(value).getTime() > Date.now()),
+          (fromAppDateTimeInput(value)?.getTime() ?? 0) > Date.now(),
         'validation.futureExpiry',
       ),
     providerToken: z
@@ -279,7 +280,7 @@ export async function saveCredential(
     generateUsername: !id && generateUsername,
     username: generateUsername && !id ? '' : body.username,
     expiresAt: expiresAtText
-      ? new Date(expiresAtText).toISOString()
+      ? fromAppDateTimeInput(expiresAtText)?.toISOString()
       : undefined,
     clearExpiry: !!id && !expiresAtText,
     allowedIPs: allowedIPsText.split(/[\s,;]+/).filter(Boolean),

@@ -6,6 +6,7 @@ import (
 )
 
 type CredentialView struct {
+	CompanySMSProvider      models.Provider  `json:"companySmsProvider"`
 	CallbackAuth            CallbackAuthView `json:"callbackAuth"`
 	MOCallbackAuth          CallbackAuthView `json:"moCallbackAuth"`
 	ProviderTokenConfigured bool             `json:"providerTokenConfigured"`
@@ -78,7 +79,7 @@ func CredentialDTO(value models.APICredential) CredentialView {
 	if allowedIPs == nil {
 		allowedIPs = []string{}
 	}
-	return CredentialView{CallbackAuth: callbackAuthDTO(value.CallbackAuth), MOCallbackAuth: callbackAuthDTO(value.MOCallbackAuth), ProviderTokenConfigured: value.CompanyProviderTokenEncrypted != "" || (value.CompanyProviderTokenLegacyFallback && value.ProviderTokenEncrypted != ""), WhitelistEnabled: value.WhitelistEnabled, AllowedIPs: allowedIPs, MOCallbackURL: value.MOCallbackURL, MOCallbacksEnabled: value.MOCallbacksEnabled, LegacyAccountID: value.LegacyAccountID, ID: value.ID, PublicRef: value.PublicRef, CompanyID: value.CompanyID, CompanyName: value.CompanyName, Username: value.Username, Active: value.Active, CallbackURL: value.CallbackURL, CallbacksEnabled: value.CallbacksEnabled, CreatedAt: value.CreatedAt, ExpiresAt: value.ExpiresAt}
+	return CredentialView{CompanySMSProvider: value.CompanySMSProvider, CallbackAuth: callbackAuthDTO(value.CallbackAuth), MOCallbackAuth: callbackAuthDTO(value.MOCallbackAuth), ProviderTokenConfigured: value.CompanyProviderTokenEncrypted != "" || (value.CompanyProviderTokenLegacyFallback && value.ProviderTokenEncrypted != ""), WhitelistEnabled: value.WhitelistEnabled, AllowedIPs: allowedIPs, MOCallbackURL: value.MOCallbackURL, MOCallbacksEnabled: value.MOCallbacksEnabled, LegacyAccountID: value.LegacyAccountID, ID: value.ID, PublicRef: value.PublicRef, CompanyID: value.CompanyID, CompanyName: value.CompanyName, Username: value.Username, Active: value.Active, CallbackURL: value.CallbackURL, CallbacksEnabled: value.CallbacksEnabled, CreatedAt: value.CreatedAt, ExpiresAt: value.ExpiresAt}
 }
 func callbackAuthDTO(value models.CallbackAuth) CallbackAuthView {
 	mode := value.Mode

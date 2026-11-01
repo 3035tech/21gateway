@@ -13,6 +13,7 @@ import type { Credential } from './api'
 import type { Company } from '../companies/api'
 import { useTranslation } from 'react-i18next'
 import { useFeedback } from '../../components/admin/feedbackContext'
+import { providerLabel } from '../companies/providers'
 
 function formatMobileNumber(digits: string) {
   if (!digits) return ''
@@ -40,6 +41,9 @@ export function CredentialTestDialog({
   const [confirmed, setConfirmed] = useState(false)
   const [delivery, setDelivery] = useState<string | null>(null)
   const companyName = company?.name ?? credential?.companyName ?? ''
+  const providerName =
+    providerLabel(company?.smsProvider ?? credential?.companySmsProvider) ||
+    t('credentialTest.providerFallback')
   const checkURL = new URL(
     '/v1/auth/check',
     api.defaults.baseURL ?? window.location.origin,
@@ -70,6 +74,7 @@ export function CredentialTestDialog({
             company
               ? 'credentialTest.companyUnknownToast'
               : 'feedback.sendUncertain',
+            { provider: providerName },
           ),
         )
       else feedback.error(t('feedback.sendRejected'))
@@ -82,6 +87,7 @@ export function CredentialTestDialog({
             company
               ? 'credentialTest.companyUncertainHint'
               : 'credentialTest.uncertainHint',
+            { provider: providerName },
           ),
       ),
   })
@@ -108,7 +114,10 @@ export function CredentialTestDialog({
     <Dialog
       title={
         company
-          ? t('credentialTest.companyTitle', { company: company.name })
+          ? t('credentialTest.companyTitle', {
+              company: company.name,
+              provider: providerName,
+            })
           : t('credentialTest.title', { username: credential?.username })
       }
       onClose={onClose}
@@ -142,6 +151,7 @@ export function CredentialTestDialog({
               company
                 ? 'credentialTest.companyProviderAcceptance'
                 : 'credentialTest.providerAcceptance',
+              { provider: providerName },
             )}
           </h3>
           <p className="mt-3 text-sm leading-6 text-slate-600">
@@ -149,6 +159,7 @@ export function CredentialTestDialog({
               company
                 ? 'credentialTest.companyProviderHint'
                 : 'credentialTest.providerHint',
+              { provider: providerName },
             )}
           </p>
           <label className="mt-4 block text-sm font-semibold">
@@ -183,6 +194,7 @@ export function CredentialTestDialog({
             <p className="mt-2 rounded-lg bg-purple-50 p-3 text-sm text-slate-700">
               {t('credentialTest.standardMessagePreview', {
                 company: companyName,
+                provider: providerName,
               })}
             </p>
           ) : (
@@ -220,6 +232,7 @@ export function CredentialTestDialog({
                 company
                   ? 'credentialTest.companyUncertainHint'
                   : 'credentialTest.uncertainHint',
+                { provider: providerName },
               )}
             </p>
           ) : null}

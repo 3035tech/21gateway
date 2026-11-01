@@ -21,6 +21,27 @@ func (r *Companies) SetSMSProvider(ctx context.Context, companyID uint64, provid
 	return r.db.WithContext(ctx).Exec(`INSERT INTO company_provider_routes(company_id,channel,provider_code) VALUES(?,?,?)
 		ON CONFLICT(company_id,channel) DO UPDATE SET provider_code=EXCLUDED.provider_code`, companyID, models.ChannelSMS, provider).Error
 }
+func (r *Companies) ProviderRoutes(ctx context.Context, companyIDs []uint64) ([]models.CompanyProviderRoute, error) {
+	if len(companyIDs) == 0 {
+		return []models.CompanyProviderRoute{}, nil
+	}
+	var routes []models.CompanyProviderRoute
+	err := r.db.WithContext(ctx).Where("company_id IN ?", companyIDs).Order("company_id, channel").Find(&routes).Error
+	return routes, err
+}
+func (r *Companies) ReplacePlannedRoutes(ctx context.Context, companyID uint64, routes []models.CompanyProviderRoute) error {
+	if err := r.db.WithContext(ctx).Where("company_id = ? AND status = ?", companyID, models.ProviderRoutePlanned).Delete(&models.CompanyProviderRoute{}).Error; err != nil {
+		return err
+	}
+	for _, route := range routes {
+		route.CompanyID = companyID
+		route.Status = models.ProviderRoutePlanned
+		if err := r.db.WithContext(ctx).Create(&route).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
 func (r *Companies) Transaction(ctx context.Context, mutate func(*Companies) error) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error { return mutate(NewCompanies(tx)) })
 }
@@ -71,9 +92,9 @@ func (r *Companies) Health(ctx context.Context, companyID uint64) (dtos.CompanyH
 	}
 	var provider struct{ LastProviderAt *time.Time }
 	if err := db.Raw(`SELECT MAX(received_at) AS last_provider_at FROM (
-		SELECT e.created_at AS received_at FROM delivery_events e JOIN sms_attempts a ON a.id=e.attempt_id WHERE a.company_id=? AND e.event_key LIKE 'zoug:%'
+		SELECT e.created_at AS received_at FROM delivery_events e JOIN sms_attempts a ON a.id=e.attempt_id WHERE a.company_id=? AND split_part(e.event_key, ':', 1)=e.provider_code
 		UNION ALL
-		SELECT m.created_at AS received_at FROM mo_events m JOIN sms_attempts a ON a.id=m.attempt_id WHERE a.company_id=? AND m.event_key LIKE 'zoug:%'
+		SELECT m.created_at AS received_at FROM mo_events m JOIN sms_attempts a ON a.id=m.attempt_id WHERE a.company_id=? AND split_part(m.event_key, ':', 1)=m.provider_code
 	) callbacks`, companyID, companyID).Scan(&provider).Error; err != nil {
 		return health, err
 	}

@@ -38,6 +38,7 @@ import { AppSelect } from '../../components/admin/AppSelect'
 import { RolePicker } from '../users/RolePicker'
 import { CompanyAccessPicker } from '../users/CompanyAccessPicker'
 import type { DemoRow, Section } from './data'
+import { formatInAppTimeZone } from '../../lib/timezone'
 
 const demoSessionKey = '21gateway-demo-session-until'
 const demoUserKey = '21gateway-demo-user-id'
@@ -1005,7 +1006,7 @@ function Listing({
                         : editing.providerTokenConfigured
                     : editing.providerTokenConfigured,
                 id: editing.id || `${section}-${crypto.randomUUID()}`,
-                date: new Date().toLocaleString(i18n.language),
+                date: formatInAppTimeZone(new Date(), i18n.language),
               })
               setEditing(null)
               setFormError('')

@@ -11,6 +11,7 @@ import { useQuery } from '@tanstack/react-query'
 import { errorMessage } from '../../lib/admin'
 import { TableIconButton } from '../../components/admin/TableIconAction'
 import { Eye } from 'lucide-react'
+import { providerLabel } from '../companies/providers'
 
 const timelineItemClass =
   'relative pb-4 last:pb-0 before:absolute before:-left-[21px] before:top-1 before:z-10 before:size-2.5 before:rounded-full before:bg-brand-purple after:absolute after:-left-[17px] after:top-[9px] after:-bottom-[9px] after:w-0.5 after:bg-purple-200 last:after:hidden'
@@ -44,7 +45,12 @@ function MessageDetails({
       </p>
       {trace.data.providerMessageId ? (
         <p className="mb-4 break-all text-xs font-normal text-slate-600">
-          {t('messages.providerId')}: {trace.data.providerMessageId}
+          {t('messages.providerId', {
+            provider:
+              providerLabel(trace.data.providerCode) ||
+              t('messages.provider').toLowerCase(),
+          })}
+          : {trace.data.providerMessageId}
         </p>
       ) : null}
       {trace.data.submissionState !== 'pending' ? (
@@ -82,6 +88,9 @@ function MessageDetails({
             <span className="font-semibold">
               {t(`messages.traceKind.${event.kind}`, {
                 defaultValue: event.kind,
+                provider:
+                  providerLabel(event.providerCode) ||
+                  t('messages.provider').toLowerCase(),
               })}
             </span>
             <span className="ml-2 font-normal text-slate-600">
@@ -100,7 +109,7 @@ function MessageDetails({
               ) : null}
               {event.failureCode ? <span>{event.failureCode}</span> : null}
             </p>
-            {event.kind === 'zoug_delivery' || event.kind === 'mo' ? (
+            {event.kind === 'delivery' || event.kind === 'mo' ? (
               <p className="mt-1 text-xs font-normal text-slate-500">
                 {t('messages.recordedAt')}:{' '}
                 <DateCell value={event.recordedAt} />
@@ -137,6 +146,11 @@ function MessageDetails({
       fields={[
         { label: t('common.messageId'), value: message.id },
         {
+          label: t('messages.provider'),
+          value:
+            providerLabel(message.providerCode) || t('common.providerUnknown'),
+        },
+        {
           label: t('common.company'),
           value: message.companyName || message.companyId,
         },
@@ -169,7 +183,11 @@ export function MessagesPage() {
   const { t } = useTranslation()
   const [viewing, setViewing] = useState<Message | null>(null)
   const columns: ColumnDef<Message>[] = [
-    { accessorKey: 'id', header: t('common.id'), meta: { compact: true, centered: true } },
+    {
+      accessorKey: 'id',
+      header: t('common.id'),
+      meta: { compact: true, centered: true },
+    },
     {
       accessorKey: 'companyName',
       header: t('common.client'),
@@ -178,6 +196,13 @@ export function MessagesPage() {
         (row.original.companyId
           ? t('common.companyNumber', { id: row.original.companyId })
           : t('common.noCompany')),
+    },
+    {
+      accessorKey: 'providerCode',
+      header: t('messages.provider'),
+      meta: { compact: true },
+      cell: ({ row }) =>
+        providerLabel(row.original.providerCode) || t('common.providerUnknown'),
     },
     {
       accessorKey: 'destination',

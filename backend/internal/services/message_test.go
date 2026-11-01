@@ -182,7 +182,7 @@ func TestPostgresCredentialTestSendAcceptsFreeDestinationAndMessageWhenEnabled(t
 }
 
 func TestStandardTestMessageIncludesCompanyAndFitsSMS(t *testing.T) {
-	if got := standardTestMessage("Empresa XYZ"); got != "Teste do token Zoug da empresa Empresa XYZ." {
+	if got := standardTestMessage("Empresa XYZ"); got != "Teste de SMS da empresa Empresa XYZ." {
 		t.Fatal(got)
 	}
 	if got := standardTestMessage(strings.Repeat("A", MaximumMessageCharacters)); len(got) > MaximumMessageCharacters {

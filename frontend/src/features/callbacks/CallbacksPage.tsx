@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next'
 import { RecordDetailsDialog } from '../../components/admin/RecordDetailsDialog'
 import { TableIconButton } from '../../components/admin/TableIconAction'
 import { Eye, RotateCcw } from 'lucide-react'
+import { providerLabel } from '../companies/providers'
 const callbackErrors = new Set([
   'NETWORK_ERROR',
   'HTTP_ERROR',
@@ -34,6 +35,13 @@ export function CallbacksPage() {
       meta: { compact: true, centered: true },
     },
     { accessorKey: 'companyName', header: t('common.client') },
+    {
+      accessorKey: 'providerCode',
+      header: t('callbacks.provider'),
+      meta: { compact: true },
+      cell: ({ row }) =>
+        providerLabel(row.original.providerCode) || t('common.providerUnknown'),
+    },
     {
       accessorKey: 'kind',
       header: t('callbacks.eventKind'),
@@ -69,7 +77,11 @@ export function CallbacksPage() {
     },
   ]
   const columns: ColumnDef<Callback>[] = [
-    { accessorKey: 'id', header: 'ID', meta: { compact: true, centered: true } },
+    {
+      accessorKey: 'id',
+      header: 'ID',
+      meta: { compact: true, centered: true },
+    },
     {
       accessorKey: 'attemptId',
       header: t('common.sending'),
@@ -83,6 +95,13 @@ export function CallbacksPage() {
         (row.original.companyId
           ? t('common.companyNumber', { id: row.original.companyId })
           : t('common.noCompany')),
+    },
+    {
+      accessorKey: 'providerCode',
+      header: t('callbacks.provider'),
+      meta: { compact: true },
+      cell: ({ row }) =>
+        providerLabel(row.original.providerCode) || t('common.providerUnknown'),
     },
     { accessorKey: 'url', header: t('common.target') },
     {
@@ -191,6 +210,12 @@ export function CallbacksPage() {
           fields={[
             { label: 'ID', value: viewing.id },
             { label: t('common.messageId'), value: viewing.attemptId },
+            {
+              label: t('callbacks.provider'),
+              value:
+                providerLabel(viewing.providerCode) ||
+                t('common.providerUnknown'),
+            },
             {
               label: t('common.company'),
               value: viewing.companyName || viewing.companyId,

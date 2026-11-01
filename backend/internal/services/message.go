@@ -21,7 +21,7 @@ import (
 )
 
 const testSMSMessage = "Teste de integracao 21 Mobile."
-const testSMSCompanyPrefix = "Teste do token Zoug da empresa "
+const testSMSCompanyPrefix = "Teste de SMS da empresa "
 const testSendAuditAction = "test_send_requested"
 
 type MessageService struct {

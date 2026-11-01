@@ -2,11 +2,32 @@ import { z } from 'zod'
 import { api } from '../../lib/api'
 import { list } from '../../lib/admin'
 import type { ListParams } from '../../lib/admin'
-import { availableSMSProviders, SMS_PROVIDER_ZOUG } from './providers'
+import {
+  CHANNEL_RCS,
+  CHANNEL_SMS,
+  CHANNEL_WHATSAPP,
+  PROVIDER_GOOGLE,
+  SMS_PROVIDER_ZENVIA,
+  availableSMSProviders,
+  SMS_PROVIDER_ZOUG,
+  ROUTE_ACTIVE,
+  ROUTE_PLANNED,
+} from './providers'
+export const providerRouteSchema = z.object({
+  channel: z.enum([CHANNEL_SMS, CHANNEL_RCS, CHANNEL_WHATSAPP]),
+  provider: z.string(),
+  status: z.enum([ROUTE_ACTIVE, ROUTE_PLANNED]),
+})
+export const plannedRouteSchema = z.object({
+  channel: z.enum([CHANNEL_RCS, CHANNEL_WHATSAPP]),
+  provider: z.enum([PROVIDER_GOOGLE, SMS_PROVIDER_ZENVIA]),
+})
+export type PlannedRoute = z.infer<typeof plannedRouteSchema>
 export const companySchema = z.object({
   providerTokenConfigured: z.boolean(),
   legacyProviderTokenFallback: z.boolean(),
   smsProvider: z.string().min(1).default(SMS_PROVIDER_ZOUG),
+  providerRoutes: z.array(providerRouteSchema).default([]),
   id: z.number(),
   publicRef: z.uuid(),
   name: z.string(),
@@ -17,6 +38,7 @@ export const companySchema = z.object({
 export type Company = z.infer<typeof companySchema>
 export const companyFormSchema = z.object({
   smsProvider: z.enum(availableSMSProviders).optional(),
+  plannedRoutes: z.array(plannedRouteSchema).optional(),
   providerToken: z
     .string()
     .max(4096)
@@ -71,7 +93,10 @@ export async function saveCompany(id: number | undefined, body: CompanyBody) {
     name: body.name,
     reference: body.reference,
     active: body.active,
-    smsProvider: body.smsProvider ?? SMS_PROVIDER_ZOUG,
+    ...(!id ? { smsProvider: body.smsProvider ?? SMS_PROVIDER_ZOUG } : {}),
+    ...(body.plannedRoutes !== undefined
+      ? { plannedRoutes: body.plannedRoutes }
+      : {}),
     ...(body.providerToken ? { providerToken: body.providerToken } : {}),
     ...(body.clearProviderToken ? { clearProviderToken: true } : {}),
   }
@@ -83,6 +108,7 @@ export async function archiveCompany(id: number) {
 }
 
 const companyTestSendSchema = z.object({
+  providerCode: z.string().optional(),
   destination: z.string(),
   correlationId: z.string(),
   providerMessageId: z.string().nullable(),

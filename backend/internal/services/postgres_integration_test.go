@@ -65,6 +65,33 @@ func TestPostgresBackofficeAndOutbox(t *testing.T) {
 	if listed, err := companies.Companies(ctx, dtos.ListQuery{Page: 1, PageSize: 10, Sort: "name", Direction: dtos.SortAscending}); err != nil || listed.Total != 1 || len(listed.Items) != 1 || listed.Items[0].SMSProvider != models.ProviderZoug {
 		t.Fatal("company list lost SMS route", err)
 	}
+	planned := []dtos.PlannedProviderRoute{{Channel: models.ChannelRCS, Provider: models.ProviderGoogle}, {Channel: models.ChannelWhatsApp, Provider: models.ProviderZenvia}}
+	withPlans, err := companies.SaveCompany(ctx, admin.ID, company.ID, dtos.CompanyBody{Name: company.Name, Reference: company.Reference, Active: true, PlannedRoutes: &planned})
+	if err != nil || withPlans.SMSProvider != models.ProviderZoug || len(withPlans.ProviderRoutes) != 3 {
+		t.Fatal("planned routes changed or hid the active SMS route", err, withPlans.ProviderRoutes)
+	}
+	for _, route := range withPlans.ProviderRoutes {
+		if route.Channel == models.ChannelSMS && route.Status != models.ProviderRouteActive || route.Channel != models.ChannelSMS && route.Status != models.ProviderRoutePlanned {
+			t.Fatal("incorrect route activation status", route)
+		}
+	}
+	if found, err := companies.CompanyByPublicRef(ctx, company.PublicRef); err != nil || len(found.ProviderRoutes) != 3 {
+		t.Fatal("planned routes missing from company detail", err)
+	}
+	if listed, err := companies.Companies(ctx, dtos.ListQuery{Page: 1, PageSize: 10, Sort: "name", Direction: dtos.SortAscending}); err != nil || len(listed.Items) != 1 || len(listed.Items[0].ProviderRoutes) != 3 {
+		t.Fatal("planned routes missing from company list", err)
+	}
+	invalid := []dtos.PlannedProviderRoute{{Channel: models.ChannelSMS, Provider: models.ProviderZenvia}}
+	_, err = companies.SaveCompany(ctx, admin.ID, company.ID, dtos.CompanyBody{Name: company.Name, Active: true, PlannedRoutes: &invalid})
+	assertCode(t, err, apperrors.CodeInvalidRequest)
+	duplicate := []dtos.PlannedProviderRoute{{Channel: models.ChannelRCS, Provider: models.ProviderGoogle}, {Channel: models.ChannelRCS, Provider: models.ProviderZenvia}}
+	_, err = companies.SaveCompany(ctx, admin.ID, company.ID, dtos.CompanyBody{Name: company.Name, Active: true, PlannedRoutes: &duplicate})
+	assertCode(t, err, apperrors.CodeInvalidRequest)
+	emptyPlans := []dtos.PlannedProviderRoute{}
+	withoutPlans, err := companies.SaveCompany(ctx, admin.ID, company.ID, dtos.CompanyBody{Name: company.Name, Reference: company.Reference, Active: true, PlannedRoutes: &emptyPlans})
+	if err != nil || len(withoutPlans.ProviderRoutes) != 1 || withoutPlans.ProviderRoutes[0].Channel != models.ChannelSMS {
+		t.Fatal("clearing planned routes changed SMS", err, withoutPlans.ProviderRoutes)
+	}
 	_, err = users.SaveUser(ctx, admin.ID, admin.ID, dtos.UserBody{Name: admin.Name, Email: admin.Email, Role: models.RoleViewer, Active: true, CompanyIDs: []uint64{company.ID}})
 	assertCode(t, err, apperrors.CodeLastAdmin)
 	vault, err := security.NewTokenVault(base64.StdEncoding.EncodeToString([]byte(strings.Repeat("k", 32))))
@@ -179,11 +206,11 @@ func TestPostgresBackofficeAndOutbox(t *testing.T) {
 	changed.Body.Status = models.DeliveryNotDelivered
 	assertCode(t, callbacks.Accept(ctx, changed), apperrors.CodeConflict)
 	jobs, err := callbacks.Callbacks(ctx, dtos.CallbackListInput{ListQuery: list})
-	if err != nil || jobs.Total != 1 {
+	if err != nil || jobs.Total != 1 || len(jobs.Items) != 1 || jobs.Items[0].ProviderCode != models.ProviderZoug {
 		t.Fatal("outbox must be unique", jobs.Total, err)
 	}
 	received, err := callbacks.Received(ctx, list)
-	if err != nil || received.Total != 1 || received.Items[0].AttemptID != attempt.ID || received.Items[0].Kind != "sms" {
+	if err != nil || received.Total != 1 || received.Items[0].AttemptID != attempt.ID || received.Items[0].Kind != "sms" || received.Items[0].ProviderCode != models.ProviderZoug {
 		t.Fatal("received supplier event missing from history", received, err)
 	}
 	otherCompany := list

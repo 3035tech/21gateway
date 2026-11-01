@@ -45,6 +45,7 @@ const company: Company = {
   providerTokenConfigured: true,
   legacyProviderTokenFallback: false,
   smsProvider: 'zoug',
+  providerRoutes: [{ channel: 'sms', provider: 'zoug', status: 'active' }],
 }
 
 it('tests the saved company token without an API credential', async () => {
@@ -84,6 +85,26 @@ it('tests the saved company token without an API credential', async () => {
   } finally {
     post.mockRestore()
   }
+})
+
+it('uses the company SMS route in the test copy', () => {
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <CredentialTestDialog
+        company={{ ...company, smsProvider: 'pontal' }}
+        onClose={vi.fn()}
+      />
+    </QueryClientProvider>,
+  )
+  expect(
+    screen.getByRole('dialog', {
+      name: 'Testar SMS com Pontal · Cliente exemplo',
+    }),
+  ).toBeInTheDocument()
+  expect(screen.getByText('Envio de teste à Pontal')).toBeInTheDocument()
+  expect(
+    screen.getByText('Teste de SMS da empresa Cliente exemplo.'),
+  ).toBeInTheDocument()
 })
 
 it('shows an uncertain result without suggesting the Messages history', async () => {

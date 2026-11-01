@@ -6,23 +6,34 @@ import (
 )
 
 type CompanyView struct {
-	ProviderTokenConfigured     bool            `json:"providerTokenConfigured"`
-	LegacyProviderTokenFallback bool            `json:"legacyProviderTokenFallback"`
-	SMSProvider                 models.Provider `json:"smsProvider"`
-	ID                          uint64          `json:"id"`
-	PublicRef                   string          `json:"publicRef" format:"uuid"`
-	Name                        string          `json:"name"`
-	Reference                   string          `json:"reference"`
-	Active                      bool            `json:"active"`
-	CreatedAt                   time.Time       `json:"createdAt"`
+	ProviderTokenConfigured     bool                `json:"providerTokenConfigured"`
+	LegacyProviderTokenFallback bool                `json:"legacyProviderTokenFallback"`
+	SMSProvider                 models.Provider     `json:"smsProvider"`
+	ProviderRoutes              []ProviderRouteView `json:"providerRoutes"`
+	ID                          uint64              `json:"id"`
+	PublicRef                   string              `json:"publicRef" format:"uuid"`
+	Name                        string              `json:"name"`
+	Reference                   string              `json:"reference"`
+	Active                      bool                `json:"active"`
+	CreatedAt                   time.Time           `json:"createdAt"`
+}
+type ProviderRouteView struct {
+	Channel  models.Channel             `json:"channel"`
+	Provider models.Provider            `json:"provider"`
+	Status   models.ProviderRouteStatus `json:"status"`
+}
+type PlannedProviderRoute struct {
+	Channel  models.Channel  `json:"channel"`
+	Provider models.Provider `json:"provider"`
 }
 type CompanyBody struct {
-	ProviderToken      *string         `json:"providerToken,omitempty" maxLength:"4096" writeOnly:"true"`
-	ClearProviderToken bool            `json:"clearProviderToken,omitempty"`
-	SMSProvider        models.Provider `json:"smsProvider"`
-	Name               string          `json:"name" minLength:"1" maxLength:"160"`
-	Reference          string          `json:"reference" maxLength:"64"`
-	Active             bool            `json:"active"`
+	ProviderToken      *string                 `json:"providerToken,omitempty" maxLength:"4096" writeOnly:"true"`
+	ClearProviderToken bool                    `json:"clearProviderToken,omitempty"`
+	SMSProvider        models.Provider         `json:"smsProvider"`
+	PlannedRoutes      *[]PlannedProviderRoute `json:"plannedRoutes,omitempty"`
+	Name               string                  `json:"name" minLength:"1" maxLength:"160"`
+	Reference          string                  `json:"reference" maxLength:"64"`
+	Active             bool                    `json:"active"`
 }
 type CreateCompanyInput struct{ Body CompanyBody }
 type UpdateCompanyInput struct {
@@ -48,5 +59,9 @@ type CompanyHealth struct {
 type CompanyHealthOutput struct{ Body CompanyHealth }
 
 func CompanyDTO(value models.Company) CompanyView {
-	return CompanyView{ProviderTokenConfigured: value.ProviderTokenEncrypted != "", LegacyProviderTokenFallback: value.ProviderTokenLegacyFallback, SMSProvider: value.SMSProvider, ID: value.ID, PublicRef: value.PublicRef, Name: value.Name, Reference: value.Reference, Active: value.Active, CreatedAt: value.CreatedAt}
+	routes := make([]ProviderRouteView, 0, len(value.ProviderRoutes))
+	for _, route := range value.ProviderRoutes {
+		routes = append(routes, ProviderRouteView{Channel: route.Channel, Provider: route.ProviderCode, Status: route.Status})
+	}
+	return CompanyView{ProviderTokenConfigured: value.ProviderTokenEncrypted != "", LegacyProviderTokenFallback: value.ProviderTokenLegacyFallback, SMSProvider: value.SMSProvider, ProviderRoutes: routes, ID: value.ID, PublicRef: value.PublicRef, Name: value.Name, Reference: value.Reference, Active: value.Active, CreatedAt: value.CreatedAt}
 }

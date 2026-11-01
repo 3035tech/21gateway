@@ -2,6 +2,7 @@ import { isAxiosError } from 'axios'
 import { z } from 'zod'
 import { api } from './api'
 import i18n from './i18n'
+import { formatInAppTimeZone } from './timezone'
 export type ListParams = {
   page: number
   pageSize: number
@@ -44,7 +45,7 @@ export function errorMessage(error: unknown) {
   return i18n.t('errors.fallback')
 }
 export const formatDate = (value: string) =>
-  new Date(value).toLocaleString(i18n.language)
+  formatInAppTimeZone(value, i18n.language)
 export const roleLabels = {
   admin: 'roles.admin',
   operator: 'roles.operator',

@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next'
 import { RecordDetailsDialog } from '../../components/admin/RecordDetailsDialog'
 import { AppSelect } from '../../components/admin/AppSelect'
 import { useLocation } from 'react-router-dom'
+import { fromAppDateTimeInput } from '../../lib/timezone'
 
 function scheduleColumns(
   t: (key: string) => string,
@@ -90,8 +91,7 @@ function scheduleColumns(
 
 function utc(value: string) {
   if (!value) return undefined
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? undefined : date.toISOString()
+  return fromAppDateTimeInput(value)?.toISOString()
 }
 
 export function SchedulesPage() {
@@ -109,6 +109,7 @@ export function SchedulesPage() {
   const [state, setState] = useState('')
   const [dueFrom, setDueFrom] = useState('')
   const [dueTo, setDueTo] = useState('')
+  const invalidTime = (!!dueFrom && !utc(dueFrom)) || (!!dueTo && !utc(dueTo))
   const invalidRange = !!dueFrom && !!dueTo && dueFrom > dueTo
   const sort = table.sorting[0]
   const params: ScheduleListParams = {
@@ -126,7 +127,7 @@ export function SchedulesPage() {
   const query = useQuery({
     queryKey: ['admin', 'schedules', params],
     queryFn: ({ signal }) => listSchedules(params, signal),
-    enabled: !invalidRange,
+    enabled: !invalidRange && !invalidTime,
   })
   const resetPage = () =>
     table.onPaginationChange({ ...table.pagination, pageIndex: 0 })
@@ -144,6 +145,11 @@ export function SchedulesPage() {
       {invalidRange ? (
         <p role="alert" className="mb-4 text-sm text-rose-700">
           {t('schedules.invalidRange')}
+        </p>
+      ) : null}
+      {invalidTime ? (
+        <p role="alert" className="mb-4 text-sm text-rose-700">
+          {t('schedules.invalidTime')}
         </p>
       ) : null}
       <DataTable

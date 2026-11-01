@@ -25,15 +25,47 @@ func NewCompanyServiceWithVault(repo *repositories.Companies, vault *security.To
 }
 func (s *CompanyService) Companies(ctx context.Context, q dtos.ListQuery) (dtos.Page[dtos.CompanyView], error) {
 	values, err := s.repository.Companies(ctx, q)
+	if err == nil {
+		err = s.attachProviderRoutes(ctx, values.Items)
+	}
 	return mapPage(values, dtos.CompanyDTO), dbError(err)
 }
 func (s *CompanyService) Company(ctx context.Context, id uint64) (dtos.CompanyView, error) {
 	value, err := s.repository.CompanyView(ctx, id)
+	if err == nil {
+		companies := []models.Company{value}
+		err = s.attachProviderRoutes(ctx, companies)
+		value = companies[0]
+	}
 	return dtos.CompanyDTO(value), dbError(err)
 }
 func (s *CompanyService) CompanyByPublicRef(ctx context.Context, publicRef string) (dtos.CompanyView, error) {
 	value, err := s.repository.CompanyViewByPublicRef(ctx, publicRef)
+	if err == nil {
+		companies := []models.Company{value}
+		err = s.attachProviderRoutes(ctx, companies)
+		value = companies[0]
+	}
 	return dtos.CompanyDTO(value), dbError(err)
+}
+
+func (s *CompanyService) attachProviderRoutes(ctx context.Context, companies []models.Company) error {
+	ids := make([]uint64, len(companies))
+	byID := make(map[uint64]*models.Company, len(companies))
+	for i := range companies {
+		ids[i] = companies[i].ID
+		byID[ids[i]] = &companies[i]
+	}
+	routes, err := s.repository.ProviderRoutes(ctx, ids)
+	if err != nil {
+		return err
+	}
+	for _, route := range routes {
+		if company := byID[route.CompanyID]; company != nil {
+			company.ProviderRoutes = append(company.ProviderRoutes, route)
+		}
+	}
+	return nil
 }
 func (s *CompanyService) Health(ctx context.Context, publicRef string) (dtos.CompanyHealth, error) {
 	company, err := s.repository.CompanyViewByPublicRef(ctx, publicRef)
@@ -57,7 +89,11 @@ func (s *CompanyService) SaveCompany(ctx context.Context, actor, id uint64, body
 	if body.SMSProvider != "" && !body.SMSProvider.AvailableForSMS() {
 		return dtos.CompanyView{}, apperrors.Wrap(apperrors.CodeInvalidRequest, nil)
 	}
-	err := s.repository.Transaction(ctx, func(repo *repositories.Companies) error {
+	plannedRoutes, err := validatePlannedRoutes(body.PlannedRoutes)
+	if err != nil {
+		return dtos.CompanyView{}, err
+	}
+	err = s.repository.Transaction(ctx, func(repo *repositories.Companies) error {
 		action := auditCreated
 		if id != 0 {
 			var err error
@@ -89,6 +125,11 @@ func (s *CompanyService) SaveCompany(ctx context.Context, actor, id uint64, body
 		if err = repo.SetSMSProvider(ctx, result.ID, provider); err != nil {
 			return err
 		}
+		if plannedRoutes != nil {
+			if err = repo.ReplacePlannedRoutes(ctx, result.ID, plannedRoutes); err != nil {
+				return err
+			}
+		}
 		result.SMSProvider = provider
 		if body.ProviderToken != nil {
 			if s.vault == nil {
@@ -111,7 +152,28 @@ func (s *CompanyService) SaveCompany(ctx context.Context, actor, id uint64, body
 		}
 		return repo.Audit(ctx, &actor, action, string(security.ResourceCompanies), &result.ID)
 	})
+	if err == nil {
+		companies := []models.Company{result}
+		err = s.attachProviderRoutes(ctx, companies)
+		result = companies[0]
+	}
 	return dtos.CompanyDTO(result), dbError(err)
+}
+
+func validatePlannedRoutes(input *[]dtos.PlannedProviderRoute) ([]models.CompanyProviderRoute, error) {
+	if input == nil {
+		return nil, nil
+	}
+	seen := make(map[models.Channel]bool, len(*input))
+	routes := make([]models.CompanyProviderRoute, 0, len(*input))
+	for _, route := range *input {
+		if seen[route.Channel] || !route.Provider.PlannedFor(route.Channel) {
+			return nil, apperrors.Wrap(apperrors.CodeInvalidRequest, nil)
+		}
+		seen[route.Channel] = true
+		routes = append(routes, models.CompanyProviderRoute{Channel: route.Channel, ProviderCode: route.Provider, Status: models.ProviderRoutePlanned})
+	}
+	return routes, nil
 }
 func (s *CompanyService) Archive(ctx context.Context, actor, id uint64) error {
 	return dbError(s.repository.Transaction(ctx, func(repo *repositories.Companies) error {

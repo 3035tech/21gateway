@@ -4,6 +4,7 @@ import { api } from '../../lib/api'
 import type { ListParams } from '../../lib/admin'
 export const messageSchema = z.object({
   id: z.number(),
+  providerCode: z.string().optional(),
   credentialId: z.number(),
   companyId: z.number().nullable(),
   companyName: z.string().optional(),
@@ -29,6 +30,7 @@ export async function getMessageContent(id: number, signal?: AbortSignal) {
 
 const messageTraceSchema = z.object({
   id: z.number(),
+  providerCode: z.string().optional(),
   submissionState: messageSchema.shape.state,
   failureCode: z.string(),
   deliveryStatus: z.string(),
@@ -36,11 +38,18 @@ const messageTraceSchema = z.object({
   createdAt: z.string(),
   dispatchedAt: z.string().nullable().optional(),
   truncated: z.boolean(),
-  events: z.array(z.object({
-    kind: z.string(), id: z.number(), status: z.string(),
-    occurredAt: z.string(), recordedAt: z.string(),
-    attempts: z.number().optional(), failureCode: z.string().optional(),
-  })),
+  events: z.array(
+    z.object({
+      kind: z.string(),
+      id: z.number(),
+      status: z.string(),
+      providerCode: z.string().optional(),
+      occurredAt: z.string(),
+      recordedAt: z.string(),
+      attempts: z.number().optional(),
+      failureCode: z.string().optional(),
+    }),
+  ),
 })
 export type MessageTrace = z.infer<typeof messageTraceSchema>
 export async function getMessageTrace(id: number, signal?: AbortSignal) {

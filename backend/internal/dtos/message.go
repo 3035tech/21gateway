@@ -7,6 +7,7 @@ import (
 
 type MessageView struct {
 	ID             uint64                 `json:"id"`
+	ProviderCode   models.Provider        `json:"providerCode"`
 	CredentialID   uint64                 `json:"credentialId"`
 	CompanyID      *uint64                `json:"companyId"`
 	CompanyName    string                 `json:"companyName"`
@@ -23,6 +24,7 @@ type MessagesOutput struct{ Body Page[MessageView] }
 // interpreted as a provider failure or as proof of delivery.
 type MessageTrace struct {
 	ID                uint64                 `json:"id"`
+	ProviderCode      models.Provider        `json:"providerCode"`
 	SubmissionState   models.SubmissionState `json:"submissionState"`
 	FailureCode       string                 `json:"failureCode"`
 	DeliveryStatus    string                 `json:"deliveryStatus"`
@@ -33,14 +35,24 @@ type MessageTrace struct {
 	Truncated         bool                   `json:"truncated"`
 }
 
+type MessageTraceKind string
+
+const (
+	MessageTraceDelivery  MessageTraceKind = "delivery"
+	MessageTraceMO        MessageTraceKind = "mo"
+	MessageTraceClientDLR MessageTraceKind = "client_dlr"
+	MessageTraceClientMO  MessageTraceKind = "client_mo"
+)
+
 type MessageTraceEvent struct {
-	Kind        string    `json:"kind"`
-	ID          uint64    `json:"id"`
-	Status      string    `json:"status"`
-	OccurredAt  time.Time `json:"occurredAt"`
-	RecordedAt  time.Time `json:"recordedAt"`
-	Attempts    int       `json:"attempts,omitempty"`
-	FailureCode string    `json:"failureCode,omitempty"`
+	Kind         MessageTraceKind `json:"kind"`
+	ProviderCode models.Provider  `json:"providerCode,omitempty"`
+	ID           uint64           `json:"id"`
+	Status       string           `json:"status"`
+	OccurredAt   time.Time        `json:"occurredAt"`
+	RecordedAt   time.Time        `json:"recordedAt"`
+	Attempts     int              `json:"attempts,omitempty"`
+	FailureCode  string           `json:"failureCode,omitempty"`
 }
 
 type MessageTraceOutput struct{ Body MessageTrace }
@@ -90,6 +102,7 @@ type CompanyTestHistoryInput struct {
 
 type CompanyTestHistoryItem struct {
 	Destination       string                 `json:"destination"`
+	ProviderCode      models.Provider        `json:"providerCode"`
 	CorrelationID     string                 `json:"correlationId"`
 	ProviderMessageID *string                `json:"providerMessageId"`
 	State             models.SubmissionState `json:"state"`

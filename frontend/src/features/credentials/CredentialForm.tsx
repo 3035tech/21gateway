@@ -22,15 +22,10 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { AppSelect } from '../../components/admin/AppSelect'
 import { AllowedIPsEditor } from './AllowedIPsEditor'
+import { toAppDateTimeInput } from '../../lib/timezone'
 
 type CredentialTab = 'access' | 'notifications' | 'ips'
 const credentialTabs: CredentialTab[] = ['access', 'notifications', 'ips']
-function localDateTime(value?: string | null) {
-  if (!value) return ''
-  const date = new Date(value)
-  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
-  return local.toISOString().slice(0, 16)
-}
 function CallbackAuthFields({
   form,
   prefix,
@@ -195,7 +190,7 @@ export function CredentialForm({
       preserveLegacyPassword: false,
       legacyPassword: '',
       manualPassword: '',
-      expiresAtText: localDateTime(credential?.expiresAt),
+      expiresAtText: toAppDateTimeInput(credential?.expiresAt),
       providerToken: '',
       clearProviderToken: false,
       whitelistEnabled: credential?.whitelistEnabled ?? false,

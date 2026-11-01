@@ -10,6 +10,7 @@ import {
 } from '../../components/admin/TableIconAction'
 import type { NotificationPreference } from './api'
 import { notificationDescription, notificationTitle } from './display'
+import { formatDate } from '../../lib/admin'
 import {
   listNotifications,
   listNotificationPreferences,
@@ -18,7 +19,7 @@ import {
 } from './api'
 
 export function NotificationsPage() {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const client = useQueryClient()
   const [activeTab, setActiveTab] = useState<'history' | 'email'>('history')
   const [page, setPage] = useState(1)
@@ -281,7 +282,7 @@ export function NotificationsPage() {
                       dateTime={item.openedAt}
                       className="mt-1 block text-xs text-slate-500"
                     >
-                      {new Date(item.openedAt).toLocaleString(i18n.language)}
+                      {formatDate(item.openedAt)}
                     </time>
                   </div>
                   <span
@@ -357,7 +358,7 @@ export function NotificationsPage() {
                     className="border-b border-slate-100 align-top"
                   >
                     <td className="w-px whitespace-nowrap p-2 text-slate-600">
-                      {new Date(item.openedAt).toLocaleString(i18n.language)}
+                      {formatDate(item.openedAt)}
                     </td>
                     <td className="p-2 font-semibold text-slate-900">
                       <span className="flex items-start gap-2">
