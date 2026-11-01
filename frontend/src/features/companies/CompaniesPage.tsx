@@ -16,6 +16,48 @@ import {
   TableIconButton,
   TableIconLink,
 } from '../../components/admin/TableIconAction'
+import {
+  CHANNEL_SMS,
+  ROUTE_ACTIVE,
+  ROUTE_PLANNED,
+  channelLabels,
+  providerLabel,
+} from './providers'
+
+function CompanyProviders({ company }: { company: Company }) {
+  const { t } = useTranslation()
+  const routes = company.providerRoutes.length
+    ? company.providerRoutes
+    : [
+        {
+          channel: CHANNEL_SMS,
+          provider: company.smsProvider,
+          status: ROUTE_ACTIVE,
+        },
+      ]
+
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {routes.map((route) => (
+        <span
+          key={route.channel}
+          className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${route.status === ROUTE_PLANNED ? 'bg-slate-100 text-slate-600' : 'bg-purple-50 text-brand-purple'}`}
+          title={t(
+            route.status === ROUTE_PLANNED
+              ? 'companies.routePlanned'
+              : 'companies.routeActive',
+          )}
+        >
+          {providerLabel(route.provider)} · {channelLabels[route.channel]}
+          {route.status === ROUTE_PLANNED ? (
+            <span className="font-normal">· {t('companies.routePlanned')}</span>
+          ) : null}
+        </span>
+      ))}
+    </div>
+  )
+}
+
 export function CompaniesPage() {
   const { t } = useTranslation()
   const user = useUser()
@@ -43,6 +85,12 @@ export function CompaniesPage() {
       ),
     },
     { accessorKey: 'reference', header: t('common.reference') },
+    {
+      id: 'providers',
+      header: t('companies.providers'),
+      enableSorting: false,
+      cell: ({ row }) => <CompanyProviders company={row.original} />,
+    },
     {
       accessorKey: 'active',
       header: t('common.status'),

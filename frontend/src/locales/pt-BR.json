@@ -221,6 +221,7 @@
     "archiveTitle": "Arquivar empresa",
     "archiveDescription": "Arquivar {{name}} bloqueará seus acessos de API. O histórico será mantido.",
     "providerAccess": "Credencial Zoug da empresa",
+    "providers": "Provedores",
     "smsProvider": "Provedor",
     "smsProviderHint": "Essa rota já está configurada para SMS. Escolher outro provedor aqui não altera o SMS.",
     "channel": "Canal",

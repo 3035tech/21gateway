@@ -221,6 +221,7 @@
     "archiveTitle": "Archive company",
     "archiveDescription": "Archiving {{name}} will block its API access. History will be retained.",
     "providerAccess": "Company Zoug credential",
+    "providers": "Providers",
     "smsProvider": "Provider",
     "smsProviderHint": "This SMS route is already configured. Selecting another provider here does not change SMS.",
     "channel": "Channel",

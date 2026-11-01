@@ -4,6 +4,8 @@ O painel exibe datas e horas em `America/Sao_Paulo` em qualquer navegador. Valid
 
 Na edição da empresa, o bloco de integração exibe a rota de SMS por provedor. Somente Zoug aparece até existir outro adaptador homologado; canais futuros não são exibidos como se estivessem disponíveis. A configuração pertence à empresa, enquanto credenciais Basic Auth continuam separadas.
 
+A listagem de empresas mostra as rotas por provedor e canal já retornadas pela API. Rotas ativas aparecem separadas das rotas em preparação, que não representam envio habilitado; assim o operador identifica os provedores sem abrir cada empresa.
+
 > Escopo respondido em 14/10/2026: consulte docs/scope-answers.md. Este documento descreve o código existente; token por cliente, whitelist, MO e compatibilidade V1 completa ainda exigem ajustes. Painel solicitado pela 21 é focado em credenciais/configurações com perfil administrativo único. Não confundir recursos extras implementados com requisitos confirmados.
 ## Painel real
 

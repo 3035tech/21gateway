@@ -14,6 +14,8 @@ A migração 030 adiciona `status` (`active`/`planned`) às rotas. As existentes
 
 O frontend omite `plannedRoutes` ao editar outros campos; só envia a lista quando o operador adiciona, troca ou remove uma rota planejada. Também omite `smsProvider` nas edições, preservando a rota SMS que já está gravada. Na criação de empresa, `smsProvider` continua Zoug por compatibilidade.
 
+A listagem administrativa de empresas usa `providerRoutes` da própria resposta paginada para mostrar provedor e canal sem consulta adicional por linha. Rotas em preparação recebem indicação explícita; se uma resposta antiga não trouxer rotas, a listagem exibe `smsProvider` como rota SMS.
+
 Validação local com PostgreSQL real e `go test -race` via perfil `verification` em 31/10/2026 passou: migração 030, criação/leitura/listagem/remoção de rotas planejadas e preservação da rota SMS foram exercitadas. O teste não envia mensagens reais.
 
 `internal/providers/sms` define pedido/resposta, lote e contratos `Adapter`/`Sender` neutros. `AccountSMSProvider` resolve a rota da conta; o adaptador Zoug em `internal/integrations/whitelabel` resolve o token cifrado e traduz para o protocolo Zoug. Os limites e resultados incertos continuam no domínio SMS. O endpoint legado não muda. O diagnóstico Zoug permanece uma função específica fora do contrato SMS.
@@ -34,6 +36,6 @@ O adaptador Google/RCS preparado nesta etapa usa um contrato `providers/rcs` sep
 
 ## Publicação
 
-Aplicar migrações 028, 029 e 030 antes dos binários novos. A 030 ainda não foi aplicada em HML. A 028 já foi aplicada em HML em 31/10/2026, com duas rotas SMS/Zoug. Em HML, a 029 foi aplicada em 31/10/2026 antes dos binários: ledger=1, seis tentativas e seis eventos DLR preservados, sem MO existente. Como altera tipos e unicidade de IDs externos, avaliar janela e rollback antes de publicar; com apenas Zoug ativo, o dado existente é preservado. Validar esquema, health check, callbacks autenticados e envio controlado somente com destino autorizado. Testes locais não equivalem ao aceite real Zoug → gateway → cliente.
+Aplicar migrações 028, 029 e 030 antes dos binários novos. A 028 já foi aplicada em HML em 31/10/2026, com duas rotas SMS/Zoug. Em HML, a 029 foi aplicada em 31/10/2026 antes dos binários: ledger=1, seis tentativas e seis eventos DLR preservados, sem MO existente. A 030 foi aplicada em 01/11/2026 pelo Job PreSync da imagem candidata `sha-b3fe62d`; o Argo CD registrou `Sync OK` no GitOps `781a460` antes do push de `main`. O worker fixado nessa imagem ficou `running 1/1` no sync `9b50a9a`. Como a 029 altera tipos e unicidade de IDs externos, avaliar janela e rollback em outros ambientes; com apenas Zoug ativo, o dado existente é preservado. Validar esquema, health check, callbacks autenticados e envio controlado somente com destino autorizado. Testes locais não equivalem ao aceite real Zoug → gateway → cliente.
 
 O GitOps de HML fixava o job migrador e o worker em `sha-00d42036`, anterior às migrações 027–029. Após a falha do PreSync, o commit GitOps `0ba8fcd` apontou ambos para `sha-660d3d7`. Em 31/10/2026 o sync concluiu com job, API e worker saudáveis. `/readyz` retornou 200, e provedor desconhecido no webhook foi rejeitado com 404; não houve envio real. O formulário publicado mostrou Zenvia → SMS/RCS/WhatsApp com salvamento bloqueado.
