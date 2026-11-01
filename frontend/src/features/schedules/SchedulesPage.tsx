@@ -194,7 +194,7 @@ export function SchedulesPage() {
                 }}
               />
             </label>
-            <label className="flex flex-col gap-1 text-sm font-semibold">
+            <label className="filter-select-field">
               {t('schedules.queueState')}
               <AppSelect
                 value={state}

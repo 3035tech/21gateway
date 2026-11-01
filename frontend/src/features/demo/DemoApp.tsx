@@ -715,10 +715,9 @@ function Listing({
         getRowId={(row) => row.id}
         {...state}
         filters={
-          <label className="flex flex-col gap-1 text-sm font-semibold">
+          <label className="filter-select-field">
             {t('common.status')}
             <AppSelect
-              className="min-w-40"
               value={status}
               label={t('common.status')}
               onValueChange={(value) => {

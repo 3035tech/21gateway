@@ -127,7 +127,7 @@ export function Listing<T extends { id: number }>({
         filters={
           <>
             {filterName ? (
-              <label className="flex flex-col gap-1 text-sm font-semibold">
+              <label className="filter-select-field">
                 {t('common.status')}
                 <AppSelect
                   value={filter}

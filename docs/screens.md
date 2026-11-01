@@ -73,6 +73,8 @@ Revisão de largura dos selects em 01/11/2026: o menu compartilhado cresce confo
 
 Na fila operacional, os filtros Tipo e Status ocupam 256 px cada a partir de `sm`, sem encolher com a barra de busca, e preenchem a largura disponível no celular. Isso mantém visíveis as opções mais longas, como “Agendamento atrasado”.
 
+A mesma largura de filtro aplica-se ao Estado da fila em Agendamentos, Status das listagens, Ação/Recurso em Auditoria e Status da prévia. Selects em formulários usam a largura do formulário; idioma e quantidade por página permanecem compactos.
+
 O vínculo de empresas no formulário de usuário usa um seletor compartilhado no painel e na prévia: busca por nome ou referência, resultados em área rolável com páginas de 20 no painel (10 na prévia) e empresas já escolhidas em chips removíveis. A consulta real é paginada no servidor; a busca não fica limitada às primeiras 100 empresas. O perfil administrador mantém acesso global sem vínculo obrigatório.
 
 A prévia `/demo` permite selecionar no login Marina (administradora global), Lucas (operador vinculado a Horizonte Saúde e Vértice Logística) ou Beatriz (consulta vinculada a Nexo Educação). A navegação, as listas, o resumo e os detalhes simulados usam o vínculo escolhido; consulta não exibe ações de edição, e usuários/auditoria não aparecem para perfis não administradores. Esse login continua fictício, sem autenticação real ou dados do backend.

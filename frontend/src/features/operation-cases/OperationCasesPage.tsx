@@ -307,7 +307,7 @@ export function OperationCasesPage() {
         }}
         filters={
           <>
-            <label className="flex w-full flex-col gap-1 text-sm font-semibold sm:w-64 sm:shrink-0">
+            <label className="filter-select-field">
               {t('workQueue.type')}
               <AppSelect
                 value={kind}
@@ -325,7 +325,7 @@ export function OperationCasesPage() {
                 ]}
               />
             </label>
-            <label className="flex w-full flex-col gap-1 text-sm font-semibold sm:w-64 sm:shrink-0">
+            <label className="filter-select-field">
               {t('common.status')}
               <AppSelect
                 value={status}

@@ -27,7 +27,11 @@ function auditColumns(
   onView: (row: Audit) => void,
 ): ColumnDef<Audit>[] {
   return [
-    { accessorKey: 'id', header: 'ID', meta: { compact: true, centered: true } },
+    {
+      accessorKey: 'id',
+      header: 'ID',
+      meta: { compact: true, centered: true },
+    },
     {
       accessorKey: 'actorName',
       header: t('audit.actor'),
@@ -142,7 +146,7 @@ export function AuditPage() {
                 }}
               />
             </label>
-            <label className="flex flex-col gap-1 text-sm font-semibold">
+            <label className="filter-select-field">
               {t('audit.action')}
               <AppSelect
                 value={action}
@@ -160,7 +164,7 @@ export function AuditPage() {
                 ]}
               />
             </label>
-            <label className="flex flex-col gap-1 text-sm font-semibold">
+            <label className="filter-select-field">
               {t('audit.resource')}
               <AppSelect
                 value={resource}
