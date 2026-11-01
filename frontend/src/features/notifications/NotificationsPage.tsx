@@ -343,10 +343,10 @@ export function NotificationsPage() {
                   <th className="min-w-56 p-2">
                     {t('notifications.description')}
                   </th>
-                  <th className="w-px whitespace-nowrap p-2">
+                  <th className="w-24 whitespace-nowrap p-2 text-center">
                     {t('common.status')}
                   </th>
-                  <th className="w-px whitespace-nowrap p-2">
+                  <th className="w-24 whitespace-nowrap p-2 text-center">
                     {t('common.actions')}
                   </th>
                 </tr>
@@ -374,7 +374,7 @@ export function NotificationsPage() {
                     <td className="min-w-56 p-2 leading-6 text-slate-600">
                       {notificationDescription(t, item.type, item.description)}
                     </td>
-                    <td className="w-px whitespace-nowrap p-2">
+                    <td className="w-24 whitespace-nowrap p-2 text-center">
                       <span
                         className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${item.resolvedAt ? 'bg-slate-100 text-slate-600' : 'bg-amber-50 text-amber-900'}`}
                       >
@@ -383,8 +383,8 @@ export function NotificationsPage() {
                           : t('notifications.active')}
                       </span>
                     </td>
-                    <td className="w-px whitespace-nowrap p-2">
-                      <div className="flex w-max items-center gap-1">
+                    <td className="w-24 whitespace-nowrap p-2">
+                      <div className="flex w-full items-center justify-center gap-1">
                         <TableIconLink
                           icon={Eye}
                           label={t('common.view')}
