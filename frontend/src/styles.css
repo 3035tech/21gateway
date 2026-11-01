@@ -184,12 +184,7 @@
     @apply relative flex min-h-10 cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 outline-none select-none data-[disabled]:cursor-not-allowed data-[disabled]:opacity-40 data-[highlighted]:bg-purple-50 data-[highlighted]:text-brand-purple data-[state=checked]:font-bold data-[state=checked]:text-brand-purple;
   }
   .select-item > span:first-child {
-    @apply whitespace-nowrap;
-  }
-  @media (max-width: 640px) {
-    .select-item > span:first-child {
-      @apply whitespace-normal break-words;
-    }
+    @apply break-words;
   }
   .select-scroll-button {
     @apply flex h-7 items-center justify-center text-brand-purple;
