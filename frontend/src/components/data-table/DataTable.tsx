@@ -305,6 +305,7 @@ export function DataTable<T>({
           <label className="flex items-center gap-2 whitespace-nowrap">
             {t('common.itemsPerPage')}
             <AppSelect
+              className="min-w-0"
               value={pagination.pageSize}
               label={t('common.itemsPerPage')}
               onValueChange={(value) =>

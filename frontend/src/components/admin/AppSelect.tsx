@@ -12,7 +12,6 @@ export function AppSelect({
   options,
   label,
   className = '',
-  nowrapOptions = false,
   disabled = false,
 }: {
   value: string | number
@@ -20,10 +19,12 @@ export function AppSelect({
   options: Option[]
   label: string
   className?: string
-  nowrapOptions?: boolean
   disabled?: boolean
 }) {
   const selected = String(value) || EMPTY_VALUE
+  const selectedLabel = options.find(
+    (option) => String(option.value) === String(value),
+  )?.label
   const [portalContainer, setPortalContainer] = useState<HTMLElement>()
   const setTrigger = useCallback((node: HTMLButtonElement | null) => {
     setPortalContainer(node?.closest('dialog') ?? undefined)
@@ -37,6 +38,7 @@ export function AppSelect({
       <Select.Trigger
         ref={setTrigger}
         aria-label={label}
+        title={selectedLabel}
         className={`form-control select-trigger ${className}`}
       >
         <Select.Value />
@@ -52,7 +54,7 @@ export function AppSelect({
           position="popper"
           sideOffset={5}
           collisionPadding={8}
-          className={`select-content ${nowrapOptions ? 'min-w-max' : ''}`}
+          className="select-content"
         >
           <Select.ScrollUpButton className="select-scroll-button">
             <ChevronUp size={16} />
@@ -63,7 +65,7 @@ export function AppSelect({
                 key={String(option.value)}
                 value={String(option.value) || EMPTY_VALUE}
                 disabled={option.disabled}
-                className={`select-item ${nowrapOptions ? 'whitespace-nowrap' : ''}`}
+                className="select-item"
               >
                 <Select.ItemText>{option.label}</Select.ItemText>
                 <Select.ItemIndicator className="ml-auto text-brand-purple">

@@ -69,6 +69,10 @@ Botões do frontend usam variantes próprias da marca para ação principal, sec
 
 Os selects nativos foram substituídos por `AppSelect` compartilhado no painel real e na prévia: filtros, paginação, idioma e formulários usam menu, seta, seleção e foco com visual da marca. O menu usa o contêiner do diálogo quando aberto dentro dele, para não ficar oculto atrás da camada modal. Checkboxes e rádios visíveis também têm marcação e foco próprios, preservando seus controles semânticos e interação por teclado.
 
+Revisão de largura dos selects em 01/11/2026: o menu compartilhado cresce conforme a opção mais longa, limitado pela janela; no celular opções extensas podem quebrar para continuar legíveis. O valor selecionado permanece em uma linha, com texto completo no título do controle quando a largura disponível o corta. Filtros têm largura mínima de leitura; idioma e tamanho de página conservam largura compacta. O tamanho de página do histórico de notificações passou a usar o mesmo componente.
+
+Na fila operacional, os filtros Tipo e Status ocupam 256 px cada a partir de `sm`, sem encolher com a barra de busca, e preenchem a largura disponível no celular. Isso mantém visíveis as opções mais longas, como “Agendamento atrasado”.
+
 O vínculo de empresas no formulário de usuário usa um seletor compartilhado no painel e na prévia: busca por nome ou referência, resultados em área rolável com páginas de 20 no painel (10 na prévia) e empresas já escolhidas em chips removíveis. A consulta real é paginada no servidor; a busca não fica limitada às primeiras 100 empresas. O perfil administrador mantém acesso global sem vínculo obrigatório.
 
 A prévia `/demo` permite selecionar no login Marina (administradora global), Lucas (operador vinculado a Horizonte Saúde e Vértice Logística) ou Beatriz (consulta vinculada a Nexo Educação). A navegação, as listas, o resumo e os detalhes simulados usam o vínculo escolhido; consulta não exibe ações de edição, e usuários/auditoria não aparecem para perfis não administradores. Esse login continua fictício, sem autenticação real ou dados do backend.

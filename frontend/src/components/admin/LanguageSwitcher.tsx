@@ -10,8 +10,7 @@ export function LanguageSwitcher() {
       <Languages size={17} aria-hidden="true" />
       <span className="sr-only">{t('language.label')}</span>
       <AppSelect
-        className="min-h-9 whitespace-nowrap border-slate-200 py-1 text-xs"
-        nowrapOptions
+        className="min-h-9 min-w-0 border-slate-200 py-1 text-xs"
         value={i18n.language}
         label={t('language.label')}
         onValueChange={(value) => void i18n.changeLanguage(value as Language)}

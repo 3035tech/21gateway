@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Bell, CheckCheck, Eye, Mail } from 'lucide-react'
 import { PageTabs, PageTabPanel } from '../../components/admin/PageTabs'
+import { AppSelect } from '../../components/admin/AppSelect'
 import {
   TableIconButton,
   TableIconLink,
@@ -411,18 +412,19 @@ export function NotificationsPage() {
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm">
               <label className="flex items-center gap-2 whitespace-nowrap">
                 {t('common.itemsPerPage')}
-                <select
+                <AppSelect
                   value={pageSize}
-                  onChange={(event) => {
-                    setPageSize(Number(event.target.value))
+                  label={t('common.itemsPerPage')}
+                  className="min-w-0"
+                  onValueChange={(value) => {
+                    setPageSize(Number(value))
                     setPage(1)
                   }}
-                  className="rounded-lg border border-slate-300 px-2 py-1"
-                >
-                  <option>10</option>
-                  <option>20</option>
-                  <option>50</option>
-                </select>
+                  options={[10, 20, 50].map((size) => ({
+                    value: size,
+                    label: String(size),
+                  }))}
+                />
               </label>
               <div className="flex flex-wrap items-center gap-3">
                 <span>
