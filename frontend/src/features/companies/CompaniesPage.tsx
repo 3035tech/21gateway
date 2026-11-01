@@ -26,7 +26,7 @@ import {
 
 function CompanyProviders({ company }: { company: Company }) {
   const { t } = useTranslation()
-  const routes = company.providerRoutes.length
+  const companyRoutes = company.providerRoutes.length
     ? company.providerRoutes
     : [
         {
@@ -35,23 +35,38 @@ function CompanyProviders({ company }: { company: Company }) {
           status: ROUTE_ACTIVE,
         },
       ]
+  const routes = [
+    ...companyRoutes.filter((route) => route.status === ROUTE_ACTIVE),
+    ...companyRoutes.filter((route) => route.status !== ROUTE_ACTIVE),
+  ]
 
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div className="flex max-w-80 flex-wrap gap-1.5">
       {routes.map((route) => (
         <span
           key={route.channel}
-          className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${route.status === ROUTE_PLANNED ? 'bg-slate-100 text-slate-600' : 'bg-purple-50 text-brand-purple'}`}
+          className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border px-2.5 py-1 text-sm ${route.status === ROUTE_PLANNED ? 'border-dashed border-slate-300 bg-slate-50 text-slate-600' : 'border-slate-200 bg-white text-slate-700'}`}
           title={t(
             route.status === ROUTE_PLANNED
               ? 'companies.routePlanned'
               : 'companies.routeActive',
           )}
         >
-          {providerLabel(route.provider)} · {channelLabels[route.channel]}
+          <span
+            className={`size-1.5 shrink-0 rounded-full ${route.status === ROUTE_PLANNED ? 'bg-slate-400' : 'bg-brand-purple'}`}
+            aria-hidden="true"
+          />
+          <span className="font-semibold text-slate-900">
+            {providerLabel(route.provider)}
+          </span>
+          <span className="text-slate-500">
+            · {channelLabels[route.channel]}
+          </span>
           {route.status === ROUTE_PLANNED ? (
-            <span className="font-normal">· {t('companies.routePlanned')}</span>
-          ) : null}
+            <span className="text-xs">· {t('companies.routePlanned')}</span>
+          ) : (
+            <span className="sr-only">{t('companies.routeActive')}</span>
+          )}
         </span>
       ))}
     </div>
