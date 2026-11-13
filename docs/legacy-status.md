@@ -16,7 +16,7 @@ Formato documentado: status OK, code 5, message REQUIRED_OK e sent_status com co
 - Semântica adotada: consumir antes de escrever resposta HTTP; desconexão do cliente após commit não desfaz consumo. Confirmar contra legado. Consumo não garante que o cliente recebeu a resposta.
 - Datas usam criação da tentativa, não horário de aceite do fornecedor. Destino usa o número armazenado atualmente, com prefixo 55 nos números válidos; forma original do legado ainda requer evidência.
 - Somente DLR recebido é exposto; status do white label continua sem payload/autenticação homologados. Ingresso interno normalizado permanece opt-in e desativado por padrão. Não afirmar que estados reais já chegam.
-- /v1/status/date não registrado nesta etapa. Manual páginas 6–7 exige date Unix, cita correlationid em minúsculas na tabela (correlationId na prosa), destination e link de continuação, mas não documenta nome/formato do link nem parâmetros de paginação. Não inventar esses detalhes.
+- `/v1/status/date` foi registrado com `date` Unix e filtros opcionais `correlationid`/`destination`, nos caminhos com e sem barra final. O manual menciona um link de continuação, mas não documenta seu formato. Até obter esse contrato, a API retorna indisponibilidade se houver mais de 100 registros, sem entregar uma lista parcial nem inventar parâmetros de página.
 
 ## Migração e validação
 

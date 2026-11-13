@@ -20,7 +20,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       (error) => {
         if (
           error.response?.status === 401 &&
-          !error.config?.url?.includes('/auth/')
+          !error.config?.url?.startsWith('/admin/auth/')
         ) {
           client.setQueryData(['session'], null)
           client.removeQueries({ queryKey: ['admin'] })

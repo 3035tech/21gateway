@@ -34,7 +34,7 @@ func TestLegacyMOQueryDecryptsOnlyAccountAndPreservesResponse(t *testing.T) {
 	attempt := uint64(42)
 	at := time.Date(2026, 10, 14, 15, 5, 1, 0, time.UTC)
 	repo := &moQueryMemory{rows: []models.MOEvent{{ID: 1795, CredentialID: 7, EventKey: "event", AttemptID: &attempt, EncryptedMessage: encrypted, PhoneNumber: "5511998877665", ReceivedAt: at}}}
-	service := NewLegacyMOService(repo, vault)
+	service := NewV1MOService(repo, vault)
 	for range 2 {
 		body, err := service.Query(context.Background(), 7, at.Unix())
 		if err != nil {
@@ -60,15 +60,15 @@ func TestLegacyMOQueryDecryptsOnlyAccountAndPreservesResponse(t *testing.T) {
 }
 func TestLegacyMOQueryDoesNotSilentlyTruncate(t *testing.T) {
 	repo := &moQueryMemory{rows: make([]models.MOEvent, MaximumLegacyMORecords+1)}
-	_, err := NewLegacyMOService(repo, testMOVault(t)).Query(context.Background(), 7, time.Now().Unix())
+	_, err := NewV1MOService(repo, testMOVault(t)).Query(context.Background(), 7, time.Now().Unix())
 	assertCode(t, err, apperrors.CodeServiceUnavailable)
 	repo.rows = nil
-	body, err := NewLegacyMOService(repo, nil).Query(context.Background(), 7, time.Now().Unix())
+	body, err := NewV1MOService(repo, nil).Query(context.Background(), 7, time.Now().Unix())
 	if err != nil || body.Code != dtos.LegacyCodeNoRecords || body.ListMO == nil || len(body.ListMO) != 0 {
 		t.Fatal("incorrect empty response", err)
 	}
 	for _, timestamp := range []int64{-1, MaximumLegacyQueryTimestamp + 1} {
-		_, err := NewLegacyMOService(repo, nil).Query(context.Background(), 7, timestamp)
+		_, err := NewV1MOService(repo, nil).Query(context.Background(), 7, timestamp)
 		assertCode(t, err, apperrors.CodeInvalidRequest)
 	}
 }

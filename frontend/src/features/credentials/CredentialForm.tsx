@@ -120,6 +120,122 @@ function CallbackAuthFields({
     </div>
   )
 }
+function NotificationsTab({ form }: { form: UseFormReturn<CredentialBody> }) {
+  const { t } = useTranslation()
+  return (
+    <CredentialSection title={t('credentials.notificationsSection')} icon={Link2}>
+      <p className="mb-4 text-sm leading-6 text-slate-600">
+        {t('credentials.notificationsHint')}
+      </p>
+      <div className="grid gap-5">
+        <fieldset className="min-w-0 rounded-xl border border-slate-200 p-4">
+          <legend className="px-1 text-sm font-semibold">
+            {t('credentials.dlrTitle')}
+          </legend>
+          <label className="flex min-h-11 items-center gap-3 text-sm">
+            <input
+              className="size-4 accent-brand-purple"
+              type="checkbox"
+              {...form.register('callbacksEnabled')}
+            />
+            {t('credentials.forwardStatus')}
+          </label>
+          <label className="field mt-2">
+            {t('credentials.dlrUrl')}
+            <input
+              className="form-control w-full"
+              type="url"
+              autoComplete="off"
+              placeholder="https://cliente.com.br/status"
+              {...form.register('callbackUrl')}
+            />
+            <FieldError message={form.formState.errors.callbackUrl?.message} />
+          </label>
+          <p className="mt-3 text-xs leading-5 text-slate-500">
+            {t('credentials.dlrHint')}
+          </p>
+          <CallbackAuthFields form={form} prefix="callbackAuth" />
+        </fieldset>
+        <fieldset className="min-w-0 rounded-xl border border-slate-200 p-4">
+          <legend className="px-1 text-sm font-semibold">
+            {t('credentials.moTitle')}
+          </legend>
+          <label className="flex min-h-11 items-center gap-3 text-sm">
+            <input
+              className="size-4 accent-brand-purple"
+              type="checkbox"
+              {...form.register('moCallbacksEnabled')}
+            />
+            {t('credentials.forwardReplies')}
+          </label>
+          <label className="field mt-2">
+            {t('credentials.moUrl')}
+            <input
+              className="form-control w-full"
+              type="url"
+              autoComplete="off"
+              placeholder="https://cliente.com.br/respostas"
+              {...form.register('moCallbackUrl')}
+            />
+            <FieldError message={form.formState.errors.moCallbackUrl?.message} />
+          </label>
+          <p className="mt-3 text-xs leading-5 text-slate-500">
+            {t('credentials.moHint')}
+          </p>
+          <CallbackAuthFields form={form} prefix="moCallbackAuth" />
+        </fieldset>
+      </div>
+      <p className="mt-4 text-xs leading-5 text-slate-500">
+        {t('credentials.httpsHint')}
+      </p>
+    </CredentialSection>
+  )
+}
+
+function IPsTab({
+  form,
+  restrictIPs,
+  onValidityChange,
+}: {
+  form: UseFormReturn<CredentialBody>
+  restrictIPs: boolean
+  onValidityChange: (valid: boolean) => void
+}) {
+  const { t } = useTranslation()
+  return (
+    <CredentialSection title={t('credentials.accessRestriction')} icon={ShieldCheck}>
+      <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
+        <input
+          className="size-4 accent-brand-purple"
+          type="checkbox"
+          {...form.register('whitelistEnabled')}
+        />
+        {t('credentials.whitelistEnabled')}
+      </label>
+      {restrictIPs ? (
+        <div className="mt-4">
+          <Controller
+            name="allowedIPsText"
+            control={form.control}
+            render={({ field }) => (
+              <AllowedIPsEditor
+                value={field.value ?? ''}
+                onChange={field.onChange}
+                onValidityChange={onValidityChange}
+              />
+            )}
+          />
+          <FieldError message={form.formState.errors.allowedIPsText?.message} />
+        </div>
+      ) : (
+        <p className="mt-2 text-xs leading-5 text-slate-500">
+          {t('credentials.noIpHint')}
+        </p>
+      )}
+    </CredentialSection>
+  )
+}
+
 export function CredentialForm({
   credential,
   initialCompanyId,
@@ -734,79 +850,7 @@ export function CredentialForm({
             aria-labelledby="credential-tab-notifications"
             hidden={activeTab !== 'notifications'}
           >
-            <CredentialSection
-              title={t('credentials.notificationsSection')}
-              icon={Link2}
-            >
-              <p className="mb-4 text-sm leading-6 text-slate-600">
-                {t('credentials.notificationsHint')}
-              </p>
-              <div className="grid gap-5">
-                <fieldset className="min-w-0 rounded-xl border border-slate-200 p-4">
-                  <legend className="px-1 text-sm font-semibold">
-                    {t('credentials.dlrTitle')}
-                  </legend>
-                  <label className="flex min-h-11 items-center gap-3 text-sm">
-                    <input
-                      className="size-4 accent-brand-purple"
-                      type="checkbox"
-                      {...form.register('callbacksEnabled')}
-                    />
-                    {t('credentials.forwardStatus')}
-                  </label>
-                  <label className="field mt-2">
-                    {t('credentials.dlrUrl')}
-                    <input
-                      className="form-control w-full"
-                      type="url"
-                      autoComplete="off"
-                      placeholder="https://cliente.com.br/status"
-                      {...form.register('callbackUrl')}
-                    />
-                    <FieldError
-                      message={form.formState.errors.callbackUrl?.message}
-                    />
-                  </label>
-                  <p className="mt-3 text-xs leading-5 text-slate-500">
-                    {t('credentials.dlrHint')}
-                  </p>
-                  <CallbackAuthFields form={form} prefix="callbackAuth" />
-                </fieldset>
-                <fieldset className="min-w-0 rounded-xl border border-slate-200 p-4">
-                  <legend className="px-1 text-sm font-semibold">
-                    {t('credentials.moTitle')}
-                  </legend>
-                  <label className="flex min-h-11 items-center gap-3 text-sm">
-                    <input
-                      className="size-4 accent-brand-purple"
-                      type="checkbox"
-                      {...form.register('moCallbacksEnabled')}
-                    />
-                    {t('credentials.forwardReplies')}
-                  </label>
-                  <label className="field mt-2">
-                    {t('credentials.moUrl')}
-                    <input
-                      className="form-control w-full"
-                      type="url"
-                      autoComplete="off"
-                      placeholder="https://cliente.com.br/respostas"
-                      {...form.register('moCallbackUrl')}
-                    />
-                    <FieldError
-                      message={form.formState.errors.moCallbackUrl?.message}
-                    />
-                  </label>
-                  <p className="mt-3 text-xs leading-5 text-slate-500">
-                    {t('credentials.moHint')}
-                  </p>
-                  <CallbackAuthFields form={form} prefix="moCallbackAuth" />
-                </fieldset>
-              </div>
-              <p className="mt-4 text-xs leading-5 text-slate-500">
-                {t('credentials.httpsHint')}
-              </p>
-            </CredentialSection>
+            <NotificationsTab form={form} />
           </div>
           <div
             id="credential-panel-ips"
@@ -814,41 +858,11 @@ export function CredentialForm({
             aria-labelledby="credential-tab-ips"
             hidden={activeTab !== 'ips'}
           >
-            <CredentialSection
-              title={t('credentials.accessRestriction')}
-              icon={ShieldCheck}
-            >
-              <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
-                <input
-                  className="size-4 accent-brand-purple"
-                  type="checkbox"
-                  {...form.register('whitelistEnabled')}
-                />
-                {t('credentials.whitelistEnabled')}
-              </label>
-              {restrictIPs ? (
-                <div className="mt-4">
-                  <Controller
-                    name="allowedIPsText"
-                    control={form.control}
-                    render={({ field }) => (
-                      <AllowedIPsEditor
-                        value={field.value ?? ''}
-                        onChange={field.onChange}
-                        onValidityChange={setIpDraftValid}
-                      />
-                    )}
-                  />
-                  <FieldError
-                    message={form.formState.errors.allowedIPsText?.message}
-                  />
-                </div>
-              ) : (
-                <p className="mt-2 text-xs leading-5 text-slate-500">
-                  {t('credentials.noIpHint')}
-                </p>
-              )}
-            </CredentialSection>
+            <IPsTab
+              form={form}
+              restrictIPs={restrictIPs}
+              onValidityChange={setIpDraftValid}
+            />
           </div>
         </fieldset>
         <div className="sticky -bottom-6 z-10 mt-7 bg-white pb-1 pt-3">

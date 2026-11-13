@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 
@@ -14,7 +15,7 @@ import (
 )
 
 const (
-	LegacySendPath     = "/v1/send"
+	V1SendPath     = "/v1/send"
 	basicAuthScheme    = "basicAuth"
 	basicAuthChallenge = `Basic realm="21 Mobile API", charset="UTF-8"`
 )
@@ -29,12 +30,12 @@ func NewSMSController(service *services.SMSService, auth *services.AuthService) 
 }
 
 func (c *SMSController) Register(api huma.API) {
-	guard := NewLegacyGuard(c.auth)
+	guard := NewV1Guard(c.auth)
 	guard.RegisterSecurity(api)
 	operation := huma.Operation{
 		OperationID: "sendSMS",
 		Method:      http.MethodPost,
-		Path:        LegacySendPath,
+		Path:        V1SendPath,
 		Summary:     "Enviar SMS",
 		Description: "Aceita de 1 a 200 itens em sms, com resultado individual e ordem preservada. Texto encaminhado sem diacríticos e emojis, limitado a 160 caracteres na entrada. No modo assíncrono, cada item válido é persistido e recebe id_sms antes da publicação da referência na SQS. OK confirma aceite para processamento; não confirma envio ao gateway nem entrega. O painel mostra o resultado de submissão; /v1/status lista somente eventos DLR. scheduledDate futuro define quando a referência poderá ser publicada.",
 		Tags:        []string{"SMS"},
@@ -55,7 +56,12 @@ func (c *SMSController) Send(ctx context.Context, input *dtos.LegacySendInput) (
 	requestID := middleware.GetReqID(ctx)
 	results, err := c.service.Send(ctx, credential.ID, input.Body.SMS)
 	if err != nil {
-		slog.Error("SMS send request failed", "request_id", requestID, "credential_id", credential.ID, "items", len(input.Body.SMS), "error", err)
+		var appErr *apperrors.Error
+		errCode := "internal"
+		if errors.As(err, &appErr) {
+			errCode = string(appErr.Code)
+		}
+		slog.Error("SMS send request failed", "request_id", requestID, "credential_id", credential.ID, "items", len(input.Body.SMS), "code", errCode)
 		return nil, HTTPError(err)
 	}
 	accepted := 0

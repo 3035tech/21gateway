@@ -45,7 +45,7 @@ func TestLegacyMOHTTPContractAndAuthorization(t *testing.T) {
 	}
 	mt := uint64(6652)
 	repo := &legacyMOFixture{rows: []models.MOEvent{{ID: 1795, CredentialID: 7, AttemptID: &mt, EventKey: "event", EncryptedMessage: encrypted, PhoneNumber: "5551998877665", ReceivedAt: time.Date(2017, 4, 18, 19, 5, 1, 0, time.UTC)}}}
-	router := New(nil, true, func(context.Context) error { return nil }, Dependencies{Auth: auth, LegacyMO: services.NewLegacyMOService(repo, vault)})
+	router := New(nil, true, func(context.Context) error { return nil }, Dependencies{Auth: auth, V1MO: services.NewV1MOService(repo, vault)})
 	request := func(query, password, remote string) *httptest.ResponseRecorder {
 		req := httptest.NewRequest(http.MethodGet, "/v1/consultmo"+query, nil)
 		req.RemoteAddr = remote

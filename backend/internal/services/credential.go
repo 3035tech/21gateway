@@ -47,12 +47,25 @@ func (s *CredentialService) CredentialByPublicRef(ctx context.Context, publicRef
 	value, err := s.repository.CredentialViewByPublicRef(ctx, publicRef)
 	return dtos.CredentialDTO(value), dbError(err)
 }
+// reservedCallbackParams are injected by Deliver; a stored URL containing them
+// would have its value silently overwritten on every callback delivery.
+var reservedCallbackParams = []string{"idSms", "correlationId", "status"}
+
 func ValidateCallbackURL(raw string) bool {
 	if raw == "" {
 		return true
 	}
 	parsed, err := url.Parse(raw)
-	return err == nil && parsed.Scheme == "https" && parsed.Hostname() != "" && parsed.User == nil && parsed.Fragment == "" && (parsed.Port() == "" || parsed.Port() == "443")
+	if err != nil || parsed.Scheme != "https" || parsed.Hostname() == "" || parsed.User != nil || parsed.Fragment != "" || (parsed.Port() != "" && parsed.Port() != "443") {
+		return false
+	}
+	q := parsed.Query()
+	for _, key := range reservedCallbackParams {
+		if q.Get(key) != "" {
+			return false
+		}
+	}
+	return true
 }
 func (s *CredentialService) SaveCredential(ctx context.Context, actor, id uint64, body dtos.CredentialBody) (dtos.CredentialSecret, error) {
 	if body.ProviderToken != nil || body.ClearProviderToken {
@@ -125,6 +138,9 @@ func (s *CredentialService) SaveCredential(ctx context.Context, actor, id uint64
 		result.CompanyProviderTokenEncrypted = company.ProviderTokenEncrypted
 		result.CompanyProviderTokenLegacyFallback = company.ProviderTokenLegacyFallback
 		result.Active = body.Active
+		if id != 0 && result.CallbackURL != body.CallbackURL {
+			result.CallbackURLVersion++
+		}
 		result.CallbackURL = body.CallbackURL
 		result.CallbacksEnabled = body.CallbacksEnabled
 		if result.CallbackAuth, err = s.applyCallbackAuth(result.CallbackAuth, body.CallbackAuth, result.Username, "dlr"); err != nil {
@@ -263,6 +279,9 @@ func (s *CredentialService) applySettings(result *models.APICredential, body dto
 		return apperrors.Wrap(apperrors.CodeInvalidRequest, nil)
 	}
 	if body.MOCallbackURL != nil {
+		if result.ID != 0 && result.MOCallbackURL != *body.MOCallbackURL {
+			result.MOCallbackURLVersion++
+		}
 		result.MOCallbackURL = *body.MOCallbackURL
 	}
 	if body.MOCallbacksEnabled != nil {

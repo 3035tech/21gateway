@@ -139,6 +139,10 @@ func TestPostgresUserCompanyAccess(t *testing.T) {
 	if _, err := messageService.Content(restricted, secondAttemptID); err == nil {
 		t.Fatal("cross-company content exposed")
 	}
+	summary, err := NewSummaryService(repositories.NewSummary(db)).Summary(restricted)
+	if err != nil || summary.Companies != 1 || summary.ActiveCredentials != 1 || summary.Accepted != 1 {
+		t.Fatal("summary leaked", summary, err)
+	}
 	old := time.Now().UTC().Add(-91 * 24 * time.Hour)
 	if err := db.Table("sms_attempts").Where("id = ?", firstAttemptID).Update("created_at", old).Error; err != nil {
 		t.Fatal(err)
@@ -154,10 +158,6 @@ func TestPostgresUserCompanyAccess(t *testing.T) {
 	if err != nil || purged.EncryptedMessage != "" || purged.ContentPurgedAt == nil {
 		t.Fatal("ciphertext not purged", err)
 	}
-	summary, err := NewSummaryService(repositories.NewSummary(db)).Summary(restricted)
-	if err != nil || summary.Companies != 1 || summary.ActiveCredentials != 1 || summary.Accepted != 1 {
-		t.Fatal("summary leaked", summary, err)
-	}
 	updated, err := users.SaveUser(ctx, admin.ID, viewer.ID, dtos.UserBody{Name: viewer.Name, Email: viewer.Email, Role: models.RoleViewer, Active: true, CompanyIDs: []uint64{first.ID, second.ID}})
 	if err != nil || len(updated.CompanyIDs) != 2 {
 		t.Fatal("multiple company links", updated, err)
@@ -170,7 +170,11 @@ func TestPostgresUserCompanyAccess(t *testing.T) {
 			t.Fatal("selected company list", selected, page, err)
 		}
 		summary, err := NewSummaryService(repositories.NewSummary(db)).Summary(multiCompany, selected)
-		if err != nil || summary.Companies != 1 || summary.ActiveCredentials != 1 || summary.Accepted != 1 {
+		wantAccepted := int64(1)
+		if selected == first.ID {
+			wantAccepted = 0 // Its test attempt was aged beyond the 30-day dashboard window above.
+		}
+		if err != nil || summary.Companies != 1 || summary.ActiveCredentials != 1 || summary.Accepted != wantAccepted {
 			t.Fatal("selected company summary", selected, summary, err)
 		}
 	}

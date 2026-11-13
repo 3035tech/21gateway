@@ -71,6 +71,8 @@ Implementado em 15/10/2026 a partir da resposta 22 do formulário: registrar fal
 
 Falha HTTP/transporte gera `Callback HTTP attempt failed` com `event_id`, `method`, `http_status`, `failure_code` e `duration_ms`. `http_status=0` significa que não foi obtida resposta HTTP, não um status retornado pelo cliente. Erros de conexão também podem envolver DNS, TLS, cancelamento ou bloqueio de segurança; não atribuir automaticamente a falha ao cliente. Redirect não conta como entrega e continua sem seguimento automático.
 
+O diagnóstico temporário de ingresso Zoug registra somente metadados seguros e o tamanho do payload. Não registra cabeçalhos nem corpos, inclusive em JSON inválido, pois um payload não classificado pode conter MO, telefone ou segredos.
+
 Conclusão do worker gera `Callback attempt failed` (WARN), `Callback delivery recovered` (INFO, sucesso após mais de uma tentativa) ou `Callback outcome persistence failed` (ERROR). Campos: `callback_kind` (`dlr`/`mo`), `job_id`, `event_id`, `attempts`, `delivered`, `failure_code`, `outcome_persisted`. Recuperação só é registrada após sucesso de Finish; HTTP aceito com falha de banco tem `delivered=true` e `outcome_persisted=false`. Isso não significa conclusão persistida nem impede duplicação na retomada: entrega permanece pelo menos uma vez.
 
 O evento HTTP usa o identificador enviado ao destinatário (`19` para DLR, `mo:1370` para MO). O evento de conclusão usa ID numérico junto com `callback_kind`; `job_id` permite correlacionar com outbox. Tentativas diferentes podem ter o mesmo ID de evento. Eventos HTTP e persistência são registros separados; o status HTTP não foi adicionado à tabela de jobs nem à API do painel.

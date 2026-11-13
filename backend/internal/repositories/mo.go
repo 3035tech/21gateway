@@ -68,7 +68,7 @@ func reconcileMO(tx *gorm.DB, event *models.MOEvent) error {
 		return err
 	}
 	if credential.MOCallbacksEnabled && credential.MOCallbackURL != "" {
-		job := models.MOCallbackJob{EventID: event.ID, AttemptID: attempt.ID, CredentialID: event.CredentialID, URL: credential.MOCallbackURL, State: models.CallbackPending, AvailableAt: time.Now().UTC()}
+		job := models.MOCallbackJob{EventID: event.ID, AttemptID: attempt.ID, CredentialID: event.CredentialID, URL: credential.MOCallbackURL, URLVersion: credential.MOCallbackURLVersion, State: models.CallbackPending, AvailableAt: time.Now().UTC()}
 		if err := tx.Create(&job).Error; err != nil {
 			return err
 		}
@@ -118,7 +118,7 @@ func (r *MOs) DeliveryData(ctx context.Context, job models.MOCallbackJob) (model
 		return event, attempt, false, err
 	}
 	var count int64
-	err := r.db.WithContext(ctx).Table("api_credentials").Joins("LEFT JOIN companies ON companies.id=api_credentials.company_id").Where("api_credentials.id=? AND api_credentials.active AND api_credentials.archived_at IS NULL AND api_credentials.mo_callbacks_enabled AND api_credentials.mo_callback_url=? AND (api_credentials.company_id IS NULL OR (companies.active AND companies.archived_at IS NULL))", job.CredentialID, job.URL).Count(&count).Error
+	err := r.db.WithContext(ctx).Table("api_credentials").Joins("LEFT JOIN companies ON companies.id=api_credentials.company_id").Where("api_credentials.id=? AND api_credentials.active AND api_credentials.archived_at IS NULL AND api_credentials.mo_callbacks_enabled AND api_credentials.mo_callback_url=? AND api_credentials.mo_callback_url_version=? AND (api_credentials.company_id IS NULL OR (companies.active AND companies.archived_at IS NULL))", job.CredentialID, job.URL, job.URLVersion).Count(&count).Error
 	return event, attempt, count == 1, err
 }
 func (r *MOs) Finish(ctx context.Context, job models.MOCallbackJob, delivered bool, code string, delay time.Duration) error {

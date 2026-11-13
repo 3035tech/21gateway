@@ -135,17 +135,18 @@ func (s *UserRecoveryService) Request(ctx context.Context, email string) error {
 		slog.Error("password recovery request failed")
 		return nil
 	}
+	deliver := func() {
+		defer func() { <-s.deliverySlots }()
+		mailCtx, cancel := context.WithTimeout(context.Background(), recoveryMailTimeout)
+		defer cancel()
+		if err := s.mailer.SendPasswordReset(mailCtx, user.Email, token); err != nil {
+			slog.Error("password recovery mail delivery failed")
+		}
+	}
 	select {
 	case s.deliverySlots <- struct{}{}:
-		go func() {
-			defer func() { <-s.deliverySlots }()
-			mailCtx, cancel := context.WithTimeout(context.Background(), recoveryMailTimeout)
-			defer cancel()
-			if err := s.mailer.SendPasswordReset(mailCtx, user.Email, token); err != nil {
-				slog.Error("password recovery mail delivery failed")
-			}
-		}()
-	default:
+		go deliver()
+	case <-time.After(time.Second):
 		slog.Error("password recovery mail capacity exhausted")
 	}
 	return nil
@@ -199,6 +200,12 @@ func (s *UserRecoveryService) Reset(ctx context.Context, token, factor, newPassw
 	}
 	if s.mfa != nil {
 		if err := s.mfa.VerifyLogin(ctx, entry.UserID, factor); err != nil {
+			var appErr *apperrors.Error
+			if errors.As(err, &appErr) && appErr.Code == apperrors.CodeRateLimited {
+				// Rate budget exhausted: consume this token so the attacker cannot
+				// resume guessing after the per-minute window resets.
+				_, _ = s.repo.Consume(ctx, entry.UserID, hash[:])
+			}
 			return err
 		}
 	}

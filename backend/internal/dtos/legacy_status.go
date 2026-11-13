@@ -29,3 +29,10 @@ type LegacyStatusBody = SMSDeliveryStatusResponse
 
 type SMSDeliveryStatusOutput struct{ Body SMSDeliveryStatusResponse }
 type LegacyStatusOutput = SMSDeliveryStatusOutput
+
+type SMSDeliveryStatusByDateInput struct {
+	Date          int64  `query:"date" required:"true" minimum:"0" maximum:"253402300799" doc:"Unix timestamp em segundos de qualquer instante do dia desejado em America/Sao_Paulo; a consulta cobre o dia inteiro."`
+	CorrelationID string `query:"correlationid" maxLength:"50" doc:"Filtra pelo correlationId exato. Opcional."`
+	Destination   string `query:"destination" pattern:"^$|^[0-9]{1,15}$" doc:"Filtra pelo destino exato, com prefixo 55 conforme armazenado. Opcional."`
+}
+type LegacyStatusByDateInput = SMSDeliveryStatusByDateInput

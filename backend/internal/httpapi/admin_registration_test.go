@@ -25,8 +25,8 @@ func TestPublicOpenAPIOnlyShowsClientIntegration(t *testing.T) {
 		Users: users, Sessions: scs.New(), Companies: services.NewCompanyService(nil), Credentials: services.NewCredentialService(nil),
 		Messages: services.NewMessageService(nil), Audit: services.NewAuditService(nil), Summary: services.NewSummaryService(nil),
 		Callbacks: services.NewCallbackService(nil), CallbackIngressEnabled: true, CallbackIngressToken: "test-token-only-for-schema-registration",
-		SMS: services.NewSMSService(nil, nil), Submissions: services.NewSubmissionService(nil), Auth: auth, LegacyStatuses: services.NewLegacyStatusService(nil),
-		LegacyMO: services.NewLegacyMOService(nil, nil),
+		SMS: services.NewSMSService(nil, nil), Submissions: services.NewSubmissionService(nil), Auth: auth, V1Statuses: services.NewV1StatusService(nil),
+		V1MO: services.NewV1MOService(nil, nil),
 	})
 	w := httptest.NewRecorder()
 	handler.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/openapi.json", nil))
@@ -46,7 +46,7 @@ func TestPublicOpenAPIOnlyShowsClientIntegration(t *testing.T) {
 	if err := json.Unmarshal(w.Body.Bytes(), &document); err != nil {
 		t.Fatal(err)
 	}
-	expected := map[string]bool{"/v1/send": true, "/v1/send/result": true, "/v1/status": true, "/v1/consultmo": true, "/v1/auth/check": true}
+	expected := map[string]bool{"/v1/send": true, "/v1/send/result": true, "/v1/status": true, "/v1/status/date": true, "/v1/status/date/": true, "/v1/consultmo": true, "/v1/auth/check": true}
 	if len(document.Paths) != len(expected) {
 		t.Fatalf("public paths: %v", document.Paths)
 	}

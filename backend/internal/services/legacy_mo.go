@@ -14,18 +14,18 @@ import (
 const MaximumLegacyMORecords = 1000
 const MaximumLegacyQueryTimestamp int64 = 253402300799
 
-type LegacyMORepository interface {
+type V1MORepository interface {
 	QueryDay(context.Context, uint64, time.Time, time.Time, int) ([]models.MOEvent, error)
 }
-type LegacyMOService struct {
-	repo  LegacyMORepository
+type V1MOService struct {
+	repo  V1MORepository
 	vault *security.MOContentVault
 }
 
-func NewLegacyMOService(repo LegacyMORepository, vault *security.MOContentVault) *LegacyMOService {
-	return &LegacyMOService{repo: repo, vault: vault}
+func NewV1MOService(repo V1MORepository, vault *security.MOContentVault) *V1MOService {
+	return &V1MOService{repo: repo, vault: vault}
 }
-func (s *LegacyMOService) Query(ctx context.Context, credentialID uint64, timestamp int64) (dtos.LegacyMOBody, error) {
+func (s *V1MOService) Query(ctx context.Context, credentialID uint64, timestamp int64) (dtos.LegacyMOBody, error) {
 	if credentialID == 0 || timestamp < 0 || timestamp > MaximumLegacyQueryTimestamp {
 		return dtos.LegacyMOBody{}, apperrors.Wrap(apperrors.CodeInvalidRequest, nil)
 	}

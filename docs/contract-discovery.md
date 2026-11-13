@@ -1,6 +1,6 @@
 # Levantamento: paginação, saldo e agendamento
 
-Verificado em 14/10/2026. Trabalho de descoberta de contratos; nenhum endpoint novo implementado, requisição autenticada ao fornecedor ou mensagem enviada. Não concluir que um recurso inexiste por não estar documentado.
+Verificado em 14/10/2026; implementação local de `/v1/status/date` registrada em 13/11/2026. O formato de continuação legado continua pendente; nenhum endpoint de saldo ou agendamento foi presumido, nenhuma requisição autenticada ao fornecedor foi feita e nenhuma mensagem foi enviada. Não concluir que um recurso inexiste por não estar documentado.
 
 ## Fontes e resultado
 

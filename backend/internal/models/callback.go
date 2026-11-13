@@ -65,6 +65,7 @@ type CallbackJob struct {
 	AttemptID    uint64
 	CredentialID uint64
 	URL          string
+	URLVersion   int
 	Status       DeliveryStatus
 	State        CallbackState
 	Attempts     int

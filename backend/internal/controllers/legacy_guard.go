@@ -8,16 +8,16 @@ import (
 	"net/http"
 )
 
-type LegacyGuard struct{ auth *services.AuthService }
+type V1Guard struct{ auth *services.AuthService }
 
-func NewLegacyGuard(auth *services.AuthService) *LegacyGuard { return &LegacyGuard{auth: auth} }
-func (g *LegacyGuard) RegisterSecurity(api huma.API) {
+func NewV1Guard(auth *services.AuthService) *V1Guard { return &V1Guard{auth: auth} }
+func (g *V1Guard) RegisterSecurity(api huma.API) {
 	if api.OpenAPI().Components.SecuritySchemes == nil {
 		api.OpenAPI().Components.SecuritySchemes = map[string]*huma.SecurityScheme{}
 	}
 	api.OpenAPI().Components.SecuritySchemes[basicAuthScheme] = &huma.SecurityScheme{Type: "http", Scheme: "basic"}
 }
-func (g *LegacyGuard) Authenticate(api huma.API) func(huma.Context, func(huma.Context)) {
+func (g *V1Guard) Authenticate(api huma.API) func(huma.Context, func(huma.Context)) {
 	return func(ctx huma.Context, next func(huma.Context)) {
 		request, _ := humachi.Unwrap(ctx)
 		clientIP := security.ClientIP(request)

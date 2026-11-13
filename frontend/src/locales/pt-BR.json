@@ -630,7 +630,7 @@
     "next24h": "Próximas 24 h",
     "processing": "Em processamento",
     "queuedTotal": "Total na fila",
-    "recordedMessages": "Envios registrados",
+    "recordedMessages": "Envios registrados (últimos 30 dias)",
     "historyTotal": "Inclui SMS de teste do token; consulte esses testes na ficha da empresa.",
     "open": "Abrir",
     "accepted": "Aceitos",

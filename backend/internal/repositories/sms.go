@@ -3,12 +3,15 @@ package repositories
 import (
 	"context"
 	"encoding/json"
+	"sort"
+	"time"
+
+	"golang.org/x/sync/errgroup"
+	"gorm.io/gorm"
+
 	"github.com/21mobile/sms-gateway/internal/dtos"
 	apperrors "github.com/21mobile/sms-gateway/internal/errors"
 	"github.com/21mobile/sms-gateway/internal/models"
-	"gorm.io/gorm"
-	"sort"
-	"time"
 )
 
 type SMSAttempts struct{ db *gorm.DB }
@@ -110,38 +113,44 @@ func (r *SMSAttempts) MessageTrace(ctx context.Context, id uint64) (dtos.Message
 		CreatedAt: attempt.CreatedAt, DispatchedAt: attempt.DispatchedAt,
 		Events: []dtos.MessageTraceEvent{},
 	}
-	var deliveries []models.DeliveryEvent
-	if err := r.db.WithContext(ctx).Model(&models.DeliveryEvent{}).
-		Select("id,provider_code,status,occurred_at,created_at").Where("attempt_id = ?", id).
-		Order("occurred_at,id").Limit(messageTraceLimit + 1).Find(&deliveries).Error; err != nil {
+	var (
+		deliveries []models.DeliveryEvent
+		mos        []models.MOEvent
+		dlrJobs    []models.CallbackJob
+		moJobs     []models.MOCallbackJob
+	)
+	g, gctx := errgroup.WithContext(ctx)
+	g.Go(func() error {
+		return r.db.WithContext(gctx).Model(&models.DeliveryEvent{}).
+			Select("id,provider_code,status,occurred_at,created_at").Where("attempt_id = ?", id).
+			Order("occurred_at,id").Limit(messageTraceLimit + 1).Find(&deliveries).Error
+	})
+	g.Go(func() error {
+		return r.db.WithContext(gctx).Model(&models.MOEvent{}).
+			Select("id,provider_code,received_at,created_at").Where("attempt_id = ?", id).
+			Order("received_at,id").Limit(messageTraceLimit + 1).Find(&mos).Error
+	})
+	g.Go(func() error {
+		return r.db.WithContext(gctx).Model(&models.CallbackJob{}).
+			Select("id,state,attempts,last_error,created_at,updated_at").Where("attempt_id = ?", id).
+			Order("created_at,id").Limit(messageTraceLimit + 1).Find(&dlrJobs).Error
+	})
+	g.Go(func() error {
+		return r.db.WithContext(gctx).Model(&models.MOCallbackJob{}).
+			Select("id,state,attempts,last_error,created_at,updated_at").Where("attempt_id = ?", id).
+			Order("created_at,id").Limit(messageTraceLimit + 1).Find(&moJobs).Error
+	})
+	if err := g.Wait(); err != nil {
 		return dtos.MessageTrace{}, err
 	}
 	for _, event := range deliveries {
 		trace.Events = append(trace.Events, dtos.MessageTraceEvent{Kind: dtos.MessageTraceDelivery, ProviderCode: event.ProviderCode, ID: event.ID, Status: string(event.Status), OccurredAt: event.OccurredAt, RecordedAt: event.CreatedAt})
 	}
-	var mos []models.MOEvent
-	if err := r.db.WithContext(ctx).Model(&models.MOEvent{}).
-		Select("id,provider_code,received_at,created_at").Where("attempt_id = ?", id).
-		Order("received_at,id").Limit(messageTraceLimit + 1).Find(&mos).Error; err != nil {
-		return dtos.MessageTrace{}, err
-	}
 	for _, event := range mos {
 		trace.Events = append(trace.Events, dtos.MessageTraceEvent{Kind: dtos.MessageTraceMO, ProviderCode: event.ProviderCode, ID: event.ID, Status: "received", OccurredAt: event.ReceivedAt, RecordedAt: event.CreatedAt})
 	}
-	var dlrJobs []models.CallbackJob
-	if err := r.db.WithContext(ctx).Model(&models.CallbackJob{}).
-		Select("id,state,attempts,last_error,created_at,updated_at").Where("attempt_id = ?", id).
-		Order("created_at,id").Limit(messageTraceLimit + 1).Find(&dlrJobs).Error; err != nil {
-		return dtos.MessageTrace{}, err
-	}
 	for _, job := range dlrJobs {
 		trace.Events = append(trace.Events, dtos.MessageTraceEvent{Kind: dtos.MessageTraceClientDLR, ID: job.ID, Status: string(job.State), OccurredAt: job.UpdatedAt, RecordedAt: job.CreatedAt, Attempts: job.Attempts, FailureCode: job.LastError})
-	}
-	var moJobs []models.MOCallbackJob
-	if err := r.db.WithContext(ctx).Model(&models.MOCallbackJob{}).
-		Select("id,state,attempts,last_error,created_at,updated_at").Where("attempt_id = ?", id).
-		Order("created_at,id").Limit(messageTraceLimit + 1).Find(&moJobs).Error; err != nil {
-		return dtos.MessageTrace{}, err
 	}
 	for _, job := range moJobs {
 		trace.Events = append(trace.Events, dtos.MessageTraceEvent{Kind: dtos.MessageTraceClientMO, ID: job.ID, Status: string(job.State), OccurredAt: job.UpdatedAt, RecordedAt: job.CreatedAt, Attempts: job.Attempts, FailureCode: job.LastError})

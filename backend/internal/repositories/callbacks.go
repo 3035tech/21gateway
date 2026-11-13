@@ -65,7 +65,7 @@ func reconcileEvent(tx *gorm.DB, event *models.DeliveryEvent) error {
 			return err
 		}
 		if credential.CallbacksEnabled && credential.CallbackURL != "" {
-			job := models.CallbackJob{EventID: event.ID, AttemptID: attempt.ID, CredentialID: credential.ID, URL: credential.CallbackURL, Status: event.Status, State: models.CallbackPending, AvailableAt: time.Now().UTC()}
+			job := models.CallbackJob{EventID: event.ID, AttemptID: attempt.ID, CredentialID: credential.ID, URL: credential.CallbackURL, URLVersion: credential.CallbackURLVersion, Status: event.Status, State: models.CallbackPending, AvailableAt: time.Now().UTC()}
 			if err := tx.Create(&job).Error; err != nil {
 				return err
 			}
@@ -115,7 +115,7 @@ func (r *Callbacks) DeliveryData(ctx context.Context, job models.CallbackJob) (m
 		return attempt, false, err
 	}
 	var count int64
-	err := r.db.WithContext(ctx).Table("api_credentials").Joins("LEFT JOIN companies ON companies.id=api_credentials.company_id").Where("api_credentials.id=? AND api_credentials.active AND api_credentials.archived_at IS NULL AND api_credentials.callbacks_enabled AND api_credentials.callback_url=? AND (api_credentials.company_id IS NULL OR (companies.active AND companies.archived_at IS NULL))", job.CredentialID, job.URL).Count(&count).Error
+	err := r.db.WithContext(ctx).Table("api_credentials").Joins("LEFT JOIN companies ON companies.id=api_credentials.company_id").Where("api_credentials.id=? AND api_credentials.active AND api_credentials.archived_at IS NULL AND api_credentials.callbacks_enabled AND api_credentials.callback_url=? AND api_credentials.callback_url_version=? AND (api_credentials.company_id IS NULL OR (companies.active AND companies.archived_at IS NULL))", job.CredentialID, job.URL, job.URLVersion).Count(&count).Error
 	return attempt, count == 1, err
 }
 func (r *Callbacks) Finish(ctx context.Context, job models.CallbackJob, delivered bool, code string, delay time.Duration) error {
@@ -237,7 +237,7 @@ func (r *Callbacks) RetryCallback(ctx context.Context, actor, id uint64) error {
 		if err := repo.db.First(&credential, job.CredentialID).Error; err != nil {
 			return err
 		}
-		if !credential.CallbacksEnabled || !credential.Active || credential.ArchivedAt != nil {
+		if !credential.CallbacksEnabled || !credential.Active || credential.ArchivedAt != nil || credential.CallbackURL != job.URL || credential.CallbackURLVersion != job.URLVersion {
 			return apperrors.Wrap(apperrors.CodeConflict, nil)
 		}
 		if err := repo.db.Model(&job).Updates(map[string]any{"state": models.CallbackPending, "attempts": 0, "last_error": "", "available_at": time.Now().UTC()}).Error; err != nil {

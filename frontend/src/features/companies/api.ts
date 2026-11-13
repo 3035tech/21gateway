@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { api } from '../../lib/api'
+import { api, apiGet, apiPost } from '../../lib/api'
 import { list } from '../../lib/admin'
 import type { ListParams } from '../../lib/admin'
 import {
@@ -52,17 +52,13 @@ export type CompanyBody = z.infer<typeof companyFormSchema>
 export const listCompanies = (params: ListParams, signal?: AbortSignal) =>
   list('companies', companySchema, params, signal)
 export async function getCompany(id: number, signal?: AbortSignal) {
-  const response = await api.get(`/admin/companies/${id}`, { signal })
-  return companySchema.parse(response.data)
+  return apiGet(`/admin/companies/${id}`, companySchema, { signal })
 }
 export async function getCompanyByPublicRef(
   publicRef: string,
   signal?: AbortSignal,
 ) {
-  const response = await api.get(`/admin/companies/by-ref/${publicRef}`, {
-    signal,
-  })
-  return companySchema.parse(response.data)
+  return apiGet(`/admin/companies/by-ref/${publicRef}`, companySchema, { signal })
 }
 const companyHealthSchema = z.object({
   activeCredentials: z.number(),
@@ -82,11 +78,7 @@ export async function getCompanyHealth(
   publicRef: string,
   signal?: AbortSignal,
 ) {
-  const response = await api.get(
-    `/admin/companies/by-ref/${publicRef}/health`,
-    { signal },
-  )
-  return companyHealthSchema.parse(response.data)
+  return apiGet(`/admin/companies/by-ref/${publicRef}/health`, companyHealthSchema, { signal })
 }
 export async function saveCompany(id: number | undefined, body: CompanyBody) {
   const payload = {
@@ -120,11 +112,11 @@ export async function getCompanyTestSends(
   publicRef: string,
   signal?: AbortSignal,
 ) {
-  const response = await api.get(
+  return apiGet(
     `/admin/companies/by-ref/${publicRef}/test-sends`,
+    z.array(companyTestSendSchema),
     { signal },
   )
-  return z.array(companyTestSendSchema).parse(response.data)
 }
 
 const zougDiagnosticSchema = z.object({
@@ -149,10 +141,10 @@ export async function runZougDiagnostic(
   publicRef: string,
   destination: string,
 ) {
-  const response = await api.post(
+  return apiPost(
     `/admin/companies/by-ref/${publicRef}/zoug-diagnostic`,
+    zougDiagnosticSchema,
     { destination },
     { timeout: 28_000 },
   )
-  return zougDiagnosticSchema.parse(response.data)
 }

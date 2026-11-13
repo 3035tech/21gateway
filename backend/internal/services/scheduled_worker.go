@@ -78,14 +78,14 @@ func (w *ScheduledSMSWorker) processGroup(ctx context.Context, jobs []models.Sch
 		return false, nil
 	}
 	logStage := func(stage string, err error) {
-		slog.Warn("SMS processing deferred before provider request", "send_id", jobs[0].AttemptID, "credential_id", jobs[0].CredentialID, "stage", stage, "error", err)
+		slog.Warn("SMS processing deferred before provider request", "send_id", jobs[0].AttemptID, "credential_id", jobs[0].CredentialID, "stage", stage)
 	}
 	release := func() (bool, error) {
 		finish, cancel := context.WithTimeout(context.WithoutCancel(ctx), completionTimeout)
 		defer cancel()
 		err := w.repo.Release(finish, jobs)
 		if err != nil {
-			slog.Error("SMS release failed", "send_id", jobs[0].AttemptID, "error", err)
+			slog.Error("SMS release failed", "send_id", jobs[0].AttemptID)
 		}
 		return false, err
 	}
@@ -94,7 +94,7 @@ func (w *ScheduledSMSWorker) processGroup(ctx context.Context, jobs []models.Sch
 		defer cancel()
 		err := w.repo.Reject(finish, jobs, code)
 		if err != nil {
-			slog.Error("SMS rejection persistence failed", "send_id", jobs[0].AttemptID, "code", code, "error", err)
+			slog.Error("SMS rejection persistence failed", "send_id", jobs[0].AttemptID, "code", code)
 		} else {
 			slog.Warn("SMS rejected before provider request", "send_id", jobs[0].AttemptID, "code", code)
 		}

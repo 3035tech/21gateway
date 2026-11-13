@@ -48,8 +48,30 @@ func TestZougWebhookDiagnosticLogOmitsURLTokenAndSecretHeaders(t *testing.T) {
 	request.Header.Set("Authorization", "secret-authorization")
 	response := httptest.NewRecorder()
 	router.ServeHTTP(response, request)
-	if response.Code != http.StatusNoContent || !strings.Contains(output.String(), "UNKNOWN") || !strings.Contains(output.String(), `"http_status":204`) || strings.Contains(output.String(), token) || strings.Contains(output.String(), "secret-authorization") {
-		t.Fatalf("diagnostic log missing request/response or exposed a secret: %s", output.String())
+	if response.Code != http.StatusNoContent || !strings.Contains(output.String(), `"payload_bytes":`) || !strings.Contains(output.String(), `"http_status":204`) || strings.Contains(output.String(), "UNKNOWN") || strings.Contains(output.String(), token) || strings.Contains(output.String(), "secret-authorization") {
+		t.Fatalf("diagnostic log missing safe metadata or exposed callback data: %s", output.String())
+	}
+}
+
+func TestZougWebhookDiagnosticLogNeverWritesMalformedMOBody(t *testing.T) {
+	const token = "controlled-zoug-webhook-token-0123456789"
+	const privateText = "PRIVATE MO BODY SHOULD NOT BE LOGGED"
+	const body = `{"callback_type":3,"short_message":"` + privateText + `",`
+	digest := sha256.Sum256([]byte(token))
+	var output bytes.Buffer
+	previous := slog.Default()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(&output, nil)))
+	t.Cleanup(func() { slog.SetDefault(previous) })
+	router := chi.NewRouter()
+	router.Use(security.ClientIPResolver{}.Middleware)
+	NewProviderCallbackController(&zougDeliveryStub{}, &zougMOStub{}, true, whitelabel.NewWebhookAdapter(hex.EncodeToString(digest[:]), []string{"18.232.239.74"})).Register(router)
+	request := httptest.NewRequest(http.MethodPost, "/webhooks/zoug/"+token, strings.NewReader(body))
+	request.RemoteAddr = "18.232.239.74:1234"
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	if response.Code != http.StatusUnprocessableEntity || !strings.Contains(output.String(), `"payload_bytes":`) || strings.Contains(output.String(), privateText) || strings.Contains(output.String(), "short_message") {
+		t.Fatalf("malformed MO diagnostic logged payload: status=%d log=%s", response.Code, output.String())
 	}
 }
 

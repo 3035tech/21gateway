@@ -123,9 +123,62 @@ func run() error {
 	if err != nil {
 		return apperrors.Wrap(apperrors.CodeConfigurationInvalid, err)
 	}
+	mos := repositories.NewMOs(db)
+	deps := httpapi.Dependencies{
+		// Infrastructure
+		ClientIPResolver: clientIPs,
+		SMTPProbe:        smtpProbe,
+		SQSProbe:         workers.QueueProbe(),
+		Sessions:         sessions,
+		// Auth
+		Auth:        auth,
+		Users:       users,
+		UserMFA:     mfa,
+		UserRecovery: recovery,
+		// Domain services
+		Companies:   services.NewCompanyServiceWithVault(repositories.NewCompanies(db), vault),
+		Credentials: services.NewCredentialServiceWithVault(repositories.NewCredentials(db), vault),
+		SMS:         sender,
+		Submissions: services.NewSubmissionService(repositories.NewSMSAttempts(db)),
+		Messages: services.NewMessageServiceWithTestSend(
+			repositories.NewSMSAttempts(db),
+			repositories.NewCredentials(db),
+			repositories.NewAudits(db),
+			sender,
+			cfg.TestSMSDestination,
+			cfg.TestSMSAllowAnyDestination,
+		).WithHistoryVault(historyVault).
+			WithCompanyTests(repositories.NewCompanies(db)).
+			WithDiagnosticDestinationHash(cfg.ZougDiagnosticDestinationSHA256),
+		Schedules:      services.NewScheduledListService(repositories.NewScheduledSMS(db)),
+		Callbacks:      services.NewCallbackService(repositories.NewCallbacks(db)),
+		V1Statuses: services.NewV1StatusService(repositories.NewV1Statuses(db)),
+		V1MO:       services.NewV1MOService(mos, moVault),
+		MO:             services.NewMOService(mos, moVault),
+		Audit:          services.NewAuditService(repositories.NewAudits(db)),
+		Summary:        services.NewSummaryService(repositories.NewSummary(db)),
+		Operations:     services.NewOperationsService(repositories.NewOperations(db)),
+		Notifications: services.NewNotificationService(
+			repositories.NewNotifications(db),
+			services.NewOperationsService(repositories.NewOperations(db)),
+			alertMailer,
+		),
+		OperationCases: services.NewOperationCaseService(repositories.NewOperationCases(db)),
+		// Feature flags
+		OperationsEnabled:              cfg.OperationsEnabled,
+		OperationsToken:                cfg.OperationsToken,
+		HealthDependenciesTokenSHA256:  cfg.HealthDependenciesTokenSHA256,
+		MOIngressEnabled:               cfg.MOIngressEnabled,
+		ZougCallbackEnabled:            cfg.ZougCallbackEnabled,
+		ZougCallbackLogFullRequest:     cfg.ZougCallbackLogFullRequest,
+		ZougCallbackTokenSHA256:        cfg.ZougCallbackTokenSHA256,
+		ZougCallbackAllowedIPs:         cfg.ZougCallbackAllowedIPs,
+		CallbackIngressEnabled:         cfg.CallbackIngressEnabled,
+		CallbackIngressToken:           cfg.CallbackIngressToken,
+	}
 	server := &http.Server{
 		Addr:              cfg.Address,
-		Handler:           httpapi.New(cfg.AllowedOrigins, cfg.DocsEnabled, pool.PingContext, httpapi.Dependencies{ClientIPResolver: clientIPs, SMTPProbe: smtpProbe, SQSProbe: workers.QueueProbe(), Operations: services.NewOperationsService(repositories.NewOperations(db)), Notifications: services.NewNotificationService(repositories.NewNotifications(db), services.NewOperationsService(repositories.NewOperations(db)), alertMailer), OperationCases: services.NewOperationCaseService(repositories.NewOperationCases(db)), OperationsEnabled: cfg.OperationsEnabled, OperationsToken: cfg.OperationsToken, HealthDependenciesTokenSHA256: cfg.HealthDependenciesTokenSHA256, LegacyMO: services.NewLegacyMOService(repositories.NewMOs(db), moVault), MO: services.NewMOService(repositories.NewMOs(db), moVault), MOIngressEnabled: cfg.MOIngressEnabled, ZougCallbackEnabled: cfg.ZougCallbackEnabled, ZougCallbackLogFullRequest: cfg.ZougCallbackLogFullRequest, ZougCallbackTokenSHA256: cfg.ZougCallbackTokenSHA256, ZougCallbackAllowedIPs: cfg.ZougCallbackAllowedIPs, LegacyStatuses: services.NewLegacyStatusService(repositories.NewLegacyStatuses(db)), SMS: sender, Submissions: services.NewSubmissionService(repositories.NewSMSAttempts(db)), Auth: auth, Users: users, UserMFA: mfa, UserRecovery: recovery, Companies: services.NewCompanyServiceWithVault(repositories.NewCompanies(db), vault), Credentials: services.NewCredentialServiceWithVault(repositories.NewCredentials(db), vault), Messages: services.NewMessageServiceWithTestSend(repositories.NewSMSAttempts(db), repositories.NewCredentials(db), repositories.NewAudits(db), sender, cfg.TestSMSDestination, cfg.TestSMSAllowAnyDestination).WithHistoryVault(historyVault).WithCompanyTests(repositories.NewCompanies(db)).WithDiagnosticDestinationHash(cfg.ZougDiagnosticDestinationSHA256), Schedules: services.NewScheduledListService(repositories.NewScheduledSMS(db)), Audit: services.NewAuditService(repositories.NewAudits(db)), Summary: services.NewSummaryService(repositories.NewSummary(db)), Sessions: sessions, Callbacks: services.NewCallbackService(repositories.NewCallbacks(db)), CallbackIngressEnabled: cfg.CallbackIngressEnabled, CallbackIngressToken: cfg.CallbackIngressToken}),
+		Handler:           httpapi.New(cfg.AllowedOrigins, cfg.DocsEnabled, pool.PingContext, deps),
 		ReadHeaderTimeout: config.ReadHeaderTimeout,
 		ReadTimeout:       config.ReadTimeout,
 		WriteTimeout:      config.WriteTimeout,

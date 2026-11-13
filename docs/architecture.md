@@ -62,6 +62,8 @@ PostgreSQL armazena delivery_events e callback_jobs como outbox. Evento/estado/j
 
 safeurl bloqueia SSRF no dial, proxy desativado, HTTPS/443; saída IPv6 desabilitada. Bloqueio de conta/empresa impede entrega. Reprocessar callback não reenvia SMS. O payload Zoug é validado pelo adaptador de integração; o controller de callback externo verifica hash do segredo na URL e IP, então encaminha DLR ao serviço de callbacks e MO ao serviço MO. Cada domínio persiste seu evento antes da resposta 204. A rota é opt-in independente das rotas internas normalizadas. Não há exceção à separação por domínio: o controller só coordena o contrato HTTP do fornecedor; regras de DLR/MO continuam nos services e repositories respectivos. Consulte docs/zoug-callback.md e docs/backoffice.md.
 
+Jobs DLR/MO guardam a URL e sua versão no momento da criação. Antes do despacho, o worker exige que ambas ainda coincidam com a credencial; isso também bloqueia jobs pré-migração 031, cujas versões recebem zero por padrão. O retry manual de DLR rejeita destino/versão obsoletos em vez de reenfileirar uma tentativa que será bloqueada. Migração 031 é aditiva e precisa ser aplicada antes do binário que lê essas colunas.
+
 ## Frontend e hospedagem
 
 TanStack Query/Table, Axios com cookies/timeout/cancelamento; React Hook Form/Zod. Queries incluem parâmetros e são invalidadas após alterações; mudanças de sessão limpam dados administrativos. Rotas por domínio carregadas sob demanda. Falhas não mostram resultados antigos como consulta válida; diálogos nativos com foco/Escape.

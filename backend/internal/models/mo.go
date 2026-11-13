@@ -38,6 +38,7 @@ type MOCallbackJob struct {
 	AttemptID    uint64
 	CredentialID uint64
 	URL          string
+	URLVersion   int
 	State        CallbackState
 	Attempts     int
 	AvailableAt  time.Time

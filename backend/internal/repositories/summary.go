@@ -10,6 +10,10 @@ import (
 )
 
 const summaryQueryTimeout = 5 * time.Second
+// summaryHistoryFilter limits historical send counts to recent activity so that
+// the index on (created_at,id) is used instead of a full table scan.
+// Outbox queues (callbacks, schedules) are already bounded by state.
+const summaryHistoryFilter = "created_at > NOW() - INTERVAL '30 days'"
 
 type Summary struct{ *store }
 
@@ -34,19 +38,18 @@ func (r *Summary) Summary(ctx context.Context, companyID ...uint64) (dtos.Summar
 	if err := db.Model(&models.APICredential{}).Where("active AND archived_at IS NULL").Count(&result.ActiveCredentials).Error; err != nil {
 		return result, err
 	}
-	// One pass over messages, rather than three full historical counts.
 	var messages struct {
 		Accepted int64
 		Unknown  int64
 		Rejected int64
 	}
-	if err := db.Raw(`SELECT COUNT(*) FILTER (WHERE state=?) AS accepted,COUNT(*) FILTER (WHERE state=?) AS unknown,COUNT(*) FILTER (WHERE state=?) AS rejected FROM sms_attempts`, models.SubmissionAccepted, models.SubmissionUnknown, models.SubmissionRejected).Scan(&messages).Error; err != nil {
+	if err := db.Raw(`SELECT COUNT(*) FILTER (WHERE state=?) AS accepted,COUNT(*) FILTER (WHERE state=?) AS unknown,COUNT(*) FILTER (WHERE state=?) AS rejected FROM sms_attempts WHERE `+summaryHistoryFilter, models.SubmissionAccepted, models.SubmissionUnknown, models.SubmissionRejected).Scan(&messages).Error; err != nil {
 		return result, err
 	}
 	result.Accepted = messages.Accepted
 	result.Unknown = messages.Unknown
 	result.Rejected = messages.Rejected
-	if err := db.Raw(`SELECT COUNT(*) FILTER (WHERE state=?) AS accepted,COUNT(*) FILTER (WHERE state=?) AS unknown,COUNT(*) FILTER (WHERE state=?) AS rejected FROM company_test_sends`, models.SubmissionAccepted, models.SubmissionUnknown, models.SubmissionRejected).Scan(&messages).Error; err != nil {
+	if err := db.Raw(`SELECT COUNT(*) FILTER (WHERE state=?) AS accepted,COUNT(*) FILTER (WHERE state=?) AS unknown,COUNT(*) FILTER (WHERE state=?) AS rejected FROM company_test_sends WHERE `+summaryHistoryFilter, models.SubmissionAccepted, models.SubmissionUnknown, models.SubmissionRejected).Scan(&messages).Error; err != nil {
 		return result, err
 	}
 	result.Accepted += messages.Accepted
@@ -91,11 +94,11 @@ func scopedSummary(db *gorm.DB, companyIDs []uint64) (dtos.Summary, error) {
 		return result, err
 	}
 	var messages struct{ Accepted, Unknown, Rejected int64 }
-	if err := db.Table("sms_attempts").Where("company_id IN ?", companyIDs).Select("COUNT(*) FILTER (WHERE state=?) AS accepted, COUNT(*) FILTER (WHERE state=?) AS unknown, COUNT(*) FILTER (WHERE state=?) AS rejected", models.SubmissionAccepted, models.SubmissionUnknown, models.SubmissionRejected).Scan(&messages).Error; err != nil {
+	if err := db.Table("sms_attempts").Where("company_id IN ? AND "+summaryHistoryFilter, companyIDs).Select("COUNT(*) FILTER (WHERE state=?) AS accepted, COUNT(*) FILTER (WHERE state=?) AS unknown, COUNT(*) FILTER (WHERE state=?) AS rejected", models.SubmissionAccepted, models.SubmissionUnknown, models.SubmissionRejected).Scan(&messages).Error; err != nil {
 		return result, err
 	}
 	result.Accepted, result.Unknown, result.Rejected = messages.Accepted, messages.Unknown, messages.Rejected
-	if err := db.Table("company_test_sends").Where("company_id IN ?", companyIDs).Select("COUNT(*) FILTER (WHERE state=?) AS accepted, COUNT(*) FILTER (WHERE state=?) AS unknown, COUNT(*) FILTER (WHERE state=?) AS rejected", models.SubmissionAccepted, models.SubmissionUnknown, models.SubmissionRejected).Scan(&messages).Error; err != nil {
+	if err := db.Table("company_test_sends").Where("company_id IN ? AND "+summaryHistoryFilter, companyIDs).Select("COUNT(*) FILTER (WHERE state=?) AS accepted, COUNT(*) FILTER (WHERE state=?) AS unknown, COUNT(*) FILTER (WHERE state=?) AS rejected", models.SubmissionAccepted, models.SubmissionUnknown, models.SubmissionRejected).Scan(&messages).Error; err != nil {
 		return result, err
 	}
 	result.Accepted += messages.Accepted

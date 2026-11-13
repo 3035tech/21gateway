@@ -81,10 +81,15 @@ func (s *AuthService) Authenticate(ctx context.Context, authorization string) (m
 			return empty, apperrors.Wrap(apperrors.CodeRateLimited, nil)
 		}
 	}
+	// Wait briefly for a slot before giving up. Argon2id takes ~50-100ms;
+	// 250ms covers transient bursts without meaningfully helping a slowloris attacker.
+	t := time.NewTimer(250 * time.Millisecond)
+	defer t.Stop()
 	select {
 	case s.checks <- struct{}{}:
+		t.Stop()
 		defer func() { <-s.checks }()
-	default:
+	case <-t.C:
 		return empty, apperrors.Wrap(apperrors.CodeServiceUnavailable, nil)
 	}
 	credential, err := s.repository.FindByUsername(ctx, username)

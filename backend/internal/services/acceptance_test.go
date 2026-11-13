@@ -277,14 +277,14 @@ func TestPostgresSMSCallbackAcceptance(t *testing.T) {
 	if err := db.Model(&models.MOCallbackJob{}).Count(&count).Error; err != nil || count != 1 {
 		t.Fatal("MO duplicate jobs", count, err)
 	}
-	polling := repositories.NewLegacyStatuses(db)
+	polling := repositories.NewV1Statuses(db)
 	if rows, err := polling.Consume(ctx, other.ID, 100); err != nil || len(rows) != 0 {
 		t.Fatal("DLR account isolation", err)
 	}
 	if rows, err := polling.Consume(ctx, credential.ID, 100); err != nil || len(rows) != 1 {
 		t.Fatal("callback consumed polling", err)
 	}
-	if rows, err := NewLegacyMOService(moRepo, vault).Query(ctx, other.ID, input.Body.ReceivedAt.Unix()); err != nil || len(rows.ListMO) != 0 {
+	if rows, err := NewV1MOService(moRepo, vault).Query(ctx, other.ID, input.Body.ReceivedAt.Unix()); err != nil || len(rows.ListMO) != 0 {
 		t.Fatal("MO query account isolation", err)
 	}
 	// Old destinations must be blocked after account configuration changes.
@@ -313,6 +313,22 @@ func TestPostgresSMSCallbackAcceptance(t *testing.T) {
 	}
 	if blocked.State != models.CallbackFailed || blocked.LastError != models.CallbackAccessBlocked || dlrCalls != 2 {
 		t.Fatal("old DLR destination used")
+	}
+	var currentCredential models.APICredential
+	if err := db.First(&currentCredential, credential.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	if currentCredential.CallbackURL == blocked.URL {
+		t.Fatalf("test fixture did not change callback URL: current=%q job=%q", currentCredential.CallbackURL, blocked.URL)
+	}
+	var matchingCredential int64
+	if err := db.Table("api_credentials").Where("id=? AND callback_url=? AND callback_url_version=?", blocked.CredentialID, blocked.URL, blocked.URLVersion).Count(&matchingCredential).Error; err != nil || matchingCredential != 0 {
+		t.Fatalf("stale callback unexpectedly matches credential: count=%d err=%v", matchingCredential, err)
+	}
+	if err := callbacks.RetryCallback(ctx, 0, blocked.ID); err == nil {
+		t.Fatalf("stale callback retry succeeded: credential=%d credential_url=%q job_url=%q credential_version=%d job_version=%d enabled=%t active=%t", currentCredential.ID, currentCredential.CallbackURL, blocked.URL, currentCredential.CallbackURLVersion, blocked.URLVersion, currentCredential.CallbacksEnabled, currentCredential.Active)
+	} else {
+		assertCode(t, err, apperrors.CodeConflict)
 	}
 	// MO uses the same current-destination policy.
 	nextMO := input

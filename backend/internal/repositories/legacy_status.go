@@ -2,15 +2,17 @@ package repositories
 
 import (
 	"context"
+	"time"
+
 	"github.com/21mobile/sms-gateway/internal/models"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
-type LegacyStatuses struct{ db *gorm.DB }
+type V1Statuses struct{ db *gorm.DB }
 
-func NewLegacyStatuses(db *gorm.DB) *LegacyStatuses { return &LegacyStatuses{db: db} }
-func (r *LegacyStatuses) Consume(ctx context.Context, credentialID uint64, limit int) ([]models.SMSAttempt, error) {
+func NewV1Statuses(db *gorm.DB) *V1Statuses { return &V1Statuses{db: db} }
+func (r *V1Statuses) Consume(ctx context.Context, credentialID uint64, limit int) ([]models.SMSAttempt, error) {
 	rows := []models.SMSAttempt{}
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Serializes polling for this account without locking callback writers or sends.
@@ -29,6 +31,19 @@ func (r *LegacyStatuses) Consume(ctx context.Context, credentialID uint64, limit
 		}
 		return tx.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "attempt_id"}}, DoUpdates: clause.AssignmentColumns([]string{"delivery_updated_at", "delivery_status"})}).Create(&receipts).Error
 	})
+	return rows, err
+}
+
+func (r *V1Statuses) ByDate(ctx context.Context, credentialID uint64, start, end time.Time, correlationID, destination string, limit int) ([]models.SMSAttempt, error) {
+	rows := []models.SMSAttempt{}
+	q := r.db.WithContext(ctx).Where("credential_id = ? AND created_at >= ? AND created_at < ?", credentialID, start, end)
+	if correlationID != "" {
+		q = q.Where("correlation_id = ?", correlationID)
+	}
+	if destination != "" {
+		q = q.Where("destination = ?", destination)
+	}
+	err := q.Order("id ASC").Limit(limit).Find(&rows).Error
 	return rows, err
 }
 

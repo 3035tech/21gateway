@@ -630,7 +630,7 @@
     "next24h": "Next 24 h",
     "processing": "Processing",
     "queuedTotal": "Total queued",
-    "recordedMessages": "Recorded messages",
+    "recordedMessages": "Recorded messages (last 30 days)",
     "historyTotal": "Includes token test SMS; view those tests on the company page.",
     "open": "Open",
     "accepted": "Accepted",

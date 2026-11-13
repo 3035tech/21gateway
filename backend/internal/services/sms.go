@@ -53,7 +53,7 @@ type SMSService struct {
 	limiter       SendLimiter
 	repository    AttemptRepository
 	provider      SMSProvider
-	limits        sync.Map
+	localLimits   sync.Map // process-local limiters for company test/diagnostic only
 	history       *security.SMSHistoryVault
 	callbackLevel smsprovider.CallbackLevel
 }
@@ -94,15 +94,10 @@ func (s *SMSService) SendCompanyTest(ctx context.Context, company models.Company
 	return response.MessageID, nil
 }
 
+
 func (s *SMSService) allowCompanyTest(companyID uint64) bool {
 	key := "company-test:" + strconv.FormatUint(companyID, 10)
-	cached, _ := s.limits.LoadOrStore(key, rate.NewLimiter(rate.Every(sendRateWindow), sendRateBurst))
-	return cached.(*rate.Limiter).Allow()
-}
-
-func (s *SMSService) allowCompanyDiagnostic(companyID uint64) bool {
-	key := "company-diagnostic:" + strconv.FormatUint(companyID, 10)
-	cached, _ := s.limits.LoadOrStore(key, rate.NewLimiter(rate.Every(time.Minute), 1))
+	cached, _ := s.localLimits.LoadOrStore(key, rate.NewLimiter(rate.Every(sendRateWindow), sendRateBurst))
 	return cached.(*rate.Limiter).Allow()
 }
 
@@ -125,18 +120,7 @@ func (s *SMSService) Send(ctx context.Context, credentialID uint64, messages []d
 		return []dtos.LegacySendResult{failure(dtos.LegacySMS{}, apperrors.CodeInvalidRequest)}, nil
 	}
 	if s.asyncQueue != nil {
-		allowed, err := s.allow(ctx, credentialID, 0)
-		if err != nil {
-			return nil, apperrors.Wrap(apperrors.CodeServiceUnavailable, err)
-		}
-		if !allowed {
-			results := make([]dtos.LegacySendResult, len(messages))
-			for i, input := range messages {
-				results[i] = failure(input, apperrors.CodeRateLimited)
-			}
-			return results, nil
-		}
-		return s.asyncQueue.EnqueueAll(ctx, credentialID, messages)
+		return s.sendQueued(ctx, credentialID, messages)
 	}
 	if s.scheduler != nil {
 		for _, m := range messages {
@@ -148,7 +132,25 @@ func (s *SMSService) Send(ctx context.Context, credentialID uint64, messages []d
 	if len(messages) > 1 {
 		return s.sendBatch(ctx, credentialID, messages)
 	}
-	input := messages[0]
+	return s.sendSingle(ctx, credentialID, messages[0])
+}
+
+func (s *SMSService) sendQueued(ctx context.Context, credentialID uint64, messages []dtos.LegacySMS) ([]dtos.LegacySendResult, error) {
+	allowed, err := s.allow(ctx, credentialID, 0)
+	if err != nil {
+		return nil, apperrors.Wrap(apperrors.CodeServiceUnavailable, err)
+	}
+	if !allowed {
+		results := make([]dtos.LegacySendResult, len(messages))
+		for i, input := range messages {
+			results[i] = failure(input, apperrors.CodeRateLimited)
+		}
+		return results, nil
+	}
+	return s.asyncQueue.EnqueueAll(ctx, credentialID, messages)
+}
+
+func (s *SMSService) sendSingle(ctx context.Context, credentialID uint64, input dtos.LegacySMS) ([]dtos.LegacySendResult, error) {
 	normalized, normalizationCode := prepareSMSText(input.MessageText)
 	if normalizationCode != apperrors.CodeNone {
 		return []dtos.LegacySendResult{failure(input, normalizationCode)}, nil
@@ -280,20 +282,20 @@ func failure(input dtos.LegacySMS, code apperrors.Code) dtos.LegacySendResult {
 	return result
 }
 
-// Limits apply per credential in this process. Multi-replica deployments require a shared limiter.
-func (s *SMSService) allowSend(credentialID uint64) bool {
-	cached, ok := s.limits.Load(credentialID)
-	if !ok {
-		cached, _ = s.limits.LoadOrStore(credentialID, rate.NewLimiter(rate.Every(sendRateWindow), sendRateBurst))
-	}
-	return cached.(*rate.Limiter).Allow()
-}
 
 func NewSMSServiceWithLimiter(repo AttemptRepository, provider SMSProvider, limiter SendLimiter) *SMSService {
 	service := NewSMSService(repo, provider)
 	service.limiter = limiter
 	return service
 }
+
+// allowSend is a process-local fallback used only in tests. Production always
+// injects a shared SendLimiter via NewSMSServiceWithLimiter.
+func (s *SMSService) allowSend(credentialID uint64) bool {
+	cached, _ := s.localLimits.LoadOrStore(credentialID, rate.NewLimiter(rate.Every(sendRateWindow), sendRateBurst))
+	return cached.(*rate.Limiter).Allow()
+}
+
 func (s *SMSService) allow(ctx context.Context, id uint64, count int) (bool, error) {
 	if s.limiter != nil {
 		return s.limiter.Allow(ctx, id, count)

@@ -265,7 +265,7 @@ func TestPostgresBackofficeAndOutbox(t *testing.T) {
 	if err := isolated.Create(&rows).Error; err != nil {
 		t.Fatal(err)
 	}
-	polling := repositories.NewLegacyStatuses(isolated)
+	polling := repositories.NewV1Statuses(isolated)
 	first, err := polling.Consume(ctx, legacySaved.ID, dtos.LegacyStatusPageSize)
 	if err != nil || len(first) != 100 {
 		t.Fatal("first poll", len(first), err)
@@ -420,7 +420,7 @@ func TestPostgresBackofficeAndOutbox(t *testing.T) {
 	assertCode(t, moService.Accept(ctx, cross), apperrors.CodeConflict)
 
 	// Queries remain available with MO delivery disabled and never consume jobs/events.
-	queryMO := NewLegacyMOService(moRepo, moVault)
+	queryMO := NewV1MOService(moRepo, moVault)
 	for range 2 {
 		result, err := queryMO.Query(ctx, legacySaved.ID, moInput.Body.ReceivedAt.Unix())
 		if err != nil || len(result.ListMO) != 1 || result.ListMO[0].Message != moInput.Body.Message {
@@ -495,7 +495,7 @@ func TestPostgresBackofficeAndOutbox(t *testing.T) {
 	if err := isolated.Where("content_purged_at IS NOT NULL").First(&purged).Error; err != nil || purged.EncryptedMessage != "" || purged.Fingerprint == "" {
 		t.Fatal("content/tombstone retention", err)
 	}
-	remaining, err := NewLegacyMOService(moRepo, rotatingMO).Query(ctx, legacySaved.ID, historical.Unix())
+	remaining, err := NewV1MOService(moRepo, rotatingMO).Query(ctx, legacySaved.ID, historical.Unix())
 	if err != nil || len(remaining.ListMO) != 1 {
 		t.Fatal("pending content lost", err)
 	}

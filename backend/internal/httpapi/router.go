@@ -28,10 +28,10 @@ type Dependencies struct {
 	OperationsEnabled             bool
 	OperationsToken               string
 	HealthDependenciesTokenSHA256 string
-	LegacyMO                      *services.LegacyMOService
+	V1MO                          *services.V1MOService
 	MO                            *services.MOService
 	MOIngressEnabled              bool
-	LegacyStatuses                *services.LegacyStatusService
+	V1Statuses                    *services.V1StatusService
 	Users                         *services.UserService
 	UserMFA                       *services.UserMFAService
 	UserRecovery                  *services.UserRecoveryService
@@ -71,7 +71,7 @@ func New(origins []string, docsEnabled bool, ping func(context.Context) error, d
 			next.ServeHTTP(w, r)
 		})
 	})
-	router.Use(cors.Handler(cors.Options{AllowedOrigins: origins, AllowedMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"}, AllowedHeaders: []string{"Accept", "Accept-Language", "Authorization", "Content-Type", "X-CSRF-Token"}, AllowCredentials: true, MaxAge: config.CORSMaxAgeSeconds}))
+	router.Use(cors.Handler(cors.Options{AllowedOrigins: origins, AllowedMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"}, AllowedHeaders: []string{"Accept", "Accept-Language", "Authorization", "Content-Type"}, AllowCredentials: true, MaxAge: config.CORSMaxAgeSeconds}))
 	if dependencies.Sessions != nil {
 		router.Use(AdminMiddleware(dependencies.Sessions, origins))
 	}
@@ -151,11 +151,11 @@ func New(origins []string, docsEnabled bool, ping func(context.Context) error, d
 	if dependencies.Auth != nil {
 		controllers.NewCredentialCheckController(dependencies.Auth).Register(api)
 	}
-	if dependencies.LegacyStatuses != nil && dependencies.Auth != nil {
-		controllers.NewLegacyStatusController(dependencies.LegacyStatuses, dependencies.Auth).Register(api)
+	if dependencies.V1Statuses != nil && dependencies.Auth != nil {
+		controllers.NewV1StatusController(dependencies.V1Statuses, dependencies.Auth).Register(api)
 	}
-	if dependencies.LegacyMO != nil && dependencies.Auth != nil {
-		controllers.NewLegacyMOController(dependencies.LegacyMO, dependencies.Auth).Register(api)
+	if dependencies.V1MO != nil && dependencies.Auth != nil {
+		controllers.NewV1MOController(dependencies.V1MO, dependencies.Auth).Register(api)
 	}
 	if docsEnabled {
 		limitOpenAPIToClientIntegration(api.OpenAPI())
@@ -170,11 +170,13 @@ func New(origins []string, docsEnabled bool, ping func(context.Context) error, d
 
 func limitOpenAPIToClientIntegration(spec *huma.OpenAPI) {
 	clientPaths := map[string]bool{
-		controllers.LegacySendPath:       true,
-		controllers.SubmissionStatusPath: true,
-		controllers.LegacyStatusPath:     true,
-		controllers.LegacyMOPath:         true,
-		"/v1/auth/check":                 true,
+		controllers.V1SendPath:              true,
+		controllers.SubmissionStatusPath:    true,
+		controllers.V1StatusPath:            true,
+		controllers.V1StatusByDatePath:      true,
+		controllers.V1StatusByDateSlashPath: true,
+		controllers.V1MOPath:                true,
+		"/v1/auth/check":                    true,
 	}
 	for path := range spec.Paths {
 		if !clientPaths[path] {

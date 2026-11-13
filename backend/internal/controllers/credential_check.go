@@ -17,7 +17,7 @@ func NewCredentialCheckController(auth *services.AuthService) *CredentialCheckCo
 }
 
 func (c *CredentialCheckController) Register(api huma.API) {
-	guard := NewLegacyGuard(c.auth)
+	guard := NewV1Guard(c.auth)
 	guard.RegisterSecurity(api)
 	operation := huma.Operation{
 		OperationID:   "checkCredentialAccess",

@@ -15,11 +15,11 @@ const SubmissionStatusPath = "/v1/send/result"
 
 type SubmissionController struct {
 	service *services.SubmissionService
-	guard   *LegacyGuard
+	guard   *V1Guard
 }
 
 func NewSubmissionController(service *services.SubmissionService, auth *services.AuthService) *SubmissionController {
-	return &SubmissionController{service: service, guard: NewLegacyGuard(auth)}
+	return &SubmissionController{service: service, guard: NewV1Guard(auth)}
 }
 
 func (c *SubmissionController) Register(api huma.API) {

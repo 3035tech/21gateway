@@ -6,6 +6,13 @@ import (
 	"crypto/subtle"
 	"encoding/hex"
 	"errors"
+	"strconv"
+	"sync"
+	"time"
+	"unicode/utf8"
+
+	"golang.org/x/time/rate"
+
 	"github.com/21mobile/sms-gateway/internal/dtos"
 	apperrors "github.com/21mobile/sms-gateway/internal/errors"
 	"github.com/21mobile/sms-gateway/internal/integrations/whitelabel"
@@ -16,8 +23,6 @@ import (
 	"github.com/google/uuid"
 	"log/slog"
 	"strings"
-	"time"
-	"unicode/utf8"
 )
 
 const testSMSMessage = "Teste de integracao 21 Mobile."
@@ -34,6 +39,13 @@ type MessageService struct {
 	testAllowAnyDestination   bool
 	history                   *security.SMSHistoryVault
 	diagnosticDestinationHash string
+	localLimits               sync.Map // process-local limiters for test/diagnostic operations
+}
+
+func (s *MessageService) allowDiagnostic(companyID uint64) bool {
+	key := "diagnostic:" + strconv.FormatUint(companyID, 10)
+	cached, _ := s.localLimits.LoadOrStore(key, rate.NewLimiter(rate.Every(time.Minute), 1))
+	return cached.(*rate.Limiter).Allow()
 }
 
 func NewMessageService(repo *repositories.SMSAttempts) *MessageService {
@@ -242,7 +254,7 @@ func (s *MessageService) DiagnoseCompany(ctx context.Context, actor uint64, publ
 	if !company.Active || company.ProviderTokenEncrypted == "" {
 		return empty, apperrors.Wrap(apperrors.CodeConflict, nil)
 	}
-	if !s.sender.allowCompanyDiagnostic(company.ID) {
+	if !s.allowDiagnostic(company.ID) {
 		return empty, apperrors.Wrap(apperrors.CodeRateLimited, nil)
 	}
 	if err := s.audit.CreateEvent(ctx, &actor, "zoug_diagnostic_requested", string(security.ResourceCompanies), &company.ID); err != nil {

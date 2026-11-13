@@ -62,7 +62,9 @@ func (c *ProviderCallbackController) receive(w http.ResponseWriter, r *http.Requ
 		}
 		attrs := []any{"request_id", middleware.GetReqID(r.Context()), "method", r.Method, "route", providerCallbackRoute, "peer", r.RemoteAddr, "client_ip", security.ClientIP(r), "http_status", status, "reason", reason}
 		if body != nil {
-			attrs = append(attrs, "request_headers", callbackLogHeaders(r.Header), "request_body", string(body))
+			// A malformed callback can still contain an MO. Keep diagnostic
+			// logging free of raw payloads and headers.
+			attrs = append(attrs, "payload_bytes", len(body))
 		}
 		slog.Info("provider callback exchange", attrs...)
 	}()
@@ -129,14 +131,4 @@ func (c *ProviderCallbackController) receive(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
-}
-
-func callbackLogHeaders(headers http.Header) http.Header {
-	copy := headers.Clone()
-	for _, name := range []string{"Authorization", "Proxy-Authorization", "Cookie", "Set-Cookie", "X-API-TOKEN"} {
-		if copy.Get(name) != "" {
-			copy.Set(name, "[redacted]")
-		}
-	}
-	return copy
 }

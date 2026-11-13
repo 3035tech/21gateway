@@ -68,6 +68,10 @@ func (c *Client) Diagnose(ctx context.Context, runID string, companyID, actorID 
 	for _, probe := range probes {
 		started := time.Now()
 		result := DiagnosticResult{CaseID: probe.id, RequestBody: probe.body, ContentType: probe.contentType, Auth: probe.auth}
+		if destination != "" {
+			result.RequestBody = strings.ReplaceAll(result.RequestBody, "55"+destination, "[TEST_DESTINATION]")
+			result.RequestBody = strings.ReplaceAll(result.RequestBody, destination, "[TEST_DESTINATION]")
+		}
 		caseCtx, cancel := context.WithTimeout(ctx, time.Second)
 		method, endpoint := probe.method, c.endpoint
 		if method == "" {
