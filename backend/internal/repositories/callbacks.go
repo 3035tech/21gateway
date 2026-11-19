@@ -233,15 +233,14 @@ func (r *Callbacks) RetryCallback(ctx context.Context, actor, id uint64) error {
 		if job.State != models.CallbackFailed || attempt.DeliveryStatus != string(job.Status) {
 			return apperrors.Wrap(apperrors.CodeConflict, nil)
 		}
-		var credential models.APICredential
-		if err := repo.db.First(&credential, job.CredentialID).Error; err != nil {
-			return err
+		result := repo.db.Model(&models.CallbackJob{}).
+			Where("id = ? AND state = ? AND EXISTS (SELECT 1 FROM api_credentials WHERE api_credentials.id = callback_jobs.credential_id AND api_credentials.callbacks_enabled AND api_credentials.active AND api_credentials.archived_at IS NULL AND api_credentials.callback_url = callback_jobs.url AND api_credentials.callback_url_version = callback_jobs.url_version)", id, models.CallbackFailed).
+			Updates(map[string]any{"state": models.CallbackPending, "attempts": 0, "last_error": "", "available_at": time.Now().UTC()})
+		if result.Error != nil {
+			return result.Error
 		}
-		if !credential.CallbacksEnabled || !credential.Active || credential.ArchivedAt != nil || credential.CallbackURL != job.URL || credential.CallbackURLVersion != job.URLVersion {
+		if result.RowsAffected != 1 {
 			return apperrors.Wrap(apperrors.CodeConflict, nil)
-		}
-		if err := repo.db.Model(&job).Updates(map[string]any{"state": models.CallbackPending, "attempts": 0, "last_error": "", "available_at": time.Now().UTC()}).Error; err != nil {
-			return err
 		}
 		return repo.Audit(ctx, &actor, "callback_retried", "callbacks", &id)
 	})
