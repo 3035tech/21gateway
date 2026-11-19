@@ -35,6 +35,17 @@ type CompanyBody struct {
 	Reference          string                  `json:"reference" maxLength:"64"`
 	Active             bool                    `json:"active"`
 }
+type ProviderTokenCheckBody struct {
+	Token string `json:"token" maxLength:"4096" writeOnly:"true"`
+}
+type ProviderTokenCheckInput struct {
+	IDInput
+	Body ProviderTokenCheckBody
+}
+type ProviderTokenCheckResult struct {
+	Status string `json:"status" enum:"valid,invalid,unconfirmed"`
+}
+type ProviderTokenCheckOutput struct{ Body ProviderTokenCheckResult }
 type CreateCompanyInput struct{ Body CompanyBody }
 type UpdateCompanyInput struct {
 	IDInput

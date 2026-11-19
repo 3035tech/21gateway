@@ -164,6 +164,7 @@
     "companyAccess": "Select at least one company for this role and do not repeat assignments.",
     "invalidUsername": "Invalid username.",
     "invalidToken": "Invalid token.",
+    "providerTokenRejected": "Zoug rejected this token. Enter a different token before saving.",
     "httpsUrl": "Use a valid HTTPS URL.",
     "legacyId": "Use a legacy ID such as 2340 or 2340_779.",
     "callbackDestination": "Enter the callback destination.",
@@ -244,7 +245,7 @@
     "providerConfigured": "Zoug token configured. It is shared by every API credential for this company.",
     "providerSaved": "Token saved",
     "providerNotSaved": "No token saved",
-    "providerStoredHint": "The value is protected and hidden after saving. Confirm it works with a test send.",
+    "providerStoredHint": "The value is protected and hidden after saving. In edit mode, validate the token without sending SMS.",
     "providerLegacy": "Legacy tokens exist on API credentials. Add this company's single Zoug token here to centralize sending.",
     "providerMissing": "Zoug token not configured. The provider issues this token; the gateway does not generate it.",
     "providerToken": "Token issued by Zoug",
@@ -252,6 +253,15 @@
     "providerTest": "Send test SMS",
     "providerIssuedHint": "Paste the token received from the provider. Leave blank to keep the current one; it will not be shown after saving.",
     "providerNewHint": "Paste the token received from the provider. It will not be shown after saving.",
+    "providerCheck": "Validate token without sending SMS",
+    "providerChecking": "Validating token…",
+    "providerSavedVerified": "Company saved. The Zoug token was validated; no SMS was sent.",
+    "providerSavedUnverified": "Company saved. The Zoug token has not been validated.",
+    "providerCheckResult": {
+      "valid": "Zoug accepted the token and rejected the invalid test request. No SMS was sent.",
+      "invalid": "Zoug rejected the token (unauthorized). No SMS was sent.",
+      "unconfirmed": "The token could not be confirmed. No SMS was sent; try again later."
+    },
     "providerRemove": "Remove the Zoug token and block new sends for this company",
     "providerManage": "Manage token"
   },

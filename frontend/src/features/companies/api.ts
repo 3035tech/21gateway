@@ -95,6 +95,18 @@ export async function saveCompany(id: number | undefined, body: CompanyBody) {
   if (id) await api.put(`/admin/companies/${id}`, payload)
   else await api.post('/admin/companies', payload)
 }
+const providerTokenCheckSchema = z.object({
+  status: z.enum(['valid', 'invalid', 'unconfirmed']),
+})
+export type ProviderTokenCheck = z.infer<typeof providerTokenCheckSchema>
+export async function checkCompanyProviderToken(id: number, token: string) {
+  return apiPost(
+    `/admin/companies/${id}/provider-token/check`,
+    providerTokenCheckSchema,
+    { token },
+    { timeout: 15_000 },
+  )
+}
 export async function archiveCompany(id: number) {
   await api.delete(`/admin/companies/${id}`)
 }

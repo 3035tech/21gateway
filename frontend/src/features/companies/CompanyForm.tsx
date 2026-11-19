@@ -8,7 +8,10 @@ import { useAdminMutation } from '../../components/admin/useAdminMutation'
 import { useTranslation } from 'react-i18next'
 import { AppSelect } from '../../components/admin/AppSelect'
 import { useState } from 'react'
-import { ChevronDown, Info, Plus, X } from 'lucide-react'
+import { useMutation } from '@tanstack/react-query'
+import { Check, ChevronDown, Info, LoaderCircle, Plus, X } from 'lucide-react'
+import { errorMessage } from '../../lib/admin'
+import { checkCompanyProviderToken } from './api'
 import {
   CHANNEL_SMS,
   PROVIDER_GOOGLE,
@@ -44,11 +47,43 @@ export function CompanyForm({
       smsProvider: SMS_PROVIDER_ZOUG,
     },
   })
+  const providerToken = useWatch({
+    control: form.control,
+    name: 'providerToken',
+  })
+  const tokenCheck = useMutation({
+    mutationFn: (token: string) => checkCompanyProviderToken(company!.id, token),
+  })
   const mutation = useAdminMutation<CompanyBody>(
     (body) => saveCompany(company?.id, body),
     onClose,
-    company ? 'feedback.updated' : 'feedback.created',
+    (body) => {
+      if (body.providerToken) {
+        return tokenCheck.variables === body.providerToken &&
+          tokenCheck.data?.status === 'valid'
+          ? 'companies.providerSavedVerified'
+          : 'companies.providerSavedUnverified'
+      }
+      return company ? 'feedback.updated' : 'feedback.created'
+    },
   )
+  const submitCompany = (body: CompanyBody) => {
+    if (
+      body.providerToken &&
+      tokenCheck.variables === body.providerToken &&
+      tokenCheck.data?.status === 'invalid'
+    ) {
+      form.setError('providerToken', {
+        type: 'server',
+        message: 'validation.providerTokenRejected',
+      })
+      return
+    }
+    mutation.mutate({
+      ...body,
+      ...(plannedRoutesChanged ? { plannedRoutes } : {}),
+    })
+  }
   const clearProviderToken = useWatch({
     control: form.control,
     name: 'clearProviderToken',
@@ -96,12 +131,7 @@ export function CompanyForm({
     >
       <form
         className="space-y-5"
-        onSubmit={form.handleSubmit((body) =>
-          mutation.mutate({
-            ...body,
-            ...(plannedRoutesChanged ? { plannedRoutes } : {}),
-          }),
-        )}
+        onSubmit={form.handleSubmit(submitCompany)}
       >
         <label className="field">
           {t('common.name')}
@@ -295,6 +325,38 @@ export function CompanyForm({
             <FieldError
               message={form.formState.errors.providerToken?.message}
             />
+            {company ? (
+              <div className="mt-3 space-y-2">
+                <button
+                  type="button"
+                  className="button-secondary inline-flex items-center gap-2"
+                  disabled={!providerToken?.trim() || tokenCheck.isPending}
+                  onClick={() => tokenCheck.mutate(providerToken ?? '')}
+                >
+                  {tokenCheck.isPending ? (
+                    <LoaderCircle size={16} className="animate-spin" aria-hidden="true" />
+                  ) : (
+                    <Check size={16} aria-hidden="true" />
+                  )}
+                  {tokenCheck.isPending
+                    ? t('companies.providerChecking')
+                    : t('companies.providerCheck')}
+                </button>
+                {tokenCheck.isError ? (
+                  <p role="alert" className="text-sm text-rose-700">
+                    {errorMessage(tokenCheck.error)}
+                  </p>
+                ) : null}
+                {tokenCheck.data && tokenCheck.variables === providerToken ? (
+                  <p
+                    role="status"
+                    className={`text-sm font-medium ${tokenCheck.data.status === 'valid' ? 'text-emerald-700' : tokenCheck.data.status === 'invalid' ? 'text-rose-700' : 'text-amber-800'}`}
+                  >
+                    {t(`companies.providerCheckResult.${tokenCheck.data.status}`)}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
           </label>
         ) : null}
         {company?.providerTokenConfigured ? (

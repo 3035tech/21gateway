@@ -164,6 +164,7 @@
     "companyAccess": "Selecione ao menos uma empresa para este perfil e não repita vínculos.",
     "invalidUsername": "Usuário inválido.",
     "invalidToken": "Token inválido.",
+    "providerTokenRejected": "A Zoug rejeitou este token. Informe outro token antes de salvar.",
     "httpsUrl": "Use uma URL HTTPS válida.",
     "legacyId": "Use o ID legado, como 2340 ou 2340_779.",
     "callbackDestination": "Informe o destino do callback.",
@@ -244,7 +245,7 @@
     "providerConfigured": "Token Zoug configurado. Ele é compartilhado por todas as credenciais da API desta empresa.",
     "providerSaved": "Token salvo",
     "providerNotSaved": "Token não cadastrado",
-    "providerStoredHint": "O valor fica protegido e não é exibido após o cadastro. Confirme o funcionamento com um envio de teste.",
+    "providerStoredHint": "O valor fica protegido e não é exibido após o cadastro. Na edição, valide o token sem enviar SMS.",
     "providerLegacy": "Há tokens legados nas credenciais da API. Cadastre aqui o token Zoug único desta empresa para centralizar o envio.",
     "providerMissing": "Token Zoug não configurado. O fornecedor fornece esse token; ele não é gerado pelo gateway.",
     "providerToken": "Token fornecido pela Zoug",
@@ -252,6 +253,15 @@
     "providerTest": "Enviar SMS de teste",
     "providerIssuedHint": "Cole o token recebido do fornecedor. Deixe vazio para manter o atual; o valor não será exibido depois de salvar.",
     "providerNewHint": "Cole o token recebido do fornecedor. O valor não será exibido depois de salvar.",
+    "providerCheck": "Validar token sem enviar SMS",
+    "providerChecking": "Validando token…",
+    "providerSavedVerified": "Empresa salva. O token Zoug foi validado; nenhum SMS foi enviado.",
+    "providerSavedUnverified": "Empresa salva. O token Zoug ainda não foi validado.",
+    "providerCheckResult": {
+      "valid": "A Zoug aceitou o token e rejeitou a solicitação de teste inválida. Nenhum SMS foi enviado.",
+      "invalid": "A Zoug rejeitou o token (não autorizado). Nenhum SMS foi enviado.",
+      "unconfirmed": "Não foi possível confirmar o token. Nenhum SMS foi enviado; tente novamente mais tarde."
+    },
     "providerRemove": "Remover o token Zoug e bloquear novos envios desta empresa",
     "providerManage": "Gerenciar token"
   },

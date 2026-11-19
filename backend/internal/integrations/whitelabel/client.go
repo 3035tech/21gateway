@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	smsprovider "github.com/21mobile/sms-gateway/internal/providers/sms"
+	"github.com/google/uuid"
 
 	apperrors "github.com/21mobile/sms-gateway/internal/errors"
 	"github.com/21mobile/sms-gateway/internal/models"
@@ -38,6 +38,16 @@ const (
 	maxResponseBytes                    = 64 << 10
 	maxConnectionsPerHost               = 100
 	idleConnectionTimeout               = 90 * time.Second
+)
+
+const tokenCheckBody = `{"type":"INVALID","message":"","encoding":"INVALID","destination_addr":"invalid"}`
+
+type TokenCheckStatus string
+
+const (
+	TokenCheckValid       TokenCheckStatus = "valid"
+	TokenCheckInvalid     TokenCheckStatus = "invalid"
+	TokenCheckUnconfirmed TokenCheckStatus = "unconfirmed"
 )
 
 type SendRequest struct {
@@ -88,6 +98,35 @@ func (c *Client) Enabled() bool { return strings.TrimSpace(c.token) != "" }
 func (c *Client) Close()        { c.http.CloseIdleConnections() }
 func (c *Client) SetLogUnexpectedResponseBody(enabled bool) {
 	c.logUnexpectedResponseBody = enabled
+}
+
+// CheckToken sends one deliberately invalid request with no deliverable
+// destination. Zoug has returned 401 for invalid tokens and 422 for these
+// invalid payloads with accepted tokens. Other responses are inconclusive.
+func (c *Client) CheckToken(ctx context.Context, token string) TokenCheckStatus {
+	if strings.TrimSpace(token) == "" {
+		return TokenCheckInvalid
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, c.endpoint, strings.NewReader(tokenCheckBody))
+	if err != nil {
+		return TokenCheckUnconfirmed
+	}
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set(tokenHeader, token)
+	response, err := c.http.Do(request)
+	if err != nil {
+		return TokenCheckUnconfirmed
+	}
+	defer response.Body.Close()
+	_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, maxResponseBytes))
+	switch response.StatusCode {
+	case http.StatusUnauthorized:
+		return TokenCheckInvalid
+	case http.StatusUnprocessableEntity:
+		return TokenCheckValid
+	default:
+		return TokenCheckUnconfirmed
+	}
 }
 
 func SelectEncoding(message string) Encoding {

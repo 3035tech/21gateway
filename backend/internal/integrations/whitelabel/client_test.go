@@ -53,6 +53,61 @@ func TestObservedSuccessAcknowledgement(t *testing.T) {
 	}
 }
 
+func TestCheckTokenUsesRejectedPayloadAndClassifiesProviderResponse(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		status int
+		want   TokenCheckStatus
+	}{
+		{name: "unauthorized", status: http.StatusUnauthorized, want: TokenCheckInvalid},
+		{name: "invalid payload means token accepted", status: http.StatusUnprocessableEntity, want: TokenCheckValid},
+		{name: "rate limited is inconclusive", status: http.StatusTooManyRequests, want: TokenCheckUnconfirmed},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			transport := httpmock.NewMockTransport()
+			transport.RegisterResponder(http.MethodPost, testBaseURL+"/api/send", func(r *http.Request) (*http.Response, error) {
+				if r.Header.Get(tokenHeader) != "candidate-token" {
+					t.Error("candidate token was not sent")
+				}
+				var body map[string]string
+				if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+					t.Fatal(err)
+				}
+				if body["type"] != "INVALID" || body["encoding"] != "INVALID" || body["destination_addr"] != "invalid" || body["message"] != "" {
+					t.Errorf("unexpected non-deliverable validation payload: %#v", body)
+				}
+				return httpmock.NewStringResponse(tc.status, ""), nil
+			})
+			client, err := NewWithTransport(testBaseURL, "", transport)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer client.Close()
+			if got := client.CheckToken(context.Background(), "candidate-token"); got != tc.want {
+				t.Fatalf("CheckToken() = %q, want %q", got, tc.want)
+			}
+			if transport.GetTotalCallCount() != 1 {
+				t.Fatalf("request count = %d, want 1", transport.GetTotalCallCount())
+			}
+		})
+	}
+}
+
+func TestCheckTokenDoesNotRetryNetworkFailure(t *testing.T) {
+	transport := httpmock.NewMockTransport()
+	transport.RegisterResponder(http.MethodPost, testBaseURL+"/api/send", func(*http.Request) (*http.Response, error) {
+		return nil, context.DeadlineExceeded
+	})
+	client, err := NewWithTransport(testBaseURL, "", transport)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Close()
+	if got := client.CheckToken(context.Background(), "candidate-token"); got != TokenCheckUnconfirmed || transport.GetTotalCallCount() != 1 {
+		t.Fatalf("status=%q calls=%d", got, transport.GetTotalCallCount())
+	}
+}
+
 func TestProviderErrorsAreSafeAndNotRetried(t *testing.T) {
 	for _, tc := range []struct {
 		name   string

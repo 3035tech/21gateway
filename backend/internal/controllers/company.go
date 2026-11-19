@@ -18,6 +18,13 @@ func NewCompanyController(service *services.CompanyService, guard *SessionGuard)
 	return &CompanyController{SessionGuard: guard, service: service}
 }
 func (c *CompanyController) Register(api huma.API) {
+	huma.Register(api, c.operation(api, "checkCompanyProviderToken", http.MethodPost, "/companies/{id}/provider-token/check", "Validar token Zoug sem enviar SMS", security.ResourceCompanies, security.ActionWrite), func(ctx context.Context, input *dtos.ProviderTokenCheckInput) (*dtos.ProviderTokenCheckOutput, error) {
+		value, err := c.service.CheckProviderToken(ctx, actor(ctx), input.ID, input.Body.Token)
+		if err != nil {
+			return nil, HTTPError(err)
+		}
+		return &dtos.ProviderTokenCheckOutput{Body: value}, nil
+	})
 	huma.Register(api, c.operation(api, "getCompanyHealth", http.MethodGet, "/companies/by-ref/{publicRef}/health", "Consultar saúde da integração da empresa", security.ResourceCompanies, security.ActionRead), func(ctx context.Context, input *dtos.PublicRefInput) (*dtos.CompanyHealthOutput, error) {
 		value, err := c.service.Health(ctx, input.PublicRef)
 		if err != nil {

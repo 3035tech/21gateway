@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/21mobile/sms-gateway/internal/dtos"
 	apperrors "github.com/21mobile/sms-gateway/internal/errors"
+	"github.com/21mobile/sms-gateway/internal/integrations/whitelabel"
 	"github.com/21mobile/sms-gateway/internal/models"
 	"github.com/21mobile/sms-gateway/internal/repositories"
 	"github.com/21mobile/sms-gateway/internal/security"
@@ -12,9 +13,14 @@ import (
 	"time"
 )
 
+const companyTokenCheckAction = "provider_token_check_requested"
+
 type CompanyService struct {
-	repository *repositories.Companies
-	vault      *security.TokenVault
+	repository   *repositories.Companies
+	vault        *security.TokenVault
+	tokenChecker interface {
+		CheckToken(context.Context, string) whitelabel.TokenCheckStatus
+	}
 }
 
 func NewCompanyService(repo *repositories.Companies) *CompanyService {
@@ -22,6 +28,12 @@ func NewCompanyService(repo *repositories.Companies) *CompanyService {
 }
 func NewCompanyServiceWithVault(repo *repositories.Companies, vault *security.TokenVault) *CompanyService {
 	return &CompanyService{repository: repo, vault: vault}
+}
+func (s *CompanyService) WithProviderTokenChecker(checker interface {
+	CheckToken(context.Context, string) whitelabel.TokenCheckStatus
+}) *CompanyService {
+	s.tokenChecker = checker
+	return s
 }
 func (s *CompanyService) Companies(ctx context.Context, q dtos.ListQuery) (dtos.Page[dtos.CompanyView], error) {
 	values, err := s.repository.Companies(ctx, q)
@@ -75,6 +87,28 @@ func (s *CompanyService) Health(ctx context.Context, publicRef string) (dtos.Com
 	value, err := s.repository.Health(ctx, company.ID)
 	return value, dbError(err)
 }
+
+func (s *CompanyService) CheckProviderToken(ctx context.Context, actor, id uint64, token string) (dtos.ProviderTokenCheckResult, error) {
+	if id == 0 || strings.TrimSpace(token) == "" || len(token) > 4096 || strings.ContainsAny(token, "\r\n") {
+		return dtos.ProviderTokenCheckResult{}, apperrors.Wrap(apperrors.CodeInvalidRequest, nil)
+	}
+	company, err := s.repository.CompanyView(ctx, id)
+	if err != nil {
+		return dtos.ProviderTokenCheckResult{}, dbError(err)
+	}
+	if company.SMSProvider != models.ProviderZoug {
+		return dtos.ProviderTokenCheckResult{}, apperrors.Wrap(apperrors.CodeConflict, nil)
+	}
+	if err := s.repository.Audit(ctx, &actor, companyTokenCheckAction, string(security.ResourceCompanies), &id); err != nil {
+		return dtos.ProviderTokenCheckResult{}, dbError(err)
+	}
+	if s.tokenChecker == nil {
+		return dtos.ProviderTokenCheckResult{Status: string(whitelabel.TokenCheckUnconfirmed)}, nil
+	}
+	status := s.tokenChecker.CheckToken(ctx, token)
+	return dtos.ProviderTokenCheckResult{Status: string(status)}, nil
+}
+
 func (s *CompanyService) SaveCompany(ctx context.Context, actor, id uint64, body dtos.CompanyBody) (dtos.CompanyView, error) {
 	var result models.Company
 	if id == 0 && security.Scope(ctx).Restricted {

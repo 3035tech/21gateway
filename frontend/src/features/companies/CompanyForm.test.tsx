@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { beforeAll, expect, it, vi } from 'vitest'
 import { CompanyForm } from './CompanyForm'
 import { api } from '../../lib/api'
+import { FeedbackProvider } from '../../components/admin/Feedback'
 beforeAll(() => {
   HTMLDialogElement.prototype.showModal = function () {
     this.setAttribute('open', '')
@@ -50,6 +51,95 @@ it('submits the provider-issued token on the company record', async () => {
   })
   render(
     <QueryClientProvider client={client}>
+      <FeedbackProvider>
+        <CompanyForm
+          company={{
+            id: 4,
+            publicRef: '11111111-1111-4111-8111-111111111111',
+            name: 'Empresa teste',
+            reference: 'CLI-004',
+            active: true,
+            createdAt: '2026-10-27T10:00:00Z',
+            providerTokenConfigured: false,
+            legacyProviderTokenFallback: false,
+            smsProvider: 'zoug',
+            providerRoutes: [
+              { channel: 'sms', provider: 'zoug', status: 'active' },
+            ],
+          }}
+          onClose={vi.fn()}
+        />
+      </FeedbackProvider>
+    </QueryClientProvider>,
+  )
+  const user = userEvent.setup()
+  await user.type(
+    screen.getByLabelText(/^Token fornecido pela Zoug/),
+    'provider-test-token',
+  )
+  await user.click(screen.getByRole('button', { name: 'Salvar alterações' }))
+  await vi.waitFor(() =>
+    expect(put).toHaveBeenCalledWith('/admin/companies/4', {
+      name: 'Empresa teste',
+      reference: 'CLI-004',
+      active: true,
+      providerToken: 'provider-test-token',
+    }),
+  )
+  put.mockRestore()
+})
+
+it('shows a confirmed token result and says the company was saved', async () => {
+  const post = vi.spyOn(api, 'post').mockResolvedValue({ data: { status: 'valid' } })
+  const put = vi.spyOn(api, 'put').mockResolvedValue({ data: {} })
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  })
+  render(
+    <QueryClientProvider client={client}>
+      <FeedbackProvider>
+        <CompanyForm
+          company={{
+            id: 4,
+            publicRef: '11111111-1111-4111-8111-111111111111',
+            name: 'Empresa teste',
+            reference: 'CLI-004',
+            active: true,
+            createdAt: '2026-10-27T10:00:00Z',
+            providerTokenConfigured: false,
+            legacyProviderTokenFallback: false,
+            smsProvider: 'zoug',
+            providerRoutes: [
+              { channel: 'sms', provider: 'zoug', status: 'active' },
+            ],
+          }}
+          onClose={vi.fn()}
+        />
+      </FeedbackProvider>
+    </QueryClientProvider>,
+  )
+  const user = userEvent.setup()
+  await user.type(screen.getByLabelText(/^Token fornecido pela Zoug/), 'candidate-token')
+  await user.click(screen.getByRole('button', { name: 'Validar token sem enviar SMS' }))
+  expect(await screen.findByRole('status')).toHaveTextContent(
+    'A Zoug aceitou o token e rejeitou a solicitação de teste inválida. Nenhum SMS foi enviado.',
+  )
+  await user.click(screen.getByRole('button', { name: 'Salvar alterações' }))
+  expect(await screen.findByText('Empresa salva. O token Zoug foi validado; nenhum SMS foi enviado.')).toBeInTheDocument()
+  expect(post).toHaveBeenCalledWith('/admin/companies/4/provider-token/check', { token: 'candidate-token' }, expect.objectContaining({ timeout: 15_000 }))
+  expect(put).toHaveBeenCalledWith('/admin/companies/4', expect.objectContaining({ providerToken: 'candidate-token' }))
+  post.mockRestore()
+  put.mockRestore()
+})
+
+it('does not save a token after Zoug rejects it', async () => {
+  const post = vi.spyOn(api, 'post').mockResolvedValue({ data: { status: 'invalid' } })
+  const put = vi.spyOn(api, 'put').mockResolvedValue({ data: {} })
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  })
+  render(
+    <QueryClientProvider client={client}>
       <CompanyForm
         company={{
           id: 4,
@@ -70,19 +160,15 @@ it('submits the provider-issued token on the company record', async () => {
     </QueryClientProvider>,
   )
   const user = userEvent.setup()
-  await user.type(
-    screen.getByLabelText(/^Token fornecido pela Zoug/),
-    'provider-test-token',
+  await user.type(screen.getByLabelText(/^Token fornecido pela Zoug/), 'bad-token')
+  await user.click(screen.getByRole('button', { name: 'Validar token sem enviar SMS' }))
+  expect(await screen.findByRole('status')).toHaveTextContent(
+    'A Zoug rejeitou o token (não autorizado). Nenhum SMS foi enviado.',
   )
   await user.click(screen.getByRole('button', { name: 'Salvar alterações' }))
-  await vi.waitFor(() =>
-    expect(put).toHaveBeenCalledWith('/admin/companies/4', {
-      name: 'Empresa teste',
-      reference: 'CLI-004',
-      active: true,
-      providerToken: 'provider-test-token',
-    }),
-  )
+  expect(await screen.findByText('A Zoug rejeitou este token. Informe outro token antes de salvar.')).toBeInTheDocument()
+  expect(put).not.toHaveBeenCalled()
+  post.mockRestore()
   put.mockRestore()
 })
 

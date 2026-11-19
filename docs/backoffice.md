@@ -8,6 +8,8 @@ No cadastro da credencial, “Acesso do cliente · Basic Auth” define o userna
 
 Atualização de 27/10/2026: o token Zoug é cadastrado na ficha da empresa e compartilhado por suas várias credenciais Basic Auth. O gateway gera usuário/senha da API 21, mas apenas recebe o token emitido pela Zoug. A migração 020 preserva tokens antigos por credencial em fallback controlado até configurar o token único da empresa.
 
+Validação administrativa do token Zoug: na edição da empresa, o operador pode enviar o token candidato a `POST /admin/companies/{id}/provider-token/check`. O endpoint não persiste o token e não o inclui na auditoria. O adaptador envia ao endpoint de envio Zoug uma requisição deliberadamente inválida, com destino também inválido; conforme comportamento observado, HTTP 401 indica token rejeitado e HTTP 422 indica que a autenticação passou e o payload foi recusado. Demais respostas e falhas de rede são inconclusivas. Esta classificação é uma inferência operacional, não um contrato formal de validação da Zoug. O painel exige novo token após resultado 401; resultado inconclusivo permite salvar, mas informa que a validade não foi confirmada. Não se deve interpretar isso como homologação externa do fornecedor.
+
 > Escopo respondido em 14/10/2026: consulte docs/scope-answers.md. Este documento descreve o código existente; token por cliente, whitelist, MO e compatibilidade V1 completa ainda exigem ajustes. Painel solicitado pela 21 é focado em credenciais/configurações com perfil administrativo único. Não confundir recursos extras implementados com requisitos confirmados.
 ## Domínios e acessos
 

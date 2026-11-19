@@ -124,6 +124,7 @@ func run() error {
 		return apperrors.Wrap(apperrors.CodeConfigurationInvalid, err)
 	}
 	mos := repositories.NewMOs(db)
+	companyService := services.NewCompanyServiceWithVault(repositories.NewCompanies(db), vault).WithProviderTokenChecker(provider)
 	deps := httpapi.Dependencies{
 		// Infrastructure
 		ClientIPResolver: clientIPs,
@@ -136,7 +137,7 @@ func run() error {
 		UserMFA:     mfa,
 		UserRecovery: recovery,
 		// Domain services
-		Companies:   services.NewCompanyServiceWithVault(repositories.NewCompanies(db), vault),
+		Companies:   companyService,
 		Credentials: services.NewCredentialServiceWithVault(repositories.NewCredentials(db), vault),
 		SMS:         sender,
 		Submissions: services.NewSubmissionService(repositories.NewSMSAttempts(db)),
