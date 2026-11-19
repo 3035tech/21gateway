@@ -1,5 +1,7 @@
 # Ponto de retomada — 15/10/2026
 
+Atualização em 19/11/2026: Go foi atualizado para 1.27.4 em `backend/go.mod` e `backend/Dockerfile` para corrigir GO-2026-6859 (`net/http`, corrigida em 1.27.4). Validar `govulncheck` no CI e publicar binários recompilados antes de considerar a correção ativa em qualquer ambiente.
+
 ## Notificações em HML — 30/10/2026
 
 O commit `00d4203` está na `main` e a tag candidata `v0.2.0-rc.1` foi publicada; os builds de backend e frontend passaram. O GitOps `5932bdc` aplicou a migração 026 antes dos binários novos. Consulta direta ao banco `gateway21_hml` confirmou a migração e mostrou uma ocorrência com recibos para dois administradores; nenhum tipo está habilitado para e-mail. Argo CD mostrou API, frontend e worker saudáveis, e `/readyz` e a raiz do frontend responderam HTTP 200. O envio SMTP real não foi exercitado; habilitar tipos em `/notificacoes` somente após conferir os destinatários administrativos e o remetente.

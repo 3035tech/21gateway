@@ -1,5 +1,7 @@
 # Estado da implementação
 
+Em 19/11/2026, o toolchain Go foi atualizado de 1.27.3 para 1.27.4 em `backend/go.mod` e `backend/Dockerfile` para corrigir GO-2026-6859 na biblioteca padrão `net/http`. Reexecutar `govulncheck` no CI e validar a imagem recompilada antes de publicar.
+
 Em 31/10/2026, a base de roteamento por empresa/canal para provedores de SMS foi adicionada no código (migração 028). O contrato `/v1/send` continua intacto e a Zoug é o único adaptador ativo; não há envio RCS/WhatsApp nem segundo fornecedor conectado. O conector de protocolo Google/RCS foi preparado sem ativação no runtime, conforme [google-rcs.md](google-rcs.md). A migração 030 acrescenta rotas `planned` para RCS/WhatsApp no cadastro da empresa, preservando SMS/Zoug; ainda não foi aplicada em HML. A migração 028 foi aplicada em HML antes dos binários novos, com duas rotas SMS/Zoug verificadas. Consulte [sms-providers.md](sms-providers.md).
 
 A 21 confirmou que não possui parceria direta com o Google. Google/RCS permanece apenas como rota planejada; o formulário explica o requisito de acesso de parceiro e agente homologado na escolha e após o cadastro. Não existe envio ou webhook Google ativo e nenhum credencial fictícia foi criada.
