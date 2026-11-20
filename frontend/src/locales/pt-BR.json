@@ -847,6 +847,9 @@
   },
   "nav": {
     "overview": "Visão geral",
+    "management": "Gestão",
+    "operations": "Operação",
+    "system": "Sistema",
     "workQueue": "Fila operacional",
     "companies": "Empresas",
     "users": "Usuários",

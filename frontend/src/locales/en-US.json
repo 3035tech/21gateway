@@ -847,6 +847,9 @@
   },
   "nav": {
     "overview": "Overview",
+    "management": "Management",
+    "operations": "Operations",
+    "system": "System",
     "workQueue": "Operations queue",
     "companies": "Companies",
     "users": "Users",

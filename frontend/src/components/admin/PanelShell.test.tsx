@@ -58,21 +58,86 @@ it('keeps management navigation scoped to the user role', () => {
   }
   const view = render(
     <MemoryRouter>
-      <PanelShell {...props} admin={false}>Conteúdo</PanelShell>
+      <PanelShell {...props} admin={false}>
+        Conteúdo
+      </PanelShell>
     </MemoryRouter>,
   )
 
-  expect(screen.getAllByRole('link', { name: 'Empresas' }).length).toBeGreaterThan(0)
-  expect(screen.queryByRole('link', { name: 'Usuários' })).not.toBeInTheDocument()
+  expect(
+    screen.getAllByRole('link', { name: 'Empresas' }).length,
+  ).toBeGreaterThan(0)
+  expect(
+    screen.queryByRole('link', { name: 'Usuários' }),
+  ).not.toBeInTheDocument()
   expect(screen.queryByRole('link', { name: 'Envios' })).not.toBeInTheDocument()
-  expect(screen.queryByRole('link', { name: 'Callbacks' })).not.toBeInTheDocument()
+  expect(
+    screen.queryByRole('link', { name: 'Callbacks' }),
+  ).not.toBeInTheDocument()
 
   view.unmount()
   render(
     <MemoryRouter>
-      <PanelShell {...props} admin>Conteúdo</PanelShell>
+      <PanelShell {...props} admin>
+        Conteúdo
+      </PanelShell>
     </MemoryRouter>,
   )
-  expect(screen.getAllByRole('link', { name: 'Usuários' }).length).toBeGreaterThan(0)
+  expect(
+    screen.getAllByRole('link', { name: 'Usuários' }).length,
+  ).toBeGreaterThan(0)
   expect(screen.queryByRole('link', { name: 'Envios' })).not.toBeInTheDocument()
+})
+
+it('groups navigation and opens the group for the current page', () => {
+  render(
+    <MemoryRouter initialEntries={['/callbacks']}>
+      <PanelShell
+        name="Admin"
+        role="Administrador"
+        admin
+        demo
+        onLogout={vi.fn()}
+      >
+        Conteúdo
+      </PanelShell>
+    </MemoryRouter>,
+  )
+
+  const operationsGroups = screen.getAllByRole('button', { name: 'Operação' })
+  expect(operationsGroups).toHaveLength(2)
+  expect(
+    operationsGroups.every(
+      (group) => group.getAttribute('aria-expanded') === 'true',
+    ),
+  ).toBe(true)
+  expect(screen.getAllByRole('link', { name: 'Callbacks' })).toHaveLength(2)
+  expect(
+    screen.queryByRole('link', { name: 'Empresas' }),
+  ).not.toBeInTheDocument()
+})
+
+it('opens submenus from the collapsed sidebar', async () => {
+  window.localStorage.setItem('21mobile.sidebar.collapsed', 'true')
+  const user = userEvent.setup()
+  render(
+    <MemoryRouter>
+      <PanelShell
+        name="Admin"
+        role="Administrador"
+        admin
+        demo
+        onLogout={vi.fn()}
+      >
+        Conteúdo
+      </PanelShell>
+    </MemoryRouter>,
+  )
+
+  const managementGroups = screen.getAllByRole('button', { name: 'Gestão' })
+  await user.click(managementGroups[1])
+  await user.click(managementGroups[1])
+  expect(
+    screen.getAllByRole('link', { name: 'Credenciais da API' }),
+  ).toHaveLength(2)
 })

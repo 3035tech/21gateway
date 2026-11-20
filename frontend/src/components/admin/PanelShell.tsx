@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { LanguageSwitcher } from './LanguageSwitcher'
 import { AppSelect } from './AppSelect'
 import { NotificationBell } from '../../features/notifications/NotificationBell'
+import type { LucideIcon } from 'lucide-react'
 import {
   Building2,
   Users,
@@ -19,8 +20,11 @@ import {
   ChevronRight,
   Bell,
   ChevronLeft,
+  ChevronDown,
   CircleUserRound,
   ClipboardList,
+  Activity,
+  Settings2,
 } from 'lucide-react'
 const sidebarPreferenceKey = '21mobile.sidebar.collapsed'
 
@@ -31,113 +35,222 @@ function readSidebarPreference() {
     return false
   }
 }
-const navigation = [
+type NavigationItem = {
+  path: string
+  label: string
+  icon: LucideIcon
+  adminOnly: boolean
+  management: boolean
+}
+type NavigationGroup = {
+  id: string
+  label: string
+  icon: LucideIcon
+  links: readonly NavigationItem[]
+}
+const overview: NavigationItem = {
+  path: '/',
+  label: 'nav.overview',
+  icon: LayoutDashboard,
+  adminOnly: false,
+  management: true,
+}
+const navigationGroups: readonly NavigationGroup[] = [
   {
-    path: '/',
-    label: 'nav.overview',
-    icon: LayoutDashboard,
-    adminOnly: false,
-    management: true,
-  },
-  {
-    path: '/pendencias',
-    label: 'nav.workQueue',
-    icon: ClipboardList,
-    adminOnly: false,
-    management: false,
-  },
-  {
-    path: '/empresas',
-    label: 'nav.companies',
+    id: 'management',
+    label: 'nav.management',
     icon: Building2,
-    adminOnly: false,
-    management: true,
+    links: [
+      {
+        path: '/empresas',
+        label: 'nav.companies',
+        icon: Building2,
+        adminOnly: false,
+        management: true,
+      },
+      {
+        path: '/credenciais',
+        label: 'nav.credentials',
+        icon: KeyRound,
+        adminOnly: false,
+        management: true,
+      },
+      {
+        path: '/usuarios',
+        label: 'nav.users',
+        icon: Users,
+        adminOnly: true,
+        management: true,
+      },
+    ],
   },
   {
-    path: '/usuarios',
-    label: 'nav.users',
-    icon: Users,
-    adminOnly: true,
-    management: true,
+    id: 'operations',
+    label: 'nav.operations',
+    icon: Activity,
+    links: [
+      {
+        path: '/pendencias',
+        label: 'nav.workQueue',
+        icon: ClipboardList,
+        adminOnly: false,
+        management: false,
+      },
+      {
+        path: '/envios',
+        label: 'nav.messages',
+        icon: MessageSquare,
+        adminOnly: false,
+        management: false,
+      },
+      {
+        path: '/agendamentos',
+        label: 'nav.schedules',
+        icon: CalendarClock,
+        adminOnly: false,
+        management: true,
+      },
+      {
+        path: '/callbacks',
+        label: 'nav.callbacks',
+        icon: Webhook,
+        adminOnly: false,
+        management: false,
+      },
+    ],
   },
   {
-    path: '/credenciais',
-    label: 'nav.credentials',
-    icon: KeyRound,
-    adminOnly: false,
-    management: true,
+    id: 'system',
+    label: 'nav.system',
+    icon: Settings2,
+    links: [
+      {
+        path: '/notificacoes',
+        label: 'nav.notifications',
+        icon: Bell,
+        adminOnly: true,
+        management: false,
+      },
+      {
+        path: '/auditoria',
+        label: 'nav.audit',
+        icon: History,
+        adminOnly: true,
+        management: false,
+      },
+    ],
   },
-  {
-    path: '/envios',
-    label: 'nav.messages',
-    icon: MessageSquare,
-    adminOnly: false,
-    management: false,
-  },
-  {
-    path: '/agendamentos',
-    label: 'nav.schedules',
-    icon: CalendarClock,
-    adminOnly: false,
-    management: true,
-  },
-  {
-    path: '/callbacks',
-    label: 'nav.callbacks',
-    icon: Webhook,
-    adminOnly: false,
-    management: false,
-  },
-  {
-    path: '/auditoria',
-    label: 'nav.audit',
-    icon: History,
-    adminOnly: true,
-    management: false,
-  },
-  {
-    path: '/notificacoes',
-    label: 'nav.notifications',
-    icon: Bell,
-    adminOnly: true,
-    management: false,
-  },
+]
+const navigation = [
+  overview,
+  ...navigationGroups.flatMap(({ links }) => links),
 ] as const
 function Navigation({
   admin,
   onNavigate,
   managementOnly = false,
   collapsed = false,
+  instance,
 }: {
   admin: boolean
   onNavigate?: () => void
   managementOnly?: boolean
   collapsed?: boolean
+  instance: 'mobile' | 'desktop'
 }) {
   const { t } = useTranslation()
+  const location = useLocation()
+  const activeGroup = navigationGroups.find(({ links }) =>
+    links.some(
+      ({ path }) =>
+        location.pathname === path || location.pathname.startsWith(`${path}/`),
+    ),
+  )?.id
+  const [openGroup, setOpenGroup] = useState<string | undefined>(
+    activeGroup ?? 'management',
+  )
+  const visibleLinks = (links: readonly NavigationItem[]) =>
+    links.filter(
+      ({ adminOnly, management }) =>
+        (!adminOnly || admin) && (!managementOnly || management),
+    )
   return (
     <>
-      {navigation
-        .filter(
-          ({ adminOnly, management }) =>
-            (!adminOnly || admin) && (!managementOnly || management),
+      {visibleLinks([overview]).map(({ path, label, icon: Icon }) => (
+        <NavLink
+          key={path}
+          to={path}
+          end
+          onClick={onNavigate}
+          title={collapsed ? t(label) : undefined}
+          aria-label={collapsed ? t(label) : undefined}
+          className={({ isActive }) =>
+            `flex min-h-11 items-center gap-3 rounded-lg py-3 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${collapsed ? 'justify-center px-2' : 'px-4'} ${isActive ? 'bg-white text-brand-purple shadow-[inset_3px_0_0_#ff0066]' : 'text-purple-100 hover:bg-white/10'}`
+          }
+        >
+          <Icon size={18} aria-hidden="true" />
+          {collapsed ? <span className="sr-only">{t(label)}</span> : t(label)}
+        </NavLink>
+      ))}
+      {navigationGroups.map(({ id, label, icon: Icon, links }) => {
+        const visible = visibleLinks(links)
+        if (visible.length === 0) return null
+        const expanded = openGroup === id
+        const active = activeGroup === id
+        const submenuId = `navigation-${instance}-${id}`
+        return (
+          <div key={id} className="relative">
+            <button
+              type="button"
+              aria-expanded={expanded}
+              aria-controls={submenuId}
+              title={collapsed ? t(label) : undefined}
+              onClick={() => setOpenGroup(expanded ? undefined : id)}
+              className={`flex min-h-11 w-full items-center gap-3 rounded-lg py-3 text-left text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${collapsed ? 'justify-center px-2' : 'px-4'} ${active ? 'bg-white/10 text-white' : 'text-purple-100 hover:bg-white/10'}`}
+            >
+              <Icon size={18} aria-hidden="true" />
+              {collapsed ? (
+                <span className="sr-only">{t(label)}</span>
+              ) : (
+                t(label)
+              )}
+              {!collapsed ? (
+                <ChevronDown
+                  size={16}
+                  aria-hidden="true"
+                  className={`ml-auto transition-transform ${expanded ? 'rotate-180' : ''}`}
+                />
+              ) : null}
+            </button>
+            <div
+              id={submenuId}
+              hidden={!expanded}
+              className={
+                !expanded
+                  ? 'hidden'
+                  : collapsed
+                    ? 'absolute left-full top-0 z-40 ml-2 w-56 rounded-xl border border-white/15 bg-brand-purple p-2 shadow-xl'
+                    : 'mt-1 grid gap-1 pl-3'
+              }
+            >
+              {visible.map(({ path, label: childLabel, icon: ChildIcon }) => (
+                <NavLink
+                  key={path}
+                  to={path}
+                  onClick={onNavigate}
+                  title={collapsed ? t(childLabel) : undefined}
+                  className={({ isActive }) =>
+                    `flex min-h-11 items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${isActive ? 'bg-white text-brand-purple shadow-[inset_3px_0_0_#ff0066]' : 'text-purple-100 hover:bg-white/10'}`
+                  }
+                >
+                  <ChildIcon size={18} aria-hidden="true" />
+                  {t(childLabel)}
+                </NavLink>
+              ))}
+            </div>
+          </div>
         )
-        .map(({ path, label, icon: Icon }) => (
-          <NavLink
-            key={path}
-            to={path}
-            end={path === '/'}
-            onClick={onNavigate}
-            title={collapsed ? t(label) : undefined}
-            aria-label={collapsed ? t(label) : undefined}
-            className={({ isActive }) =>
-              `flex min-h-11 items-center gap-3 rounded-lg py-3 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${collapsed ? 'justify-center px-2' : 'px-4'} ${isActive ? 'bg-white text-brand-purple shadow-[inset_3px_0_0_#ff0066]' : 'text-purple-100 hover:bg-white/10'}`
-            }
-          >
-            <Icon size={18} aria-hidden="true" />
-            {collapsed ? <span className="sr-only">{t(label)}</span> : t(label)}
-          </NavLink>
-        ))}
+      })}
     </>
   )
 }
@@ -186,8 +299,11 @@ export function PanelShell({
   const currentKey =
     location.pathname === '/perfil'
       ? 'nav.profile'
-      : (navigation.find(({ path }) => path === location.pathname)?.label ??
-        'nav.adminPanel')
+      : (navigation.find(
+          ({ path }) =>
+            location.pathname === path ||
+            location.pathname.startsWith(`${path}/`),
+        )?.label ?? 'nav.adminPanel')
   const current = t(currentKey)
   const initials = name
     .split(' ')
@@ -264,8 +380,10 @@ export function PanelShell({
           </summary>
           <nav aria-label={t('nav.menu')} className="grid gap-1 pb-3">
             <Navigation
+              key={location.pathname}
               admin={admin}
               managementOnly={managementOnly}
+              instance="mobile"
               onNavigate={() => {
                 if (menuRef.current) menuRef.current.open = false
               }}
@@ -296,9 +414,11 @@ export function PanelShell({
           className="hidden flex-col gap-1 px-3 lg:flex"
         >
           <Navigation
+            key={location.pathname}
             admin={admin}
             managementOnly={managementOnly}
             collapsed={sidebarCollapsed}
+            instance="desktop"
           />
         </nav>
         <div
