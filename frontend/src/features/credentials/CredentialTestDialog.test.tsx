@@ -146,6 +146,42 @@ it('shows an uncertain result without suggesting the Messages history', async ()
   }
 })
 
+it('shows a confirmed provider rejection without the uncertain outcome warning', async () => {
+  const post = vi.spyOn(api, 'post').mockRejectedValue({
+    isAxiosError: true,
+    response: {
+      status: 502,
+      data: { code: 'PROVIDER_REJECTED' },
+    },
+  })
+  try {
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <CredentialTestDialog company={company} onClose={vi.fn()} />
+      </QueryClientProvider>,
+    )
+    const user = userEvent.setup()
+    await user.type(
+      screen.getByRole('textbox', { name: /Número de teste/ }),
+      '11987654321',
+    )
+    await user.click(
+      screen.getByRole('checkbox', { name: /Confirmo que este número/ }),
+    )
+    await user.click(
+      screen.getByRole('button', { name: 'Enviar um SMS de teste' }),
+    )
+    await waitFor(() =>
+      expect(screen.getByText('O fornecedor rejeitou o envio.')).toBeInTheDocument(),
+    )
+    expect(
+      screen.queryByText(/Se a chamada ficou sem resposta/),
+    ).not.toBeInTheDocument()
+  } finally {
+    post.mockRestore()
+  }
+})
+
 it('requires authorized destination confirmation and sends once', async () => {
   const post = vi.spyOn(api, 'post').mockResolvedValue({
     data: {

@@ -48,6 +48,7 @@ type Config struct {
 	MOEncryptionKeys              string   `env:"MO_ENCRYPTION_KEYS"`
 	MOFingerprintKey              string   `env:"MO_FINGERPRINT_KEY"`
 	LogUnexpectedProviderResponse bool     `env:"WHITELABEL_LOG_UNEXPECTED_RESPONSE_BODY" envDefault:"false"`
+	LogRejectedProviderPayload    bool     `env:"WHITELABEL_LOG_REJECTED_REQUEST_PAYLOAD" envDefault:"false"`
 
 	MOContentKey                    string   `env:"MO_CONTENT_KEY"`
 	MOIngressEnabled                bool     `env:"MO_INGRESS_ENABLED" envDefault:"false"`

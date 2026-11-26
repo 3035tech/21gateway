@@ -46,6 +46,7 @@ func run() error {
 		return err
 	}
 	provider.SetLogUnexpectedResponseBody(cfg.LogUnexpectedProviderResponse)
+	provider.SetLogRejectedRequestPayload(cfg.LogRejectedProviderPayload)
 	defer provider.Close()
 	auth, err := services.NewAuthServiceWithProtection(repositories.NewCredentials(db), repositories.NewAuthenticationAttempts(db), cfg.APIAuthenticationIPLimit)
 	if err != nil {

@@ -36,6 +36,7 @@ func run() error {
 		return err
 	}
 	provider.SetLogUnexpectedResponseBody(cfg.LogUnexpectedProviderResponse)
+	provider.SetLogRejectedRequestPayload(cfg.LogRejectedProviderPayload)
 	defer provider.Close()
 	tokens, err := cfg.TokenVault()
 	if err != nil {

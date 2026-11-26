@@ -71,6 +71,7 @@ type Client struct {
 	token                     string
 	http                      *http.Client
 	logUnexpectedResponseBody bool
+	logRejectedRequestPayload bool
 }
 
 func New(baseURL, token string) (*Client, error) {
@@ -99,6 +100,10 @@ func (c *Client) Enabled() bool { return strings.TrimSpace(c.token) != "" }
 func (c *Client) Close()        { c.http.CloseIdleConnections() }
 func (c *Client) SetLogUnexpectedResponseBody(enabled bool) {
 	c.logUnexpectedResponseBody = enabled
+}
+
+func (c *Client) SetLogRejectedRequestPayload(enabled bool) {
+	c.logRejectedRequestPayload = enabled
 }
 
 // CheckToken sends one deliberately invalid request with no deliverable
@@ -157,7 +162,11 @@ func (c *Client) Send(ctx context.Context, input SendRequest) (SendResponse, err
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
 		code := codeForResponse(response.StatusCode)
-		slog.Warn("Zoug SMS request not accepted", "provider_index", input.Index, "http_status", response.StatusCode, "code", code)
+		attributes := []any{"provider_index", input.Index, "http_status", response.StatusCode, "code", code}
+		if response.StatusCode == http.StatusUnprocessableEntity && c.logRejectedRequestPayload {
+			attributes = append(attributes, "request_payload", string(body))
+		}
+		slog.Warn("Zoug SMS request not accepted", attributes...)
 		return result, apperrors.Wrap(code, nil)
 	}
 	data, err := io.ReadAll(io.LimitReader(response.Body, maxResponseBytes+1))
@@ -204,5 +213,5 @@ func codeForResponse(status int) apperrors.Code {
 
 // ForToken shares transport and connections without mutating another account.
 func (c *Client) ForToken(token string) *Client {
-	return &Client{endpoint: c.endpoint, token: token, http: c.http, logUnexpectedResponseBody: c.logUnexpectedResponseBody}
+	return &Client{endpoint: c.endpoint, token: token, http: c.http, logUnexpectedResponseBody: c.logUnexpectedResponseBody, logRejectedRequestPayload: c.logRejectedRequestPayload}
 }

@@ -141,6 +141,46 @@ func TestProviderErrorsAreSafeAndNotRetried(t *testing.T) {
 	}
 }
 
+func TestRejectedRequestPayloadDiagnosticIsOptInAndOnlyLogs422(t *testing.T) {
+	for _, enabled := range []bool{false, true} {
+		t.Run(map[bool]string{false: "disabled", true: "enabled"}[enabled], func(t *testing.T) {
+			var logs bytes.Buffer
+			previous := slog.Default()
+			slog.SetDefault(slog.New(slog.NewJSONHandler(&logs, nil)))
+			t.Cleanup(func() { slog.SetDefault(previous) })
+			transport := httpmock.NewMockTransport()
+			transport.RegisterResponder(http.MethodPost, testBaseURL+"/api/send", httpmock.NewStringResponder(http.StatusUnprocessableEntity, `{"error":"Validation failed"}`))
+			client, err := NewWithTransport(testBaseURL, "private-token", transport)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer client.Close()
+			client.SetLogRejectedRequestPayload(enabled)
+			input := SendRequest{Type: MessageTypeSMS, Message: "private-message", Encoding: EncodingGSM7, Destination: "5511999999999", Index: "42", CallbackLevel: CallbackNone}
+			requestBody, err := json.Marshal(input)
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, _ = client.Send(context.Background(), input)
+			if strings.Contains(logs.String(), `"request_payload"`) != enabled {
+				t.Fatalf("payload logging enabled=%v, logs=%s", enabled, logs.String())
+			}
+			if enabled {
+				var event map[string]any
+				if err := json.Unmarshal([]byte(strings.TrimSpace(logs.String())), &event); err != nil {
+					t.Fatal(err)
+				}
+				if event["request_payload"] != string(requestBody) {
+					t.Fatalf("payload=%v, want exact request %s", event["request_payload"], requestBody)
+				}
+				if strings.Contains(logs.String(), "private-token") {
+					t.Fatalf("provider token logged: %s", logs.String())
+				}
+			}
+		})
+	}
+}
+
 func TestUnexpectedAcknowledgementKeepsValidProviderIDForReconciliation(t *testing.T) {
 	transport := httpmock.NewMockTransport()
 	const id = "550e8400-e29b-41d4-a716-446655440000"

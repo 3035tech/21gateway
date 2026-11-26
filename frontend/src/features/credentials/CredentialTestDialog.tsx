@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { isAxiosError } from 'axios'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ClipboardCheck, Send, ShieldCheck, Webhook } from 'lucide-react'
 import { Dialog } from '../../components/admin/Dialog'
@@ -23,6 +24,12 @@ function formatMobileNumber(digits: string) {
   return `(${digits.slice(0, 2)}) ${local.slice(0, 5)}-${local.slice(5)}`
 }
 
+function hasUncertainOutcome(error: unknown) {
+  if (!isAxiosError(error)) return false
+  if (!error.response) return true
+  return error.response.data?.code === 'UNKNOWN_OUTCOME'
+}
+
 export function CredentialTestDialog({
   credential,
   company,
@@ -44,6 +51,20 @@ export function CredentialTestDialog({
   const providerName =
     providerLabel(company?.smsProvider ?? credential?.companySmsProvider) ||
     t('credentialTest.providerFallback')
+  const sendErrorMessage = (error: unknown) =>
+    [
+      errorMessage(error),
+      hasUncertainOutcome(error)
+        ? t(
+            company
+              ? 'credentialTest.companyUncertainHint'
+              : 'credentialTest.uncertainHint',
+            { provider: providerName },
+          )
+        : '',
+    ]
+      .filter(Boolean)
+      .join(' ')
   const checkURL = new URL(
     '/v1/auth/check',
     api.defaults.baseURL ?? window.location.origin,
@@ -79,17 +100,7 @@ export function CredentialTestDialog({
         )
       else feedback.error(t('feedback.sendRejected'))
     },
-    onError: (error) =>
-      feedback.error(
-        errorMessage(error) +
-          ' ' +
-          t(
-            company
-              ? 'credentialTest.companyUncertainHint'
-              : 'credentialTest.uncertainHint',
-            { provider: providerName },
-          ),
-      ),
+    onError: (error) => feedback.error(sendErrorMessage(error)),
   })
   const checkDelivery = useMutation({
     mutationFn: async () => {
@@ -227,13 +238,7 @@ export function CredentialTestDialog({
           </label>
           {send.isError ? (
             <p role="alert" className="mt-3 text-sm text-rose-700">
-              {errorMessage(send.error)}{' '}
-              {t(
-                company
-                  ? 'credentialTest.companyUncertainHint'
-                  : 'credentialTest.uncertainHint',
-                { provider: providerName },
-              )}
+              {sendErrorMessage(send.error)}
             </p>
           ) : null}
           {send.data ? (
