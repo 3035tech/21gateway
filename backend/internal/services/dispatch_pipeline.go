@@ -12,7 +12,7 @@ import (
 )
 
 const dispatchPublishTimeout = 10 * time.Second
-const dispatchReceiveTimeout = 25 * time.Second
+const dispatchReceiveTimeout = 60 * time.Second
 const dispatchWorkPause = 100 * time.Millisecond
 
 type DispatchBatchRepository interface {

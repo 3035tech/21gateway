@@ -54,7 +54,7 @@ func (s *SMSService) sendBatch(ctx context.Context, credentialID uint64, message
 	result := make([]dtos.LegacySendResult, len(messages))
 	attempts := make([]*models.SMSAttempt, 0, len(messages))
 	positions := make([]int, 0, len(messages))
-	encoding := models.SMSEncodingGSM7
+	eligible := make([]bool, len(messages))
 	for i, input := range messages {
 		code := apperrors.CodeNone
 		normalized, normalizationCode := prepareSMSText(input.MessageText)
@@ -76,10 +76,36 @@ func (s *SMSService) sendBatch(ctx context.Context, credentialID uint64, message
 		}
 		input.MessageText = normalized
 		messages[i] = input
-		destination := brazilCountryCode + input.Destination
-		if smsprovider.SelectEncoding(input.MessageText) == models.SMSEncodingUCS2 {
-			encoding = models.SMSEncodingUCS2
+		eligible[i] = true
+	}
+
+	var encoding models.SMSEncoding
+	for {
+		batchTexts := make([]string, 0, len(messages))
+		for i, input := range messages {
+			if eligible[i] {
+				batchTexts = append(batchTexts, input.MessageText)
+			}
 		}
+		encoding = smsprovider.SelectBatchEncoding(batchTexts)
+		removed := false
+		for i, input := range messages {
+			if eligible[i] && !smsprovider.FitsProviderMessageLength(input.MessageText, encoding) {
+				eligible[i] = false
+				result[i] = failure(input, apperrors.CodeInvalidMessage)
+				removed = true
+			}
+		}
+		if !removed {
+			break
+		}
+	}
+
+	for i, input := range messages {
+		if !eligible[i] {
+			continue
+		}
+		destination := brazilCountryCode + input.Destination
 		attempt := &models.SMSAttempt{CredentialID: credentialID, Destination: destination, CorrelationID: input.CorrelationID, State: models.SubmissionPending}
 		if credential, ok := CredentialFromContext(ctx); ok && credential.ID == credentialID {
 			attempt.CompanyID = credential.CompanyID

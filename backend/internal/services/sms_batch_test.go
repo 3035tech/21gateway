@@ -7,6 +7,7 @@ import (
 	apperrors "github.com/21mobile/sms-gateway/internal/errors"
 	"github.com/21mobile/sms-gateway/internal/models"
 	smsprovider "github.com/21mobile/sms-gateway/internal/providers/sms"
+	"strings"
 	"testing"
 )
 
@@ -62,6 +63,31 @@ func TestBatchRejectsInvalidDestinationBeforeProvider(t *testing.T) {
 	}
 	if len(provider.batchInput.Messages) != 1 || provider.batchInput.Messages[0].Destination != "5511987654321" || len(repo.completed) != 1 {
 		t.Fatal("invalid destination reached provider or persistence")
+	}
+}
+
+func TestBatchUsesLatin1AndRecomputesEncodingAfterLengthRejection(t *testing.T) {
+	latinRepo := &batchMemory{}
+	latinProvider := &batchStub{stubProvider: stubProvider{enabled: true}, outcomes: []smsprovider.BatchResult{{MessageID: "550e8400-e29b-41d4-a716-446655440001"}, {MessageID: "550e8400-e29b-41d4-a716-446655440002"}}}
+	latinMessages := []dtos.LegacySMS{validSMS(), validSMS()}
+	latinMessages[0].MessageText = "×"
+	if _, err := NewSMSService(latinRepo, latinProvider).Send(context.Background(), 1, latinMessages); err != nil {
+		t.Fatal(err)
+	}
+	if latinProvider.batchInput.Encoding != models.SMSEncodingLatin1 {
+		t.Fatalf("batch did not select Latin1: %q", latinProvider.batchInput.Encoding)
+	}
+
+	repo := &batchMemory{}
+	provider := &batchStub{stubProvider: stubProvider{enabled: true}, outcomes: []smsprovider.BatchResult{{MessageID: "550e8400-e29b-41d4-a716-446655440003"}}}
+	messages := []dtos.LegacySMS{validSMS(), validSMS()}
+	messages[0].MessageText = strings.Repeat("×", 71)
+	result, err := NewSMSService(repo, provider).Send(context.Background(), 1, messages)
+	if err != nil || result[0].Message != dtos.LegacyInvalidMessage || result[1].Status != dtos.LegacyStatusOK {
+		t.Fatalf("overlength item handling failed: result=%+v err=%v", result, err)
+	}
+	if provider.batchInput.Encoding != models.SMSEncodingGSM7 || len(provider.batchInput.Messages) != 1 || provider.batchInput.Messages[0].Message != validSMS().MessageText || len(repo.completed) != 1 {
+		t.Fatalf("valid remainder was not sent with its own global encoding: request=%+v completed=%+v", provider.batchInput, repo.completed)
 	}
 }
 func TestBatchFailureNeverRetriesAndPersistencePrecedesSend(t *testing.T) {

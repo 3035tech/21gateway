@@ -149,6 +149,16 @@ func TestScheduledAdmissionRejectsPastInvalidDateAndPhone(t *testing.T) {
 	}
 }
 
+func TestImmediateQueueAdmissionRejectsProviderOverlength(t *testing.T) {
+	repo := &scheduleMemory{}
+	input := validSMS()
+	input.MessageText = strings.Repeat("×", 71)
+	result, err := NewScheduledSMSService(repo, scheduledVault(t)).EnqueueAll(context.Background(), 7, []dtos.LegacySMS{input})
+	if err != nil || result[0].Message != dtos.LegacyInvalidMessage || len(repo.jobs) != 0 {
+		t.Fatalf("overlength SMS entered the async queue: result=%+v err=%v", result, err)
+	}
+}
+
 func TestQueuedSendLogsInvalidScheduleReasonWithoutMessageContent(t *testing.T) {
 	var logs bytes.Buffer
 	previous := slog.Default()

@@ -16,7 +16,7 @@ O envelope sms deve conter exatamente um item. messageText não pode ser vazio/e
 
 messageText → message; destination → destination_addr com 55; correlationId → reference_id; ID interno → index. type é SMS. callback_level é NONE. Não é enviado callback_url nesta etapa.
 
-Encoding é selecionado por biblioteca GSM7: 0 para texto representável no alfabeto GSM7, 8 para outros caracteres. O texto não é transliterado, truncado nem alterado. Acentos/emojis podem produzir múltiplos segmentos e custos conforme o fornecedor; confirmar regras de segmentação na homologação. O formato Latin1 ambíguo do manual não é utilizado.
+O texto é normalizado antes do envio conforme [sms-normalization.md](sms-normalization.md). O seletor usa encoding 0 para GSM7, 3 para Latin1 e 8 para UCS2. O limite de entrada legado de 160 caracteres é aplicado antes da normalização; adicionalmente, o gateway aplica os limites Zoug de 160 caracteres para GSM7 e 70 para Latin1/UCS2 depois de escolher o encoding. Mensagens acima do limite do encoding são recusadas antes da persistência ou chamada ao fornecedor; o gateway não segmenta nem trunca mensagens.
 
 Token e endpoint ficam no backend via WHITELABEL_API_TOKEN e WHITELABEL_BASE_URL. Base de produção exige HTTPS e não permite credenciais/query/fragment no URL; redirects não são seguidos. Não desabilitar validação TLS. Sem token, retornar indisponibilidade sem chamar o fornecedor.
 

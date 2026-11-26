@@ -77,14 +77,18 @@ func (s *SMSService) SendCompanyTest(ctx context.Context, company models.Company
 	if err != nil {
 		return "", err
 	}
-	if !s.allowCompanyTest(company.ID) {
-		return "", apperrors.Wrap(apperrors.CodeRateLimited, nil)
-	}
 	normalized, code := prepareSMSText(message)
 	if code != apperrors.CodeNone {
 		return "", apperrors.Wrap(code, nil)
 	}
-	response, err := provider.Send(ctx, smsprovider.SendRequest{Type: models.ChannelSMS, Message: normalized, Encoding: smsprovider.SelectEncoding(normalized), Destination: brazilCountryCode + destination, ReferenceID: correlationID, Index: strconv.FormatUint(company.ID, 10), CallbackLevel: smsprovider.CallbackNone})
+	encoding := smsprovider.SelectEncoding(normalized)
+	if !smsprovider.FitsProviderMessageLength(normalized, encoding) {
+		return "", apperrors.Wrap(apperrors.CodeInvalidMessage, nil)
+	}
+	if !s.allowCompanyTest(company.ID) {
+		return "", apperrors.Wrap(apperrors.CodeRateLimited, nil)
+	}
+	response, err := provider.Send(ctx, smsprovider.SendRequest{Type: models.ChannelSMS, Message: normalized, Encoding: encoding, Destination: brazilCountryCode + destination, ReferenceID: correlationID, Index: strconv.FormatUint(company.ID, 10), CallbackLevel: smsprovider.CallbackNone})
 	if err == nil && !smsprovider.ValidMessageID(response.MessageID) {
 		err = apperrors.Wrap(apperrors.CodeUnknownOutcome, nil)
 	}
@@ -93,7 +97,6 @@ func (s *SMSService) SendCompanyTest(ctx context.Context, company models.Company
 	}
 	return response.MessageID, nil
 }
-
 
 func (s *SMSService) allowCompanyTest(companyID uint64) bool {
 	key := "company-test:" + strconv.FormatUint(companyID, 10)
@@ -159,6 +162,10 @@ func (s *SMSService) sendSingle(ctx context.Context, credentialID uint64, input 
 	if code := validateMessage(input); code != apperrors.CodeNone {
 		return []dtos.LegacySendResult{failure(input, code)}, nil
 	}
+	encoding := smsprovider.SelectEncoding(input.MessageText)
+	if !smsprovider.FitsProviderMessageLength(input.MessageText, encoding) {
+		return []dtos.LegacySendResult{failure(input, apperrors.CodeInvalidMessage)}, nil
+	}
 	provider := s.provider
 	if scoped, ok := provider.(interface {
 		Prepare(context.Context) (SMSProvider, error)
@@ -179,7 +186,6 @@ func (s *SMSService) sendSingle(ctx context.Context, credentialID uint64, input 
 	if !allowed {
 		return []dtos.LegacySendResult{failure(input, apperrors.CodeRateLimited)}, nil
 	}
-	encoding := smsprovider.SelectEncoding(input.MessageText)
 	attempt := models.SMSAttempt{CredentialID: credentialID, Destination: brazilCountryCode + input.Destination, CorrelationID: input.CorrelationID, Encoding: encoding, State: models.SubmissionPending}
 	if credential, ok := CredentialFromContext(ctx); ok && credential.ID == credentialID {
 		attempt.CompanyID = credential.CompanyID
@@ -281,7 +287,6 @@ func failure(input dtos.LegacySMS, code apperrors.Code) dtos.LegacySendResult {
 	}
 	return result
 }
-
 
 func NewSMSServiceWithLimiter(repo AttemptRepository, provider SMSProvider, limiter SendLimiter) *SMSService {
 	service := NewSMSService(repo, provider)

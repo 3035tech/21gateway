@@ -73,6 +73,28 @@ func TestSendTranslatesAndPersistsAcceptance(t *testing.T) {
 	}
 }
 
+func TestSingleSelectsLatin1AndRejectsProviderOverlengthBeforePersistence(t *testing.T) {
+	provider := &stubProvider{enabled: true, response: smsprovider.SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440000", Status: string(whitelabel.StatusSent)}}
+	repo := &memoryAttempts{}
+	input := validSMS()
+	input.MessageText = "×"
+	result, err := NewSMSService(repo, provider).Send(context.Background(), 7, []dtos.LegacySMS{input})
+	if err != nil || result[0].Status != dtos.LegacyStatusOK || provider.inputs[0].Encoding != models.SMSEncodingLatin1 {
+		t.Fatalf("Latin1 send failed: result=%+v err=%v input=%+v", result, err, provider.inputs)
+	}
+
+	for _, message := range []string{strings.Repeat("×", 71), strings.Repeat("漢", 71)} {
+		rejectedProvider := &stubProvider{enabled: true}
+		rejectedRepo := &memoryAttempts{}
+		invalid := validSMS()
+		invalid.MessageText = message
+		result, err := NewSMSService(rejectedRepo, rejectedProvider).Send(context.Background(), 7, []dtos.LegacySMS{invalid})
+		if err != nil || result[0].Message != dtos.LegacyInvalidMessage || len(rejectedProvider.inputs) != 0 || len(rejectedRepo.created) != 0 {
+			t.Fatalf("overlength provider message was not rejected before persistence: result=%+v err=%v", result, err)
+		}
+	}
+}
+
 func TestUnexpectedZougStatusRetainsMessageIDForCallbackReconciliation(t *testing.T) {
 	repo := &memoryAttempts{}
 	provider := &stubProvider{enabled: true, response: smsprovider.SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440000", Status: "SUCCESS"}, err: apperrors.Wrap(apperrors.CodeUnknownOutcome, nil)}

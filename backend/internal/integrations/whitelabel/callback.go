@@ -72,7 +72,7 @@ func DecodeCallback(raw []byte) (CallbackPayload, error) {
 			return CallbackPayload{}, ErrInvalidCallback
 		}
 	case CallbackMO:
-		if payload.ShortMessage == nil || *payload.ShortMessage == "" || payload.ESMClass == nil || parseCallbackTime(payload.ReportDate).IsZero() {
+		if payload.ShortMessage == nil || *payload.ShortMessage == "" || payload.ESMClass == nil || *payload.ESMClass != 0 || parseCallbackTime(payload.ReportDate).IsZero() {
 			return CallbackPayload{}, ErrInvalidCallback
 		}
 	default:

@@ -4,6 +4,8 @@ Em 19/11/2026, o toolchain Go foi atualizado de 1.27.3 para 1.27.4 em `backend/g
 
 Atualização em 19/11/2026: migração 032 adiciona `pg_trgm` e índices GIN parciais para busca por trecho de nome/referência de empresas. Rollback: remover os dois índices; manter a extensão, que pode ser compartilhada. Aplicar a migração antes do uso dos novos binários; medir a latência com volume representativo, pois termos curtos podem não aproveitar os índices.
 
+Atualização em 26/11/2026: o seletor SMS agora suporta GSM7 (`0`), Latin1 (`3`) e UCS2 (`8`); single/lote/fila validam os limites publicados pela Zoug antes de persistir ou enviar. Migração 033 amplia a constraint de `sms_attempts.encoding`, preservando valores existentes. Callback MO exige `esm_class=0`. Aplicar até 033 antes dos binários novos; não foi feito envio real nem deployment.
+
 Em 31/10/2026, a base de roteamento por empresa/canal para provedores de SMS foi adicionada no código (migração 028). O contrato `/v1/send` continua intacto e a Zoug é o único adaptador ativo; não há envio RCS/WhatsApp nem segundo fornecedor conectado. O conector de protocolo Google/RCS foi preparado sem ativação no runtime, conforme [google-rcs.md](google-rcs.md). A migração 030 acrescenta rotas `planned` para RCS/WhatsApp no cadastro da empresa, preservando SMS/Zoug; ainda não foi aplicada em HML. A migração 028 foi aplicada em HML antes dos binários novos, com duas rotas SMS/Zoug verificadas. Consulte [sms-providers.md](sms-providers.md).
 
 A 21 confirmou que não possui parceria direta com o Google. Google/RCS permanece apenas como rota planejada; o formulário explica o requisito de acesso de parceiro e agente homologado na escolha e após o cadastro. Não existe envio ou webhook Google ativo e nenhum credencial fictícia foi criada.
@@ -95,7 +97,7 @@ Não foi possível iniciar PostgreSQL/API/worker nesta sessão: Compose recebeu 
 
 Sem envio SMS real: faltam token configurado e destinatário autorizado. Faltam payload/autenticação/mapeamento de callback do white label. Envio continua com callback_level NONE; /internal/dlr é contrato interno, não API presumida do fornecedor. Não houve deployment AWS/Amplify.
 
-Runtime SMS agora usa limite compartilhado no PostgreSQL (uma requisição/s por credencial e teto conservador de 200 mensagens/s agregado). Token por conta, whitelist e lote implementados em código; recuperação de senha/MFA, normalização legada, agendamento, saldo, recebimento real DLR/MO e /v1/status/date continuam pendentes. /v1/consultmo consulta eventos MO locais. Política de retenção/limpeza de metadados não definida; nenhum expurgo implementado. Alertas, backups operacionais e teste de carga de produção ainda pendentes.
+Naquele ponto do histórico, token por conta, whitelist e lote estavam implementados, enquanto normalização, agendamento, saldo, recebimento real DLR/MO e /v1/status/date eram pendências. A normalização textual foi autorizada e concluída posteriormente, conforme a seção de evolução abaixo e docs/sms-normalization.md. /v1/consultmo consulta eventos MO locais. Política de retenção/limpeza de metadados não definida; nenhum expurgo implementado. Alertas, backups operacionais e teste de carga de produção ainda pendentes.
 
 ## Verificações
 

@@ -4,6 +4,8 @@ Atualização em 19/11/2026: Go foi atualizado para 1.27.4 em `backend/go.mod` e
 
 Atualização em 19/11/2026: migração 032 cria índices trigram para a busca parcial de empresas. Aplicar a migração antes dos binários novos. Após aplicar, medir busca com dados representativos. Para rollback, remover `companies_name_trgm_idx` e `companies_reference_trgm_idx`; não remover `pg_trgm` sem confirmar que nenhuma outra aplicação/índice a utiliza.
 
+Atualização em 26/11/2026: migração 033 permite armazenar encoding Latin1 (`3`) em `sms_attempts`; aplicá-la antes dos binários com seleção Latin1. O seletor e limites estão documentados em `docs/sms-single.md`, `docs/sms-batch.md` e `docs/sms-normalization.md`. O parser MO agora exige `esm_class=0`. Testes simulados não representam envio real; nenhum deployment foi feito.
+
 ## Notificações em HML — 30/10/2026
 
 O commit `00d4203` está na `main` e a tag candidata `v0.2.0-rc.1` foi publicada; os builds de backend e frontend passaram. O GitOps `5932bdc` aplicou a migração 026 antes dos binários novos. Consulta direta ao banco `gateway21_hml` confirmou a migração e mostrou uma ocorrência com recibos para dois administradores; nenhum tipo está habilitado para e-mail. Argo CD mostrou API, frontend e worker saudáveis, e `/readyz` e a raiz do frontend responderam HTTP 200. O envio SMTP real não foi exercitado; habilitar tipos em `/notificacoes` somente após conferir os destinatários administrativos e o remetente.

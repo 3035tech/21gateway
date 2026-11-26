@@ -9,8 +9,9 @@ import (
 type SMSEncoding string
 
 const (
-	SMSEncodingGSM7 SMSEncoding = "0"
-	SMSEncodingUCS2 SMSEncoding = "8"
+	SMSEncodingGSM7   SMSEncoding = "0"
+	SMSEncodingLatin1 SMSEncoding = "3"
+	SMSEncodingUCS2   SMSEncoding = "8"
 )
 
 type SubmissionState string

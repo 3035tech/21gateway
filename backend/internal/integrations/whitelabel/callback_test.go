@@ -111,6 +111,7 @@ func TestDecodeRejectsMissingOrInvalidRequiredFields(t *testing.T) {
 		strings.Replace(submissionPayload, `"message_id":"`+callbackMessageID+`"`, `"message_id":"invalid"`, 1),
 		strings.Replace(submissionPayload, `"submit_date":"2024-01-15T10:30:00.000Z"`, `"submit_date":"2024-01-15T10:30:00-03:00"`, 1),
 		strings.Replace(deliveryPayload, `"esm_class":4`, `"esm_class":0`, 1),
+		strings.Replace(moPayload, `"esm_class":0`, `"esm_class":4`, 1),
 		deliveryPayload + deliveryPayload,
 		strings.Repeat("x", maximumCallbackBytes+1),
 	} {

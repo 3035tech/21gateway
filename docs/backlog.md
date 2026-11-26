@@ -2,13 +2,11 @@
 
 ## Normalização de texto e telefone
 
-Adiado explicitamente pelo usuário em 14/10/2026: seguir com outras implementações e retornar posteriormente a este tema. Não bloquear configurações de conta, whitelist, lote e consultas por essa decisão.
+O texto foi autorizado e implementado posteriormente; ver [sms-normalization.md](sms-normalization.md). O adiamento inicial abaixo foi revogado.
 
-- Confirmar transformação de acentos/emojis: exemplo fictício “Olá, ação! 😊”, caracteres removidos/substituídos/rejeitados e quando contar os 160 caracteres.
 - Confirmar inclusão do nono dígito em entradas de dez dígitos, possíveis exceções e exemplos do legado.
-- Capturar evidência dos fontes/tráfego ou confirmação da 21 antes de ativar uma transformação.
 
-Estado atual: texto SMS normalizado conforme docs/sms-normalization.md após autorização posterior. Entrada de dez dígitos continua rejeitada e onze dígitos válidos recebem 55. Não declarar compatibilidade integral das regras telefônicas nem transformar números sem evidência.
+Estado atual: texto SMS normalizado em single/lote; limite de 160 aplicado à entrada original; limite de encoding Zoug aplicado após normalização. Entrada telefônica de dez dígitos continua rejeitada e onze dígitos válidos recebem 55. Não transformar números sem evidência. A regra do nono dígito é a única pendência de normalização.
 
 ## Dependências externas ainda necessárias
 
@@ -30,7 +28,7 @@ Telefone: interlocutor diz inserir 9 depois do DDD em números de dez dígitos d
 
 ## Evolução autorizada após a captura corrigida
 
-Usuário autorizou implementar agora. Texto normalizado em single/batch conforme docs/sms-normalization.md; adiamento anterior do texto revogado. Contagem de 160 permanece na origem até confirmação. Telefone corrigido para exemplo 516474044 → 5196474044, ainda nove/dez dígitos; corte 4/5 não confirmado. Regra telefônica permanece pendente.
+Usuário autorizou implementar o texto; normalização single/batch está concluída conforme docs/sms-normalization.md, com limite de 160 na entrada original. A decisão posterior encerrou a pendência textual. Telefone corrigido para exemplo 516474044 → 5196474044, ainda nove/dez dígitos; corte 4/5 não confirmado. Regra telefônica permanece pendente.
 
 Retenção do conteúdo MO confirmada em 90 dias pelo usuário; implementação em docs/operations.md. Prazos de metadados/backups permanecem separados. Rotação da cifra e diagnóstico preparados; infraestrutura de alertas/backup automático e carga integrada ainda pendentes.
 

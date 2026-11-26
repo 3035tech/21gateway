@@ -26,6 +26,7 @@ type SendStatus string
 
 const (
 	EncodingGSM7          Encoding      = models.SMSEncodingGSM7
+	EncodingLatin1        Encoding      = models.SMSEncodingLatin1
 	EncodingUCS2          Encoding      = models.SMSEncodingUCS2
 	MessageTypeSMS        MessageType   = "SMS"
 	CallbackNone          CallbackLevel = "NONE"

@@ -78,6 +78,11 @@ func (s *ScheduledSMSService) enqueue(ctx context.Context, credentialID uint64, 
 				reason = string(validation)
 			}
 		}
+		encoding := smsprovider.SelectEncoding(normalized)
+		if code == apperrors.CodeNone && !smsprovider.FitsProviderMessageLength(normalized, encoding) {
+			code = apperrors.CodeInvalidMessage
+			reason = "provider_message_too_long"
+		}
 		if code != apperrors.CodeNone {
 			slog.Warn("SMS item rejected before enqueue", "credential_id", credentialID, "item_index", i, "code", code, "reason", reason)
 			result[i] = failure(input, code)
@@ -94,7 +99,7 @@ func (s *ScheduledSMSService) enqueue(ctx context.Context, credentialID uint64, 
 			due = time.Unix(*input.ScheduledDate, 0).UTC()
 			scheduledAt = &due
 		}
-		attempt := models.SMSAttempt{CredentialID: credentialID, Destination: brazilCountryCode + input.Destination, CorrelationID: input.CorrelationID, Encoding: smsprovider.SelectEncoding(normalized), State: models.SubmissionPending, ScheduledAt: scheduledAt}
+		attempt := models.SMSAttempt{CredentialID: credentialID, Destination: brazilCountryCode + input.Destination, CorrelationID: input.CorrelationID, Encoding: encoding, State: models.SubmissionPending, ScheduledAt: scheduledAt}
 		if credential, ok := CredentialFromContext(ctx); ok && credential.ID == credentialID {
 			attempt.CompanyID = credential.CompanyID
 			attempt.ProviderCode = selectedSMSProvider(credential.CompanySMSProvider)
