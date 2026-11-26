@@ -32,11 +32,11 @@ func TestHTTPTranslationAndAcknowledgement(t *testing.T) {
 		if err := json.Unmarshal(data, &body); err != nil {
 			t.Error(err)
 		}
-		if body.Type != MessageTypeSMS || body.CallbackLevel != "" || body.Message != "Olá!" {
+		if body.Type != MessageTypeSMS || body.CallbackLevel != CallbackAll || body.Message != "Olá!" {
 			t.Errorf("incorrect translation: %+v", body)
 		}
-		if strings.Contains(string(data), `"callback_level"`) {
-			t.Errorf("callback_level NONE must be omitted: %s", data)
+		if !strings.Contains(string(data), `"callback_level":"ALL"`) {
+			t.Errorf("callback_level ALL must always be sent: %s", data)
 		}
 		return httpmock.NewJsonResponse(http.StatusOK, SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440000", Status: StatusSent})
 	})
@@ -51,14 +51,13 @@ func TestHTTPTranslationAndAcknowledgement(t *testing.T) {
 	}
 }
 
-func TestSendIncludesCallbackLevelOnlyWhenEnabled(t *testing.T) {
+func TestSendAlwaysIncludesCallbackLevelAll(t *testing.T) {
 	for _, tc := range []struct {
 		name  string
 		level CallbackLevel
-		want  string
 	}{
-		{name: "none omitted", level: CallbackNone},
-		{name: "all included", level: CallbackAll, want: `"callback_level":"ALL"`},
+		{name: "none overridden", level: CallbackNone},
+		{name: "all preserved", level: CallbackAll},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			transport := httpmock.NewMockTransport()
@@ -67,11 +66,8 @@ func TestSendIncludesCallbackLevelOnlyWhenEnabled(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if strings.Contains(string(data), `"callback_level"`) != (tc.want != "") {
-					t.Fatalf("callback_level presence mismatch: %s", data)
-				}
-				if tc.want != "" && !strings.Contains(string(data), tc.want) {
-					t.Fatalf("payload %s does not include %s", data, tc.want)
+				if !strings.Contains(string(data), `"callback_level":"ALL"`) {
+					t.Fatalf("payload must always include callback_level ALL: %s", data)
 				}
 				return httpmock.NewJsonResponse(http.StatusOK, SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440000", Status: StatusSent})
 			})
@@ -203,7 +199,7 @@ func TestRejectedRequestPayloadDiagnosticIsOptInAndOnlyLogs422(t *testing.T) {
 			client.SetLogRejectedRequestPayload(enabled)
 			input := SendRequest{Type: MessageTypeSMS, Message: "private-message", Encoding: EncodingGSM7, Destination: "5511999999999", Index: "42", CallbackLevel: CallbackNone}
 			requestPayload := input
-			requestPayload.CallbackLevel = ""
+			requestPayload.CallbackLevel = CallbackAll
 			requestBody, err := json.Marshal(requestPayload)
 			if err != nil {
 				t.Fatal(err)

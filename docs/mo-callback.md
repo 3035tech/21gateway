@@ -22,7 +22,7 @@ Somente HTTP 2xx confirma entrega; erros públicos tipados sem corpo remoto. Uma
 4. MO precisa do conteúdo para encaminhar/consultar: definir criptografia e retenção antes de persistir. As tentativas SMS atuais continuam sem texto; esta mudança não grava conteúdo.
 5. Worker com lease/retries e consulta /v1/consultmo, depois que semântica de datas/paginação estiver confirmada.
 
-URLs MO já cadastráveis no painel não acionam DeliverMO. Não declarar integração MO completa. Entrada interna DLR existente permanece opt-in/desabilitada; este adaptador não solicita callbacks ao fornecedor.
+URLs MO já cadastráveis no painel não acionam DeliverMO. Não declarar integração MO completa. Entrada interna DLR existente permanece opt-in/desabilitada; envios unitários à Zoug solicitam `callback_level=ALL`.
 
 ## Verificação
 
