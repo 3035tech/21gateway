@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -23,12 +24,19 @@ func TestHTTPTranslationAndAcknowledgement(t *testing.T) {
 		if r.Header.Get(tokenHeader) != "test-provider-token" || r.Header.Get("Content-Type") != "application/json" {
 			t.Error("incorrect request metadata")
 		}
-		var body SendRequest
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		data, err := io.ReadAll(r.Body)
+		if err != nil {
 			t.Error(err)
 		}
-		if body.Type != MessageTypeSMS || body.CallbackLevel != CallbackNone || body.Message != "Olá!" {
+		var body SendRequest
+		if err := json.Unmarshal(data, &body); err != nil {
+			t.Error(err)
+		}
+		if body.Type != MessageTypeSMS || body.CallbackLevel != "" || body.Message != "Olá!" {
 			t.Errorf("incorrect translation: %+v", body)
+		}
+		if strings.Contains(string(data), `"callback_level"`) {
+			t.Errorf("callback_level NONE must be omitted: %s", data)
 		}
 		return httpmock.NewJsonResponse(http.StatusOK, SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440000", Status: StatusSent})
 	})
@@ -40,6 +48,43 @@ func TestHTTPTranslationAndAcknowledgement(t *testing.T) {
 	result, err := client.Send(context.Background(), SendRequest{Type: MessageTypeSMS, Message: "Olá!", Encoding: SelectEncoding("Olá!"), Destination: "5511987654321", Index: "1", CallbackLevel: CallbackNone})
 	if err != nil || result.Status != StatusSent || transport.GetTotalCallCount() != 1 {
 		t.Fatalf("result=%+v err=%v calls=%d", result, err, transport.GetTotalCallCount())
+	}
+}
+
+func TestSendIncludesCallbackLevelOnlyWhenEnabled(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		level CallbackLevel
+		want  string
+	}{
+		{name: "none omitted", level: CallbackNone},
+		{name: "all included", level: CallbackAll, want: `"callback_level":"ALL"`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			transport := httpmock.NewMockTransport()
+			transport.RegisterResponder(http.MethodPost, testBaseURL+"/api/send", func(r *http.Request) (*http.Response, error) {
+				data, err := io.ReadAll(r.Body)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if strings.Contains(string(data), `"callback_level"`) != (tc.want != "") {
+					t.Fatalf("callback_level presence mismatch: %s", data)
+				}
+				if tc.want != "" && !strings.Contains(string(data), tc.want) {
+					t.Fatalf("payload %s does not include %s", data, tc.want)
+				}
+				return httpmock.NewJsonResponse(http.StatusOK, SendResponse{MessageID: "550e8400-e29b-41d4-a716-446655440000", Status: StatusSent})
+			})
+			client, err := NewWithTransport(testBaseURL, "test-provider-token", transport)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer client.Close()
+			_, err = client.Send(context.Background(), SendRequest{Type: MessageTypeSMS, Message: "Olá!", Encoding: SelectEncoding("Olá!"), Destination: "5511987654321", CallbackLevel: tc.level})
+			if err != nil {
+				t.Fatal(err)
+			}
+		})
 	}
 }
 
@@ -157,7 +202,9 @@ func TestRejectedRequestPayloadDiagnosticIsOptInAndOnlyLogs422(t *testing.T) {
 			defer client.Close()
 			client.SetLogRejectedRequestPayload(enabled)
 			input := SendRequest{Type: MessageTypeSMS, Message: "private-message", Encoding: EncodingGSM7, Destination: "5511999999999", Index: "42", CallbackLevel: CallbackNone}
-			requestBody, err := json.Marshal(input)
+			requestPayload := input
+			requestPayload.CallbackLevel = ""
+			requestBody, err := json.Marshal(requestPayload)
 			if err != nil {
 				t.Fatal(err)
 			}

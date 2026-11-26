@@ -40,7 +40,7 @@ func acceptanceProvider(t *testing.T) (*AccountSMSProvider, *httpmock.MockTransp
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			t.Fatal(err)
 		}
-		if r.Header.Get("X-API-TOKEN") != "acceptance-token" || body.Message != "Ola, acao!" || body.Destination != "5511987654321" || body.ReferenceID != "customer-ref" || body.CallbackLevel != whitelabel.CallbackNone {
+		if r.Header.Get("X-API-TOKEN") != "acceptance-token" || body.Message != "Ola, acao!" || body.Destination != "5511987654321" || body.ReferenceID != "customer-ref" || body.CallbackLevel != "" {
 			t.Fatal("incorrect provider translation/account")
 		}
 		return httpmock.NewJsonResponse(http.StatusOK, whitelabel.SendResponse{MessageID: providerID, Status: whitelabel.StatusSent})

@@ -58,7 +58,7 @@ type SendRequest struct {
 	Destination   string        `json:"destination_addr"`
 	ReferenceID   string        `json:"reference_id,omitempty"`
 	Index         string        `json:"index"`
-	CallbackLevel CallbackLevel `json:"callback_level"`
+	CallbackLevel CallbackLevel `json:"callback_level,omitempty"`
 }
 
 type SendResponse struct {
@@ -144,7 +144,11 @@ func (c *Client) Send(ctx context.Context, input SendRequest) (SendResponse, err
 	if !c.Enabled() {
 		return result, apperrors.Wrap(apperrors.CodeServiceUnavailable, nil)
 	}
-	body, err := json.Marshal(input)
+	payload := input
+	if payload.CallbackLevel == CallbackNone {
+		payload.CallbackLevel = ""
+	}
+	body, err := json.Marshal(payload)
 	if err != nil {
 		return result, apperrors.Wrap(apperrors.CodeInternal, err)
 	}

@@ -2,7 +2,7 @@
 
 ## Estado e camadas
 
-POST /internal/mo → validação → evento criptografado → associação por credencial/UUID → outbox → worker → POST legado ao cliente. Controller/service/model/DTO/repository/worker próprios do domínio MO. Reutiliza autenticação interna, transporte HTTP/SSRF, estados, backoff e constantes de lease/tentativas. Nenhum payload do white label foi presumido. Envio continua callback_level NONE; /v1/consultmo implementado sobre eventos locais conforme docs/legacy-mo-query.md.
+POST /internal/mo → validação → evento criptografado → associação por credencial/UUID → outbox → worker → POST legado ao cliente. Controller/service/model/DTO/repository/worker próprios do domínio MO. Reutiliza autenticação interna, transporte HTTP/SSRF, estados, backoff e constantes de lease/tentativas. Nenhum payload do white label foi presumido. Envio não solicita callbacks ao fornecedor; /v1/consultmo implementado sobre eventos locais conforme docs/legacy-mo-query.md.
 
 ## Configuração e contrato
 

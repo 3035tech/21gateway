@@ -74,7 +74,7 @@ TestPostgresScheduledQueueLeasesAndUnknownRecovery prepara prova SQL de horário
 
 Pendências explícitas: prazo máximo de agendamento/TTL e atraso aceitável após indisponibilidade; quotas de armazenamento e backpressure; cancelamento/edição de agendamento; recuperação manual/quarentena; política de metadados/backups; carga integrada/EXPLAIN. Não há descarte por idade/TTL presumidos. Jobs já vencidos durante parada são elegíveis na retomada, respeitando limites.
 
-Falhas locais conhecidas ficam nos metadados da tentativa/job. Não foi criado callback sintético para rejeição local de um agendamento; definir contrato desse aviso com a 21. DLR/MO reais do fornecedor continuam dependendo dos contratos pendentes e envio mantém callback_level NONE enquanto não homologados. Saldo e status/date permanecem pendentes. Esta implementação não declara substituição integral do legado pronta.
+Falhas locais conhecidas ficam nos metadados da tentativa/job. Não foi criado callback sintético para rejeição local de um agendamento; definir contrato desse aviso com a 21. DLR/MO reais do fornecedor continuam dependendo dos contratos pendentes e `callback_level` é omitido enquanto não houver solicitação homologada. Saldo e status/date permanecem pendentes. Esta implementação não declara substituição integral do legado pronta.
 
 Validação desta execução: go test -race ./..., go vet ./... e go build ./... passaram. Frontend lint/build e 17 testes passaram; Compose válido. Banco real não exercitado, testes PostgreSQL explicitamente pulados por ausência de DSN. Benchmark ScheduledAdmission200 ~0,682ms/200 itens em memória; baseline em docs/reviews/performance-baseline.md, sem afirmar TPS integrado.
 

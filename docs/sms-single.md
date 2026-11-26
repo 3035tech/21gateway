@@ -14,7 +14,7 @@ Basic Auth com credencial técnica ativa. Credenciais são criadas via CLI e arm
 
 O envelope sms deve conter exatamente um item. messageText não pode ser vazio/espaços e aceita até 160 caracteres Unicode. destination exige exatamente 11 dígitos (DDD+número), conforme manual legado; o adaptador acrescenta 55. correlationId é opcional e limitado a 50 caracteres. scheduledDate ausente/nulo/zero representa envio imediato; qualquer valor diferente de zero é rejeitado explicitamente.
 
-messageText → message; destination → destination_addr com 55; correlationId → reference_id; ID interno → index. type é SMS. callback_level é NONE. Não é enviado callback_url nesta etapa.
+messageText → message; destination → destination_addr com 55; correlationId → reference_id; ID interno → index. type é SMS. `callback_level` é omitido quando callbacks não são solicitados; `ALL` só é enviado quando o ingresso Zoug está habilitado. Não é enviado `callback_url` nesta etapa.
 
 O texto é normalizado antes do envio conforme [sms-normalization.md](sms-normalization.md). O seletor usa encoding 0 para GSM7, 3 para Latin1 e 8 para UCS2. O limite de entrada legado de 160 caracteres é aplicado antes da normalização; adicionalmente, o gateway aplica os limites Zoug de 160 caracteres para GSM7 e 70 para Latin1/UCS2 depois de escolher o encoding. Mensagens acima do limite do encoding são recusadas antes da persistência ou chamada ao fornecedor; o gateway não segmenta nem trunca mensagens.
 
