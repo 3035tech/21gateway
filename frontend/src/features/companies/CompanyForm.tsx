@@ -128,21 +128,24 @@ export function CompanyForm({
       title={company ? t('companies.editTitle') : t('companies.new')}
       onClose={onClose}
       busy={mutation.isPending}
+      wide
     >
       <form
         className="space-y-5"
         onSubmit={form.handleSubmit(submitCompany)}
       >
-        <label className="field">
-          {t('common.name')}
-          <input className="form-control" {...form.register('name')} />
-          <FieldError message={form.formState.errors.name?.message} />
-        </label>
-        <label className="field">
-          {t('common.reference')}
-          <input className="form-control" {...form.register('reference')} />
-          <FieldError message={form.formState.errors.reference?.message} />
-        </label>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="field">
+            {t('common.name')}
+            <input className="form-control" {...form.register('name')} />
+            <FieldError message={form.formState.errors.name?.message} />
+          </label>
+          <label className="field">
+            {t('common.reference')}
+            <input className="form-control" {...form.register('reference')} />
+            <FieldError message={form.formState.errors.reference?.message} />
+          </label>
+        </div>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" {...form.register('active')} />
           {t('companies.active')}

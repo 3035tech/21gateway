@@ -30,7 +30,7 @@ export function Dialog({
       }}
       aria-busy={busy}
       aria-label={title}
-      className={`m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] ${wide ? 'max-w-3xl' : 'max-w-xl'} overflow-y-auto rounded-2xl bg-white p-5 shadow-xl backdrop:bg-slate-950/40 sm:p-6`}
+      className={`m-auto w-[calc(100%_-_2rem)] ${wide ? 'max-h-[95dvh] max-w-3xl' : 'max-h-[90dvh] max-w-xl'} overflow-y-auto rounded-2xl bg-white p-5 shadow-xl backdrop:bg-slate-950/40 sm:p-6`}
     >
       <div className="mb-6 flex items-center justify-between gap-4">
         <h2 className="text-xl font-bold">{title}</h2>
