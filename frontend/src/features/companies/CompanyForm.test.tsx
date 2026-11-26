@@ -83,6 +83,7 @@ it('submits the provider-issued token on the company record', async () => {
       name: 'Empresa teste',
       reference: 'CLI-004',
       active: true,
+      smsProvider: 'zoug',
       providerToken: 'provider-test-token',
     }),
   )
@@ -263,6 +264,7 @@ it('preserves planned routes on unrelated edits and removes them only on request
       name: 'Empresa teste',
       reference: 'CLI-008',
       active: true,
+      smsProvider: 'zoug',
     }),
   )
   first.unmount()
@@ -283,6 +285,7 @@ it('preserves planned routes on unrelated edits and removes them only on request
       name: 'Empresa teste',
       reference: 'CLI-008',
       active: true,
+      smsProvider: 'zoug',
       plannedRoutes: [],
     }),
   )

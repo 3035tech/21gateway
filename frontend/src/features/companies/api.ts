@@ -85,7 +85,7 @@ export async function saveCompany(id: number | undefined, body: CompanyBody) {
     name: body.name,
     reference: body.reference,
     active: body.active,
-    ...(!id ? { smsProvider: body.smsProvider ?? SMS_PROVIDER_ZOUG } : {}),
+    smsProvider: body.smsProvider ?? SMS_PROVIDER_ZOUG,
     ...(body.plannedRoutes !== undefined
       ? { plannedRoutes: body.plannedRoutes }
       : {}),
